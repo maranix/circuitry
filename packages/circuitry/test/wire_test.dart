@@ -7,51 +7,30 @@ enum Role { user, admin }
 
 enum CacheKind { fast, persistent }
 
-final class DatabaseService {
-  final String path;
-  DatabaseService([this.path = 'memory.db']);
-}
+final class DatabaseService([final String path = 'memory.db']);
 
-final class CacheService {
-  final CacheKind kind;
-  CacheService([this.kind = CacheKind.fast]);
-}
+final class CacheService([final CacheKind kind = CacheKind.fast]);
 
-final class AuthService {
-  final String secret;
-  AuthService([this.secret = 'default-secret']);
-}
+final class AuthService([final String secret = 'default-secret']);
 
-final class UserService {
-  final DatabaseService db;
-  UserService(this.db);
-}
+final class UserService(final DatabaseService db);
 
-final class OrderService {
-  final DatabaseService db;
-  final CacheService cache;
-  OrderService(this.db, this.cache);
-}
+final class OrderService(final DatabaseService db, final CacheService cache);
 
-final class AppService {
-  final DatabaseService db;
-  final CacheService cache;
-  final AuthService auth;
-  AppService(this.db, this.cache, this.auth);
-}
+final class AppService(
+  final DatabaseService db,
+  final CacheService cache,
+  final AuthService auth,
+);
 
-final class NotificationService {
-  final String channel;
-  NotificationService([this.channel = 'alerts']);
-}
+final class NotificationService([final String channel = 'alerts']);
 
-final class ComplexAppService {
-  final DatabaseService db;
-  final CacheService cache;
-  final AuthService auth;
-  final NotificationService notifications;
-  ComplexAppService(this.db, this.cache, this.auth, this.notifications);
-}
+final class ComplexAppService(
+  final DatabaseService db,
+  final CacheService cache,
+  final AuthService auth,
+  final NotificationService notifications,
+);
 
 void main() {
   group('WireKey and Wire Definition Specs', () {

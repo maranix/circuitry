@@ -4,20 +4,11 @@ import 'package:flutter/widgets.dart';
 import 'package:circuitry_flutter/circuitry_flutter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-final class _RepositoryA {
-  final String name;
-  const _RepositoryA([this.name = 'repo_a']);
-}
+final class const _RepositoryA([final String name = 'repo_a']);
 
-final class _RepositoryB {
-  final _RepositoryA a;
-  const _RepositoryB(this.a);
-}
+final class const _RepositoryB(final _RepositoryA a);
 
-final class _AsyncService {
-  final String status;
-  _AsyncService(this.status);
-}
+final class const _AsyncService(final String status);
 
 void main() {
   group('CircuitState Hierarchy', () {
@@ -140,7 +131,7 @@ void main() {
         await tester.pumpWidget(const SizedBox());
 
         // Now complete the async factory
-        final service = _AsyncService('abandoned');
+        const service = _AsyncService('abandoned');
         completer.complete(service);
 
         // Yield to allow microtask/future callbacks to run

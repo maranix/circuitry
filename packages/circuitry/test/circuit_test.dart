@@ -7,102 +7,82 @@ enum Environment { dev, staging, prod }
 
 enum Role { user, admin }
 
-final class DatabaseService {
-  final String path;
-  final void Function(String event)? onLog;
-
-  DatabaseService(this.path, [this.onLog]);
-
+final class DatabaseService(
+  final String path, [
+  final void Function(String event)? onLog,
+]) {
   void dispose() {
     onLog?.call('dispose:DatabaseService($path)');
   }
 }
 
-final class CacheService {
-  final String name;
-  final void Function(String event)? onLog;
-
-  CacheService(this.name, [this.onLog]);
-
+final class CacheService(
+  final String name, [
+  final void Function(String event)? onLog,
+]) {
   void dispose() {
     onLog?.call('dispose:CacheService($name)');
   }
 }
 
-final class UserService {
-  final DatabaseService db;
-  final void Function(String event)? onLog;
-
-  UserService(this.db, [this.onLog]);
-
+final class UserService(
+  final DatabaseService db, [
+  final void Function(String event)? onLog,
+]) {
   void dispose() {
     onLog?.call('dispose:UserService');
   }
 }
 
-final class OrderService {
-  final UserService user;
-  final CacheService cache;
-  final void Function(String event)? onLog;
-
-  OrderService(this.user, this.cache, [this.onLog]);
-
+final class OrderService(
+  final UserService user,
+  final CacheService cache, [
+  final void Function(String event)? onLog,
+]) {
   void dispose() {
     onLog?.call('dispose:OrderService');
   }
 }
 
-final class ConfigService {
-  final String env;
-  final void Function(String event)? onLog;
-
-  ConfigService(this.env, [this.onLog]);
-
+final class ConfigService(
+  final String env, [
+  final void Function(String event)? onLog,
+]) {
   void dispose() {
     onLog?.call('dispose:ConfigService');
   }
 }
 
-final class LoggerService {
-  final void Function(String event)? onLog;
-
-  LoggerService([this.onLog]);
-
+final class LoggerService([final void Function(String event)? onLog]) {
   void dispose() {
     onLog?.call('dispose:LoggerService');
   }
 }
 
-final class SessionService {
-  final CacheService cache;
-  final void Function(String event)? onLog;
-
-  SessionService(this.cache, [this.onLog]);
-
+final class SessionService(
+  final CacheService cache, [
+  final void Function(String event)? onLog,
+]) {
   void dispose() {
     onLog?.call('dispose:SessionService');
   }
 }
 
-final class AnalyticsService {
-  final UserService user;
-  final SessionService session;
-  final void Function(String event)? onLog;
-
-  AnalyticsService(this.user, this.session, [this.onLog]);
-
+final class AnalyticsService(
+  final UserService user,
+  final SessionService session, [
+  final void Function(String event)? onLog,
+]) {
   void dispose() {
     onLog?.call('dispose:AnalyticsService');
   }
 }
 
-final class AppCoordinator {
-  final AnalyticsService analytics;
-  final OrderService order;
-  final void Function(String event)? onLog;
-
-  AppCoordinator(this.analytics, this.order, [this.onLog]);
-
+final class AppCoordinator(
+  final AnalyticsService analytics,
+  final OrderService order, [
+  final void Function(String event)? onLog,
+]) {
   void dispose() {
     onLog?.call('dispose:AppCoordinator');
   }
