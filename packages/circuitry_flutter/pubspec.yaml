@@ -1,8 +1,18 @@
 name: circuitry_flutter
-description: Circuitry companion package for Flutter SDK 
+description: Flutter bridge for Circuitry with InheritedWidget scoping, reactive state matching, and async lifecycle management.
 version: 0.1.0
+homepage: https://github.com/maranix/circuitry
+repository: https://github.com/maranix/circuitry/tree/main/packages/circuitry_flutter
+issue_tracker: https://github.com/maranix/circuitry/issues?q=is%3Aissue+is%3Aopen+label%3Acircuitry_flutter
 
 resolution: workspace
+
+topics:
+  - dependency-injection
+  - di
+  - ioc
+  - flutter
+  - state-management
 
 environment:
   sdk: ^3.14.0

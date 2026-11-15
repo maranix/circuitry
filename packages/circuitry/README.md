@@ -9,6 +9,12 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
 
 ---
 
+## Architecture Overview
+
+![Circuitry Architecture](https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_architecture.png)
+
+---
+
 ## Features
 
 - **Zero-Codegen & Reflection-Free**: Pure modern Dart 3.14+ utilizing primary constructors, pattern matching, and record tuples `(Type, Enum?)` as wire keys.

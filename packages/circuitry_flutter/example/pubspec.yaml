@@ -1,0 +1,20 @@
+name: circuitry_flutter_example
+description: Demonstrates how to use circuitry_flutter.
+publish_to: 'none'
+
+resolution: workspace
+
+environment:
+  sdk: ^3.14.0
+  flutter: ">=3.50.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  circuitry_flutter:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

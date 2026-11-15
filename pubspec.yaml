@@ -1,5 +1,8 @@
 name: circuitry_workspace
 description: Monorepo workspace for Circuitry dependency injection engine and Flutter bridge.
+homepage: https://github.com/maranix/circuitry
+repository: https://github.com/maranix/circuitry
+issue_tracker: https://github.com/maranix/circuitry/issues
 publish_to: 'none'
 
 environment:
@@ -8,3 +11,4 @@ environment:
 workspace:
   - packages/circuitry
   - packages/circuitry_flutter
+  - packages/circuitry_flutter/example

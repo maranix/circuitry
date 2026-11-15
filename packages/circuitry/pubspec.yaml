@@ -1,7 +1,17 @@
 name: circuitry
 description: A pure Dart 3 zero-codegen, Directed Acyclic Graph (DAG) based dependency injection engine.
 version: 0.1.0
+homepage: https://github.com/maranix/circuitry
+repository: https://github.com/maranix/circuitry/tree/main/packages/circuitry
+issue_tracker: https://github.com/maranix/circuitry/issues?q=is%3Aissue+is%3Aopen+label%3Acircuitry
 resolution: workspace
+
+topics:
+  - dependency-injection
+  - di
+  - ioc
+  - dag
+  - architecture
 
 environment:
   sdk: ^3.14.0

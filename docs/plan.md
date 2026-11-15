@@ -63,6 +63,57 @@
     - [x] Remove `part` and `part of` directives, adding appropriate package imports.
     - [x] Update `docs/decisions.md`, `docs/architecture.md`, and `docs/plan.md`.
     - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
+- [x] Configure pubspec.yaml Metadata and Topics for pub.dev Discovery
+  - Requirements:
+    - Add `homepage`, `repository`, and `issue_tracker` links pointing to `github.com/maranix/circuitry` across `packages/circuitry/pubspec.yaml` and `packages/circuitry_flutter/pubspec.yaml`.
+    - Add relevant, pub.dev-compliant topics (up to 5 per package) for discovery:
+      - `circuitry`: `dependency-injection`, `di`, `ioc`, `dag`, `architecture`
+      - `circuitry_flutter`: `dependency-injection`, `di`, `ioc`, `flutter`, `state-management`
+    - Refine package descriptions to ensure concise, informative presentation within pub.dev scoring recommendations.
+    - Add repository and issue tracker metadata to root `pubspec.yaml` for workspace consistency.
+    - Synchronize project documentation (`docs/decisions.md`, `docs/architecture.md`, `README.md`).
+    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, and test suites.
+  - Sub-steps:
+    - [x] Update `packages/circuitry/pubspec.yaml`.
+    - [x] Update `packages/circuitry_flutter/pubspec.yaml`.
+    - [x] Update root `pubspec.yaml`.
+    - [x] Record decision in `docs/decisions.md` and sync `docs/architecture.md`.
+    - [x] Run verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
+- [x] Add Package-Specific Issue Tracker Labels, CHANGELOGs, and Package Licenses
+  - Requirements:
+    - Update `issue_tracker` in `packages/circuitry/pubspec.yaml` to include package label filter `label%3Acircuitry`.
+    - Update `issue_tracker` in `packages/circuitry_flutter/pubspec.yaml` to include package label filter `label%3Acircuitry_flutter`.
+    - Create `packages/circuitry/CHANGELOG.md` detailing the 0.1.0 initial release.
+    - Create `packages/circuitry_flutter/CHANGELOG.md` detailing the 0.1.0 initial release.
+    - Create root `CHANGELOG.md` summarizing monorepo releases.
+    - Copy MIT `LICENSE` into `packages/circuitry/` and `packages/circuitry_flutter/` to satisfy `pub publish` validation requirements.
+    - Synchronize project documentation (`docs/decisions.md`, `docs/architecture.md`).
+    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites, and `pub publish --dry-run`.
+  - Sub-steps:
+    - [x] Update `issue_tracker` URLs in package pubspecs with package-specific labels.
+    - [x] Create `packages/circuitry/CHANGELOG.md`.
+    - [x] Create `packages/circuitry_flutter/CHANGELOG.md`.
+    - [x] Create root `CHANGELOG.md`.
+    - [x] Copy `LICENSE` into both package directories.
+    - [x] Record decision in `docs/decisions.md` and sync `docs/architecture.md`.
+    - [x] Run verification gate and publish dry-run checks.
+- [x] Provide Package Examples and Visual Architecture Diagram Asset
+  - Requirements:
+    - Create runnable example for `circuitry` at `packages/circuitry/example/main.dart` showcasing DAG resolution, accumulator chaining, tagged singletons, and disposal.
+    - Create runnable Flutter example for `circuitry_flutter` at `packages/circuitry_flutter/example/lib/main.dart` and `packages/circuitry_flutter/example/pubspec.yaml` showcasing `CircuitProvider`, `CircuitState` matching, and widget context resolution.
+    - Create visual diagram asset of Circuitry DAG workflow, wave compilation, and Flutter bridge (`assets/circuitry_architecture.svg` and `assets/circuitry_architecture.png`).
+    - Reference the asset across root `README.md`, `packages/circuitry/README.md`, and `packages/circuitry_flutter/README.md`.
+    - Include Mermaid diagram in `docs/architecture.md`.
+    - Record decisions in `docs/decisions.md` and sync `docs/architecture.md`.
+    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, running both examples, and full test suites.
+  - Sub-steps:
+    - [x] Create `packages/circuitry/example/main.dart` and verify execution.
+    - [x] Create `packages/circuitry_flutter/example/lib/main.dart` and `packages/circuitry_flutter/example/pubspec.yaml`.
+    - [x] Generate visual diagram asset `assets/circuitry_architecture.svg` and `assets/circuitry_architecture.png`.
+    - [x] Update READMEs to embed the visual diagram asset.
+    - [x] Add Mermaid diagram to `docs/architecture.md`.
+    - [x] Record decision in `docs/decisions.md`.
+    - [x] Run full verification gate (`dart format`, `flutter analyze`, test suites, publish dry-runs).
 
 ## Next
 - [ ] Publish v0.1.0 to pub.dev

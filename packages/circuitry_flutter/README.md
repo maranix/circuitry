@@ -7,6 +7,12 @@ Flutter bridge for [`circuitry`](https://pub.dev/packages/circuitry) — providi
 
 ---
 
+## Architecture Overview
+
+![Circuitry Architecture](https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_architecture.png)
+
+---
+
 ## Features
 
 - **Sealed `CircuitState` Hierarchy**: Pattern match `CircuitBuilding`, `CircuitReady`, and `CircuitFailure` using Dart 3 switch expressions.

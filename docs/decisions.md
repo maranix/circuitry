@@ -1,5 +1,42 @@
 # Decisions
 
+## 2026-11-15: Package Examples and Visual Architecture Diagram Asset
+
+- **Status:** agreed
+- **Request:** Add runnable examples for each package (`circuitry` and `circuitry_flutter`) to satisfy pub.dev scoring requirements, and provide a visual representation of how Circuitry works reusable across all READMEs as an asset.
+- **Scope:** `packages/circuitry/example/`, `packages/circuitry_flutter/example/`, `assets/`, `docs/architecture.md`, and all package READMEs.
+- **Choices:**
+  - **Pure Dart Example (`packages/circuitry/example/main.dart`):**
+    - Standalone runnable `example/main.dart` demonstrating tagged wires, asynchronous connection with `onDispose` hooks, constructor tear-offs, and multi-dependency `.takes<A>().takes<B>()` chaining.
+  - **Flutter Example App (`packages/circuitry_flutter/example/`):**
+    - Complete Flutter example with `example/pubspec.yaml` and `example/lib/main.dart` showcasing `CircuitProvider`, `CircuitState` pattern matching (`CircuitBuilding`, `CircuitReady`, `CircuitFailure`), and scoped context retrieval with `CircuitProvider.of(context)`.
+    - Linked to root `pubspec.yaml` workspace with `resolution: workspace`.
+  - **Visual Diagram Asset & Reusability (`assets/circuitry_architecture.png` & `.svg`):**
+    - High-resolution SVG and 1600px Retina PNG asset generated in `assets/circuitry_architecture.png` and `assets/circuitry_architecture.svg` illustrating declarative wires, DAG validation, parallel topological waves, runtime container, and Flutter bridge.
+    - Referenced across root `README.md`, `packages/circuitry/README.md`, and `packages/circuitry_flutter/README.md` via GitHub raw URL so images render correctly on both GitHub and pub.dev without broken relative subfolder paths.
+    - Embedded accompanying Mermaid flowchart in `docs/architecture.md`.
+
+## 2026-11-15: Metadata and Topics Configuration for pub.dev Discovery
+
+- **Status:** agreed
+- **Request:** Update `pubspec.yaml` with appropriate repository details (`homepage`, `repository`, `issue_tracker`) with package-specific issue labels, discovery topics, `CHANGELOG.md` files, and package-level `LICENSE` files for pub.dev across both packages using `github.com/maranix/circuitry`.
+- **Scope:** `packages/circuitry`, `packages/circuitry_flutter`, root workspace configuration, and project documentation.
+- **Choices:**
+  - **Repository & Issue Tracker URLs:**
+    - `homepage`: `https://github.com/maranix/circuitry` (unified landing repository).
+    - `repository`: Deep-linked to respective monorepo tree paths (`https://github.com/maranix/circuitry/tree/main/packages/circuitry` and `https://github.com/maranix/circuitry/tree/main/packages/circuitry_flutter`), following pub.dev best practices for monorepo packages so directory links accurately land on package sources.
+    - `issue_tracker`: Filtered with package-specific labels so users and maintainers directly see package-scoped issues:
+      - `packages/circuitry`: `https://github.com/maranix/circuitry/issues?q=is%3Aissue+is%3Aopen+label%3Acircuitry`
+      - `packages/circuitry_flutter`: `https://github.com/maranix/circuitry/issues?q=is%3Aissue+is%3Aopen+label%3Acircuitry_flutter`
+  - **Discovery Topics (Maximum 5 per Package):**
+    - `packages/circuitry`: `dependency-injection`, `di`, `ioc`, `dag`, `architecture`.
+    - `packages/circuitry_flutter`: `dependency-injection`, `di`, `ioc`, `flutter`, `state-management`.
+  - **Changelog & Licensing:**
+    - Standard `CHANGELOG.md` files created in `packages/circuitry/`, `packages/circuitry_flutter/`, and repository root documenting v0.1.0 initial features.
+    - Root MIT `LICENSE` copied into `packages/circuitry/LICENSE` and `packages/circuitry_flutter/LICENSE` to satisfy pub.dev package publishing validation.
+  - **Package Descriptions:**
+    - Refined `circuitry_flutter` description to 122 characters without trailing whitespace, staying within pub.dev's optimal 60–180 character threshold.
+
 ## 2026-11-15: Elimination of `part` / `part of` in Core Engine and Introduction of `wire.connect(circuit)`
 
 - **Status:** agreed

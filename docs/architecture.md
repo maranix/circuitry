@@ -34,6 +34,56 @@ circuitry/
 
 ---
 
+## Visual Architecture
+
+![Circuitry Architecture](https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_architecture.png)
+
+```mermaid
+flowchart TD
+  subgraph Declaration["1. Declarative Wires"]
+    W1["Wire&lt;T&gt;<br/>(Lazy synchronous)"]
+    W2["AsyncWire&lt;T&gt;<br/>(Topological async wave)"]
+    K["(Type, Enum?) Record Keys"]
+    TC[".takes&lt;A&gt;().to(...) Chaining"]
+  end
+
+  subgraph Compilation["2. DAG Compiler &amp; Validation"]
+    CB["Circuit.build(wires)"]
+    CD["Cycle Detection (DFS)"]
+    MD["Missing Dependency Check"]
+    DD["Duplicate Key Check"]
+  end
+
+  subgraph Waves["3. Parallel Topological Waves"]
+    Wave0["Wave 0 (Roots)<br/>Async: Config | Sync: Logger"]
+    Wave1["Wave 1 (Services)<br/>Async: Database | Async: ApiClient"]
+    Wave2["Wave 2 (Consumers)<br/>Sync: UserService | Sync: Orders"]
+    Wave0 --> Wave1 --> Wave2
+  end
+
+  subgraph Container["4. Compiled Circuit Container"]
+    CR["O(1) circuit.get&lt;T&gt;()"]
+    TR["circuit.getTagged&lt;T, K&gt;(tag)"]
+    LE["Lazy On-Demand Instantiation"]
+    DISP["Reverse Wave Disposal (Wave 2 -&gt; 1 -&gt; 0)"]
+  end
+
+  subgraph Flutter["5. Flutter Bridge (circuitry_flutter)"]
+    CP["CircuitProvider(wires: [...])"]
+    CS["CircuitState Pattern Matching<br/>Building | Ready | Failure"]
+    IS["InheritedWidget Context Scope"]
+    EP["Epoch Counter (Race Prevention)"]
+    UM["Automatic Unmount Cleanup"]
+  end
+
+  Declaration --> Compilation
+  Compilation --> Waves
+  Waves --> Container
+  Container --> Flutter
+```
+
+---
+
 ## Seams, Layer Boundaries & Decoupling Principles
 
 ### 1. Pure Dart Engine Independence
@@ -70,6 +120,12 @@ circuitry/
 ### 6. Reverse Topological Wave Disposal
 - `Circuit.dispose()` performs idempotent teardown in reverse topological dependency waves (`leaves -> roots`), ensuring consumers are disposed before their underlying dependencies.
 - Executes `onDispose` callbacks concurrently across each level, aggregating failures into `DisposalException`. Subsequent calls are safe no-ops.
+
+### 7. Package Metadata & pub.dev Discovery
+- Centralizes project links on `https://github.com/maranix/circuitry` with issues routed to package-specific label queries (`label:circuitry` and `label:circuitry_flutter`).
+- Subpackage repository fields are deep-linked to their tree directories (`packages/circuitry` and `packages/circuitry_flutter`) to enable direct file browsing from pub.dev.
+- Curates up to 5 lowercase slug discovery topics per package targeting DI, IoC, DAG, Flutter, and architectural workflows.
+- Maintains standalone `CHANGELOG.md` and MIT `LICENSE` files within each package to satisfy pub publishing requirements.
 
 ---
 
