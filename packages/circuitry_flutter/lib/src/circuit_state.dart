@@ -1,4 +1,4 @@
-part of '../circuitry_flutter.dart';
+import 'package:circuitry/circuitry.dart';
 
 /// Sealed hierarchy representing the compilation and readiness state of a [Circuit].
 sealed class const CircuitState() {
