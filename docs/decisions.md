@@ -8,7 +8,7 @@
 - **Choices:**
   - **Modular `src/` Layout & Library Encapsulation (`part` / `part of`):**
     - `packages/circuitry`: `lib/circuitry.dart` exports `src/circuit.dart` and `src/exceptions.dart`, where `src/circuit.dart` declares `part './wire.dart';`. This allows `Circuit` to directly invoke the library-private factory `_create` on `Wire` and `AsyncWire` without any unnecessary `createInstance` public redirection method, guaranteeing that internal entities remain private to the package.
-    - `packages/circuitry_flutter`: `lib/circuitry_flutter.dart` acts as the library declaring `part 'src/circuit_provider.dart';`, `part 'src/circuit_scope.dart';`, and `part 'src/circuit_state.dart';`. The internal `_CircuitScope` `InheritedWidget` remains strictly private and unexported.
+    - `packages/circuitry_flutter`: `lib/circuitry_flutter.dart` exports `src/circuit_provider.dart` and `src/circuit_state.dart`. The internal implementation details (`_CircuitWireProvider`, `_CircuitValueProvider`, and `_CircuitScope`) are kept strictly private to `src/circuit_provider.dart`, eliminating unnecessary separate part files while exposing a clean public API (`CircuitProvider`, `CircuitStateWidgetBuilder`, `CircuitState`).
   - **Modern Concise & Primary Constructors:**
     - Adopt modern concise constructor declarations (`new(...)`, `new _(...)`, `static tag(...) => Wire<T>._(...)`) in `Wire`, `AsyncWire`, `WireBuilder`, `AsyncWireBuilder`, and `Circuit`.
     - Retain primary constructors (`final class const ...`, `sealed class const ...`) across exception hierarchies and test fixtures.

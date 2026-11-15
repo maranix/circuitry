@@ -24,7 +24,7 @@
 - [x] Refactor Monorepo to Modular `src/` Architecture and Dart 3.14+ Primary Constructors
   - Requirements:
     - Modularize `packages/circuitry/lib/` into separate domain units under `lib/src/` (`exceptions.dart`, `wire.dart`, `circuit.dart`) and expose them via public barrel file `lib/circuitry.dart`.
-    - Modularize `packages/circuitry_flutter/lib/` into separate units under `lib/src/` (`circuit_state.dart`, `circuit_scope.dart`, `circuit_provider.dart`) and expose via public barrel file `lib/circuitry_flutter.dart`.
+    - Modularize `packages/circuitry_flutter/lib/` into separate units under `lib/src/` (`circuit_state.dart`, `circuit_provider.dart` with internal `_CircuitScope`) and expose via public barrel file `lib/circuitry_flutter.dart`.
     - Eliminate redundant type aliases and remove unnecessary public `createInstance` redirection methods by leveraging library-level `part of` encapsulation so `Circuit` accesses `_create` directly without exposing internal details to package consumers.
     - Introduce strongly typed and documented functional contracts (`WireFactory`, `AsyncWireFactory`, `WireBuilderFactory`, `AsyncWireBuilderFactory`, `WireDependencyResolver`, `WireDisposer`).
     - Refactor classes across production code and test suites (`wire_test.dart`, `circuit_test.dart`, `circuit_provider_test.dart`) to use Dart 3.14+ primary constructors and concise constructor syntax.

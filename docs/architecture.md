@@ -18,9 +18,8 @@ circuitry/
 │   └── circuitry_flutter/         # Flutter framework bridge
 │       ├── lib/
 │       │   ├── circuitry_flutter.dart # Library entry point and pure Dart re-export
-│       │   └── src/               # Modular part files
-│       │       ├── circuit_provider.dart # CircuitProvider widget declarations
-│       │       ├── circuit_scope.dart    # _CircuitScope InheritedWidget (internal)
+│       │   └── src/               # Flutter bridge implementation
+│       │       ├── circuit_provider.dart # CircuitProvider widget declarations and internal _CircuitScope
 │       │       └── circuit_state.dart    # CircuitState sealed hierarchy
 │       └── test/                  # Widget & lifecycle tests
 ├── docs/
