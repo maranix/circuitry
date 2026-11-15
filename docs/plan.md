@@ -50,6 +50,18 @@
     - [x] Configure export hide list in `packages/circuitry/lib/circuitry.dart`.
     - [x] Update `docs/decisions.md` and `docs/architecture.md`.
     - [x] Run verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
+- [x] Eliminate `part` / `part of` in Core Engine and Introduce `wire.bind(circuit)`
+  - Requirements:
+    - Decouple `circuit.dart`, `wire.dart`, and `exceptions.dart` into standalone libraries using standard package imports.
+    - Replace raw closure property access `wire.create` with an explicit semantic method `bind(Circuit circuit)` defined on `CircuitWire`, `Wire<T>`, and `AsyncWire<T>`.
+    - Keep underlying `_create` closure fields private to `wire.dart`.
+    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, and full test suite.
+  - Sub-steps:
+    - [x] Define `FutureOr<Object?> bind(Circuit circuit)` on `CircuitWire` and implement on `Wire<T>` and `AsyncWire<T>`.
+    - [x] Update `Circuit` to call `wire.bind(circuit)` and `wire.bind(this)`.
+    - [x] Remove `part` and `part of` directives, adding appropriate package imports.
+    - [x] Update `docs/decisions.md`, `docs/architecture.md`, and `docs/plan.md`.
+    - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
 
 ## Next
 - [ ] Publish v0.1.0 to pub.dev

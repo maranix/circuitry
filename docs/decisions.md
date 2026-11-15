@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-11-15: Elimination of `part` / `part of` in Core Engine and Introduction of `wire.bind(circuit)`
+
+- **Status:** agreed
+- **Request:** Eliminate `part` and `part of` directives across `packages/circuitry`, converting `circuit.dart`, `wire.dart`, and `exceptions.dart` into independent libraries. Replace internal closure field access `wire.create(this)` with an explicit method `wire.bind(circuit)`.
+- **Scope:** `packages/circuitry` module architecture and public contract.
+- **Choices:**
+  - **Modular Independent Libraries:**
+    - `packages/circuitry/lib/circuitry.dart` exports `src/circuit.dart`, `src/exceptions.dart`, and `src/wire.dart` (hiding internal builder classes and internal typedefs).
+    - `packages/circuitry/lib/src/circuit.dart`, `wire.dart`, and `exceptions.dart` use standard package imports (`import 'package:circuitry/src/...'`) without `part` / `part of` directives, mirroring the modular architecture of `circuitry_flutter`.
+  - **Introduction of `bind(Circuit circuit)` Method:**
+    - Defined on `CircuitWire`: `FutureOr<Object?> bind(Circuit circuit)`.
+    - Overridden on `Wire<T>`: `T bind(Circuit circuit) => _create(circuit);` (returns synchronous `T`).
+    - Overridden on `AsyncWire<T>`: `Future<T> bind(Circuit circuit) => _create(circuit);` (returns `Future<T>`).
+    - The underlying closure `_create` remains strictly private to `wire.dart`, encapsulated behind the clean `wire.bind(circuit)` semantic method.
+    - `Circuit` invokes `await wire.bind(circuit)` during asynchronous wave resolution and `wire.bind(this)` during lazy synchronous singleton resolution.
+
 ## 2026-11-15: Encapsulation of Intermediate Builders and Internal Factories
 
 - **Status:** agreed

@@ -10,7 +10,7 @@ circuitry/
 │   ├── circuitry/                 # Pure Dart runtime dependency injection engine
 │   │   ├── lib/
 │   │   │   ├── circuitry.dart     # Library entry point (wires, circuit, exceptions)
-│   │   │   └── src/               # Modular part files
+│   │   │   └── src/               # Modular source files
 │   │   │       ├── circuit.dart   # Circuit container and DAG compiler
 │   │   │       ├── exceptions.dart# CircuitException hierarchy with primary constructors
 │   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, builders
