@@ -4,20 +4,16 @@ import 'package:circuitry/circuitry.dart';
 enum Environment { dev, prod }
 
 /// Configuration class demonstrating primary constructors.
-final class DatabaseConfig {
-  const DatabaseConfig({required this.host, required this.port});
-
-  final String host;
-  final int port;
-}
+final class const DatabaseConfig({
+  required final String host,
+  required final int port,
+});
 
 /// Simulated database service with asynchronous initialization and disposal.
-final class DatabaseService {
-  DatabaseService({required this.config, required this.sessionId});
-
-  final DatabaseConfig config;
-  final String sessionId;
-
+final class DatabaseService({
+  required final DatabaseConfig config,
+  required final String sessionId,
+}) {
   static Future<DatabaseService> connect(DatabaseConfig config) async {
     // Simulate asynchronous connection handshake
     await Future<void>.delayed(const Duration(milliseconds: 10));
@@ -33,21 +29,15 @@ final class DatabaseService {
 }
 
 /// Authentication service depending synchronously on [DatabaseService].
-final class AuthService {
-  const AuthService({required this.database});
-
-  final DatabaseService database;
-
+final class const AuthService({required final DatabaseService database}) {
   bool authenticate(String token) => token.isNotEmpty;
 }
 
 /// User domain service depending on both [AuthService] and [DatabaseService].
-final class UserService {
-  const UserService({required this.auth, required this.database});
-
-  final AuthService auth;
-  final DatabaseService database;
-
+final class const UserService({
+  required final AuthService auth,
+  required final DatabaseService database,
+}) {
   String getUserStatus(String userId) {
     if (!auth.authenticate('valid-token')) {
       return 'unauthenticated';

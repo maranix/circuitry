@@ -7,6 +7,8 @@ void main() {
 
 /// Simple logging service.
 final class LoggerService {
+  static Wire<LoggerService> get wire => .new(LoggerService.new);
+
   void log(String message) {
     // ignore: avoid_print
     print('[AppLog] $message');
@@ -14,35 +16,33 @@ final class LoggerService {
 }
 
 /// Mock database service that requires an async connection handshake.
-final class AppDatabase {
-  AppDatabase({required this.connectionString});
-
-  final String connectionString;
-
+final class AppDatabase({
+  required final String connectionString,
+  final LoggerService? _logger,
+}) {
   static Future<AppDatabase> connect(LoggerService logger) async {
     logger.log('Connecting to database...');
     await Future<void>.delayed(const Duration(milliseconds: 300));
     logger.log('Database connected successfully.');
-    return AppDatabase(connectionString: 'db://production.cluster');
+    return AppDatabase(
+      connectionString: 'db://production.cluster',
+      logger: logger,
+    );
   }
 
-  Future<void> close(LoggerService logger) async {
-    logger.log('Closing database connection...');
+  Future<void> close() async {
+    _logger?.log('Closing database connection...');
   }
 }
 
 /// Application configuration model.
-final class AppConfig {
-  const AppConfig({required this.appName, required this.version});
-
-  final String appName;
-  final String version;
-}
+final class const AppConfig({
+  required final String appName,
+  required final String version,
+});
 
 /// Root application widget demonstrating [CircuitProvider].
-class CircuitryExampleApp extends StatefulWidget {
-  const CircuitryExampleApp({super.key});
-
+final class const CircuitryExampleApp({super.key}) extends StatefulWidget {
   @override
   State<CircuitryExampleApp> createState() => _CircuitryExampleAppState();
 }
@@ -54,8 +54,6 @@ class _CircuitryExampleAppState extends State<CircuitryExampleApp> {
   void initState() {
     super.initState();
     // 1. Declare synchronous and asynchronous wires
-    final loggerWire = Wire(() => LoggerService());
-
     final configWire = Wire(
       () => const AppConfig(
         appName: 'Circuitry Flutter Example',
@@ -66,10 +64,10 @@ class _CircuitryExampleAppState extends State<CircuitryExampleApp> {
     // Asynchronous wire taking LoggerService with an onDispose lifecycle hook
     final dbWire = AsyncWire.takes<LoggerService>().to(
       AppDatabase.connect,
-      onDispose: (db) => db.close(LoggerService()),
+      onDispose: (db) => db.close(),
     );
 
-    _wires = [loggerWire, configWire, dbWire];
+    _wires = [LoggerService.wire, configWire, dbWire];
   }
 
   @override
@@ -109,9 +107,7 @@ class _CircuitryExampleAppState extends State<CircuitryExampleApp> {
 }
 
 /// Main application screen demonstrating [CircuitProvider.of].
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
+final class const HomeScreen({super.key}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 2. Retrieve the active circuit from BuildContext
