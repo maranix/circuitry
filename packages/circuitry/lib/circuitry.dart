@@ -10,7 +10,7 @@
 /// * [Wire], declarative recipes for synchronous, lazily evaluated singletons.
 /// * [AsyncWire], declarative recipes for asynchronous singletons resolved in parallel waves during build.
 /// * [WireKey], record tuple identifiers `(Type, Enum?)` supporting Dart dot-shorthands for tagged singletons.
-/// * [WireBuilder] and [AsyncWireBuilder], fluent accumulator builders for chaining dependencies.
+/// * [Wire.takes] and [AsyncWire.takes], fluent accumulator chaining for declaring dependencies.
 ///
 /// ## Quickstart
 ///
@@ -43,5 +43,11 @@
 /// ```
 library;
 
-export 'src/circuit.dart';
+export 'src/circuit.dart'
+    hide
+        AsyncWireBuilder,
+        AsyncWireBuilderFactory,
+        WireBuilder,
+        WireBuilderFactory,
+        WireDependencyResolver;
 export 'src/exceptions.dart';
