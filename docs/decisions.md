@@ -1,20 +1,20 @@
 # Decisions
 
-## 2026-11-15: Elimination of `part` / `part of` in Core Engine and Introduction of `wire.bind(circuit)`
+## 2026-11-15: Elimination of `part` / `part of` in Core Engine and Introduction of `wire.connect(circuit)`
 
 - **Status:** agreed
-- **Request:** Eliminate `part` and `part of` directives across `packages/circuitry`, converting `circuit.dart`, `wire.dart`, and `exceptions.dart` into independent libraries. Replace internal closure field access `wire.create(this)` with an explicit method `wire.bind(circuit)`.
+- **Request:** Eliminate `part` and `part of` directives across `packages/circuitry`, converting `circuit.dart`, `wire.dart`, and `exceptions.dart` into independent libraries. Avoid `FutureOr` on base `CircuitWire`; use pattern matching on the sealed `CircuitWire` hierarchy in `Circuit` and rename the method to `wire.connect(circuit)` to represent connecting a wire to the circuit.
 - **Scope:** `packages/circuitry` module architecture and public contract.
 - **Choices:**
   - **Modular Independent Libraries:**
     - `packages/circuitry/lib/circuitry.dart` exports `src/circuit.dart`, `src/exceptions.dart`, and `src/wire.dart` (hiding internal builder classes and internal typedefs).
     - `packages/circuitry/lib/src/circuit.dart`, `wire.dart`, and `exceptions.dart` use standard package imports (`import 'package:circuitry/src/...'`) without `part` / `part of` directives, mirroring the modular architecture of `circuitry_flutter`.
-  - **Introduction of `bind(Circuit circuit)` Method:**
-    - Defined on `CircuitWire`: `FutureOr<Object?> bind(Circuit circuit)`.
-    - Overridden on `Wire<T>`: `T bind(Circuit circuit) => _create(circuit);` (returns synchronous `T`).
-    - Overridden on `AsyncWire<T>`: `Future<T> bind(Circuit circuit) => _create(circuit);` (returns `Future<T>`).
-    - The underlying closure `_create` remains strictly private to `wire.dart`, encapsulated behind the clean `wire.bind(circuit)` semantic method.
-    - `Circuit` invokes `await wire.bind(circuit)` during asynchronous wave resolution and `wire.bind(this)` during lazy synchronous singleton resolution.
+  - **Exhaustive Sealed Pattern Matching & `connect(Circuit circuit)` Method:**
+    - `CircuitWire` base class does not define `connect` (eliminating unnecessary `FutureOr` abstraction).
+    - `Wire<T>` defines synchronous `T connect(Circuit circuit) => _create(circuit);`.
+    - `AsyncWire<T>` defines asynchronous `Future<T> connect(Circuit circuit) => _create(circuit);`.
+    - In `Circuit._getByKey`, exhaustive pattern matching with `switch (wire)` promotes `wire` to `Wire<Object?>` to directly call synchronous `wire.connect(this)` without type casts or `is!` checks.
+    - In `Circuit.build`, `asyncWiresAtLevel` directly invokes `await wire.connect(circuit)`.
 
 ## 2026-11-15: Encapsulation of Intermediate Builders and Internal Factories
 
