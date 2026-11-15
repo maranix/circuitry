@@ -1,6 +1,6 @@
 # Circuitry
 
-> **Pure Dart 3.13+ zero-codegen, graph-based dependency injection engine backed by a Directed Acyclic Graph (DAG), with Flutter bindings.**
+> **Pure Dart 3.14+ zero-codegen, graph-based dependency injection engine backed by a Directed Acyclic Graph (DAG), with Flutter bindings.**
 
 Circuitry provides compile-time-checked runtime dependency wiring with parallel topological wave resolution for asynchronous singletons, reverse topological wave disposal, and type-safe dependency chaining without code generation, mirrors, or reflection.
 
@@ -17,7 +17,7 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
 
 ## Architectural Principles
 
-1. **Zero Codegen & Pure Dart 3.13+**: No `build_runner`, code generation steps, or reflection. Fully leverages Dart 3 primary constructors, switch expressions, and record tuple keys `(Type, Enum?)`.
+1. **Zero Codegen & Pure Dart 3.14+**: No `build_runner`, code generation steps, or reflection. Fully leverages Dart 3.14+ primary constructors, switch expressions, and record tuple keys `(Type, Enum?)`.
 2. **DAG Static Validation**: Validates the dependency graph during `Circuit.build(wires)` before creating singletons:
    - Duplicate wire keys throw `DuplicateWireException`
    - Missing dependencies throw `MissingWireException`
@@ -40,10 +40,14 @@ circuitry/
 │   └── plan.md                    # Active roadmap and checklist
 ├── packages/
 │   ├── circuitry/                 # Pure Dart dependency injection engine
-│   │   ├── lib/circuitry.dart     # WireKey, CircuitWire, Wire, AsyncWire, Circuit
+│   │   ├── lib/
+│   │   │   ├── circuitry.dart     # Public barrel export
+│   │   │   └── src/               # Core engine implementation (circuit, wire, exceptions)
 │   │   └── test/                  # 46 unit tests for DAG, waves, laziness, and disposal
 │   └── circuitry_flutter/         # Flutter companion package
-│       ├── lib/circuitry_flutter.dart # CircuitProvider, CircuitState, _CircuitScope
+│       ├── lib/
+│       │   ├── circuitry_flutter.dart # Public barrel export
+│       │   └── src/               # Flutter bridge implementation (provider, scope, state)
 │       └── test/                  # 21 widget, lifecycle, and integration tests
 ├── analysis_options.yaml          # Strict static analysis rules
 ├── pubspec.yaml                   # Root pub workspace

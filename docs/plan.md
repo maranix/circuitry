@@ -21,6 +21,25 @@
     - [x] Add GitHub Actions CI workflow.
     - [x] Complete `README.md`, `docs/architecture.md`, and `AGENTS.md`.
     - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, `flutter test`).
+- [x] Refactor Monorepo to Modular `src/` Architecture and Dart 3.14+ Primary Constructors
+  - Requirements:
+    - Modularize `packages/circuitry/lib/` into separate domain units under `lib/src/` (`exceptions.dart`, `wire.dart`, `circuit.dart`) and expose them via public barrel file `lib/circuitry.dart`.
+    - Modularize `packages/circuitry_flutter/lib/` into separate units under `lib/src/` (`circuit_state.dart`, `circuit_scope.dart`, `circuit_provider.dart`) and expose via public barrel file `lib/circuitry_flutter.dart`.
+    - Eliminate redundant type aliases and remove unnecessary public `createInstance` redirection methods by leveraging library-level `part of` encapsulation so `Circuit` accesses `_create` directly without exposing internal details to package consumers.
+    - Introduce strongly typed and documented functional contracts (`WireFactory`, `AsyncWireFactory`, `WireBuilderFactory`, `AsyncWireBuilderFactory`, `WireDependencyResolver`, `WireDisposer`).
+    - Refactor classes across production code and test suites (`wire_test.dart`, `circuit_test.dart`, `circuit_provider_test.dart`) to use Dart 3.14+ primary constructors and concise constructor syntax.
+    - Preserve `name: circuitry_workspace` in root `pubspec.yaml` to satisfy `package_names` linter rules.
+    - Synchronize project documentation (`docs/decisions.md`, `docs/architecture.md`, `README.md`).
+    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, and all tests passing.
+  - Sub-steps:
+    - [x] Update `docs/decisions.md` with architectural decision on modularization, encapsulation, and primary constructors.
+    - [x] Add modular `src/` structure and barrel exports to `packages/circuitry/lib/circuitry.dart` and `packages/circuitry_flutter/lib/circuitry_flutter.dart`.
+    - [x] Eliminate `createInstance` and keep wire creation private to the library using `part of`.
+    - [x] Define typed functional contracts (`WireFactory`, `AsyncWireFactory`, `WireBuilderFactory`, `AsyncWireBuilderFactory`, `WireDependencyResolver`, `WireDisposer`) with dartdoc.
+    - [x] Restore valid workspace package name `circuitry_workspace` in root `pubspec.yaml`.
+    - [x] Migrate test mock/helper classes in `packages/circuitry/test/wire_test.dart`, `circuit_test.dart`, and `circuit_provider_test.dart` to concise/primary constructor syntax.
+    - [x] Update `docs/architecture.md` and `README.md` to reflect the new `src/` file tree and constructor syntax.
+    - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
 
 ## Next
 - [ ] Publish v0.1.0 to pub.dev

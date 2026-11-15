@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-11-15: Modular Package Decomposition and Dart 3.14+ Primary Constructors
+
+- **Status:** agreed
+- **Request:** Carry over and complete refactoring of Circuitry monorepo: decompose single-file package entry points into clean `lib/src/` modules, migrate constructors to Dart 3.14+ primary constructor syntax, and maintain strict static analysis and test integrity.
+- **Scope:** Both `packages/circuitry` and `packages/circuitry_flutter` along with their test harnesses, root workspace configuration, and architectural documentation.
+- **Choices:**
+  - **Modular `src/` Layout & Library Encapsulation (`part` / `part of`):**
+    - `packages/circuitry`: `lib/circuitry.dart` exports `src/circuit.dart` and `src/exceptions.dart`, where `src/circuit.dart` declares `part './wire.dart';`. This allows `Circuit` to directly invoke the library-private factory `_create` on `Wire` and `AsyncWire` without any unnecessary `createInstance` public redirection method, guaranteeing that internal entities remain private to the package.
+    - `packages/circuitry_flutter`: `lib/circuitry_flutter.dart` acts as the library declaring `part 'src/circuit_provider.dart';`, `part 'src/circuit_scope.dart';`, and `part 'src/circuit_state.dart';`. The internal `_CircuitScope` `InheritedWidget` remains strictly private and unexported.
+  - **Modern Concise & Primary Constructors:**
+    - Adopt modern concise constructor declarations (`new(...)`, `new _(...)`, `static tag(...) => Wire<T>._(...)`) in `Wire`, `AsyncWire`, `WireBuilder`, `AsyncWireBuilder`, and `Circuit`.
+    - Retain primary constructors (`final class const ...`, `sealed class const ...`) across exception hierarchies and test fixtures.
+  - **Type Contracts for Closures & Callbacks:**
+    - Explicit, documented typedefs for all functional boundaries: `WireFactory<T>` / `AsyncWireFactory<T>` for zero-dependency public wire creation, `WireBuilderFactory<T>` / `AsyncWireBuilderFactory<T>` for circuit-bound wire creation, `WireDependencyResolver<Acc>` for accumulator unpacking, and `WireDisposer<T>` for resource teardown.
+  - **Workspace Naming:**
+    - Preserve `name: circuitry_workspace` in root `pubspec.yaml` to comply with the `package_names` linter rule under `--fatal-infos`.
+
 ## 2026-11-15: Project Foundation and Monorepo Architecture for Circuitry
 
 - **Status:** agreed

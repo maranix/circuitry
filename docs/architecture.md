@@ -9,11 +9,19 @@ circuitry/
 ├── packages/
 │   ├── circuitry/                 # Pure Dart runtime dependency injection engine
 │   │   ├── lib/
-│   │   │   └── circuitry.dart     # Public API (WireKey, CircuitWire, Wire, AsyncWire, Circuit)
+│   │   │   ├── circuitry.dart     # Library entry point (wires, circuit, exceptions)
+│   │   │   └── src/               # Modular part files
+│   │   │       ├── circuit.dart   # Circuit container and DAG compiler
+│   │   │       ├── exceptions.dart# CircuitException hierarchy with primary constructors
+│   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, builders
 │   │   └── test/                  # Unit tests (DAG validation, waves, laziness, disposal)
 │   └── circuitry_flutter/         # Flutter framework bridge
 │       ├── lib/
-│       │   └── circuitry_flutter.dart # Public API (CircuitState, CircuitProvider, _CircuitScope)
+│       │   ├── circuitry_flutter.dart # Library entry point and pure Dart re-export
+│       │   └── src/               # Modular part files
+│       │       ├── circuit_provider.dart # CircuitProvider widget declarations
+│       │       ├── circuit_scope.dart    # _CircuitScope InheritedWidget (internal)
+│       │       └── circuit_state.dart    # CircuitState sealed hierarchy
 │       └── test/                  # Widget & lifecycle tests
 ├── docs/
 │   ├── decisions.md               # Architectural decision records
@@ -37,7 +45,7 @@ circuitry/
 ### 2. Flutter Framework Bridge
 - `packages/circuitry_flutter` imports `circuitry` and `package:flutter/widgets.dart` / `package:flutter/foundation.dart`.
 - Re-exports `package:circuitry/circuitry.dart` so Flutter consumers need only depend on `circuitry_flutter`.
-- Encapsulates `InheritedWidget` scoping within `_CircuitScope`, preventing `BuildContext` extension pollution.
+- Encapsulates `InheritedWidget` scoping within `CircuitScope`, preventing `BuildContext` extension pollution.
 - Implements `didUpdateWidget` epoch generation tracking to safely cancel and tear down superseded in-flight compilations when wire inputs change.
 
 ### 3. Record Tuple Keys (`WireKey = (Type, Enum?)`)

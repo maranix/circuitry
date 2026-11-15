@@ -3,7 +3,7 @@
 [![pub package](https://img.shields.io/pub/v/circuitry.svg)](https://pub.dev/packages/circuitry)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A pure Dart 3.13+ zero-codegen, graph-based dependency injection engine backed by a Directed Acyclic Graph (DAG).
+A pure Dart 3.14+ zero-codegen, graph-based dependency injection engine backed by a Directed Acyclic Graph (DAG).
 
 Circuitry provides compile-time-checked runtime dependency wiring with parallel topological wave resolution for asynchronous singletons, reverse topological wave disposal, and type-safe dependency chaining without code generation or reflection.
 
@@ -11,7 +11,7 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
 
 ## Features
 
-- **Zero-Codegen & Reflection-Free**: Pure modern Dart 3.13+ utilizing primary constructors, pattern matching, and record tuples `(Type, Enum?)` as wire keys.
+- **Zero-Codegen & Reflection-Free**: Pure modern Dart 3.14+ utilizing primary constructors, pattern matching, and record tuples `(Type, Enum?)` as wire keys.
 - **DAG Static Validation**: Validates the dependency graph during `Circuit.build(wires)`:
   - Detects duplicate wire keys (`DuplicateWireException`)
   - Identifies missing dependencies (`MissingWireException`)
@@ -40,22 +40,13 @@ import 'package:circuitry/circuitry.dart';
 
 enum Environment { dev, prod }
 
-final class DatabaseConfig {
-  final String path;
-  const DatabaseConfig(this.path);
-}
+final class const DatabaseConfig(final String path);
 
-final class DatabaseService {
-  final DatabaseConfig config;
-  DatabaseService(this.config);
-
+final class DatabaseService(final DatabaseConfig config) {
   Future<void> close() async {}
 }
 
-final class UserService {
-  final DatabaseService db;
-  UserService(this.db);
-}
+final class UserService(final DatabaseService db);
 ```
 
 ### 2. Declare Wires
