@@ -1,0 +1,10 @@
+name: circuitry
+description: A pure Dart 3 zero-codegen, graph-based dependency injection engine backed by a Directed Acyclic Graph (DAG).
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dev_dependencies:
+  test: ^1.25.0

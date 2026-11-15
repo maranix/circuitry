@@ -1,0 +1,13 @@
+name: circuitry_workspace
+description: Monorepo workspace for Circuitry dependency injection engine and Flutter bridge.
+publish_to: 'none'
+
+environment:
+  sdk: ^3.13.0
+
+workspace:
+  - packages/circuitry
+  - packages/circuitry_flutter
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
