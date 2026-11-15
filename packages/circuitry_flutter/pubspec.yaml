@@ -1,18 +1,21 @@
 name: circuitry_flutter
-description: Flutter bridge for Circuitry — InheritedWidget scoping, reactive CircuitState, and async lifecycle management.
+description: Circuitry companion package for Flutter SDK 
 version: 0.1.0
+
 resolution: workspace
 
 environment:
-  sdk: ^3.13.0
-  flutter: ">=3.24.0"
+  sdk: ^3.14.0
+  flutter: ">=3.50.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  circuitry:
-    path: ../circuitry
+
+  circuitry: ^0.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  flutter_lints: ^6.0.0
