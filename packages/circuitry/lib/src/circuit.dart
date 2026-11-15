@@ -1,8 +1,7 @@
 import 'dart:async';
 
 import 'package:circuitry/src/exceptions.dart';
-
-part './wire.dart';
+import 'package:circuitry/src/wire.dart';
 
 /// A dependency injection container managing lazy synchronous singletons
 /// and asynchronously resolved dependencies backed by a Directed Acyclic Graph (DAG).
@@ -149,7 +148,7 @@ final class Circuit._({
         if (asyncWiresAtLevel.isNotEmpty) {
           await Future.wait(
             asyncWiresAtLevel.map((wire) async {
-              final instance = await wire._create(circuit);
+              final instance = await wire.bind(circuit);
               instances[wire.key] = instance;
             }),
           );
@@ -215,7 +214,7 @@ final class Circuit._({
 
     _creating.add(key);
     try {
-      final instance = wire._create(this);
+      final instance = wire.bind(this);
       _instances[key] = instance;
       return instance;
     } finally {

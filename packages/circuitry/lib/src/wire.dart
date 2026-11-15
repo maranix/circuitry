@@ -1,4 +1,6 @@
-part of './circuit.dart';
+import 'dart:async';
+
+import 'package:circuitry/src/circuit.dart';
 
 /// A record tuple uniquely identifying a registered dependency in a [Circuit].
 ///
@@ -18,19 +20,6 @@ part of './circuit.dart';
 /// ```
 typedef WireKey = (Type type, Enum? tag);
 
-/// Signature for a synchronous factory closure that instantiates [T] using an active [Circuit].
-///
-/// Used internally by [WireBuilder.to] to resolve all declared dependencies
-/// from the [Circuit] container and supply them to the user-provided instantiation function.
-typedef WireBuilderFactory<T> = T Function(Circuit circuit);
-
-/// Signature for an asynchronous factory closure that instantiates [T] using an active [Circuit].
-///
-/// Used internally by [AsyncWireBuilder.to] to resolve all declared dependencies
-/// from the [Circuit] container and supply them to the user-provided asynchronous
-/// instantiation function.
-typedef AsyncWireBuilderFactory<T> = Future<T> Function(Circuit circuit);
-
 /// Signature for a synchronous zero-dependency factory closure that constructs an instance of [T].
 ///
 /// Because zero-dependency singletons accept no parameters, existing constructor tear-offs
@@ -48,18 +37,31 @@ typedef WireFactory<T> = T Function();
 /// dependencies must be explicitly declared within the Directed Acyclic Graph (DAG).
 typedef AsyncWireFactory<T> = Future<T> Function();
 
-/// Signature for a closure that unpacks and resolves accumulated dependencies of type [Acc] from a [Circuit].
-///
-/// Used by [WireBuilder] and [AsyncWireBuilder] to recursively resolve left-nested
-/// dependency tuples from the active [Circuit] container during wire instantiation.
-typedef WireDependencyResolver<Acc> = Acc Function(Circuit circuit);
-
 /// Signature for a cleanup callback invoked when an active instance of [T] is disposed by a [Circuit].
 ///
 /// Disposers can perform either synchronous or asynchronous resource cleanup by returning
 /// `FutureOr<void>`. When a [Circuit] is disposed, all active singletons with registered
 /// disposers are torn down in reverse topological order (dependents before dependencies).
 typedef WireDisposer<T> = FutureOr<void> Function(T instance);
+
+/// Signature for a synchronous factory closure that instantiates [T] using an active [Circuit].
+///
+/// Used internally by [WireBuilder.to] to resolve all declared dependencies
+/// from the [Circuit] container and supply them to the user-provided instantiation function.
+typedef WireBuilderFactory<T> = T Function(Circuit circuit);
+
+/// Signature for an asynchronous factory closure that instantiates [T] using an active [Circuit].
+///
+/// Used internally by [AsyncWireBuilder.to] to resolve all declared dependencies
+/// from the [Circuit] container and supply them to the user-provided asynchronous
+/// instantiation function.
+typedef AsyncWireBuilderFactory<T> = Future<T> Function(Circuit circuit);
+
+/// Signature for a closure that unpacks and resolves accumulated dependencies of type [Acc] from a [Circuit].
+///
+/// Used by [WireBuilder] and [AsyncWireBuilder] to recursively resolve left-nested
+/// dependency tuples from the active [Circuit] container during wire instantiation.
+typedef WireDependencyResolver<Acc> = Acc Function(Circuit circuit);
 
 /// Abstract base class representing a declarative dependency recipe in a [Circuit].
 ///
@@ -84,6 +86,9 @@ sealed class CircuitWire({
   /// The record tuple keys of all dependencies required by this wire.
   required final List<WireKey> dependencies,
 }) {
+  /// Binds this wire recipe to [circuit], resolving all declared dependencies and returning the singleton instance.
+  FutureOr<Object?> bind(Circuit circuit);
+
   /// Cleans up the provided [instance] if an `onDispose` hook was registered for this wire.
   ///
   /// Invoked by [Circuit.dispose] in reverse topological order. If [instance] was never
@@ -152,6 +157,10 @@ final class Wire<T>._({
   required final WireBuilderFactory<T> _create,
   final WireDisposer<T>? onDispose,
 }) extends CircuitWire {
+  /// Binds this wire recipe to [circuit], resolving all declared dependencies synchronously and returning the singleton of type [T].
+  @override
+  T bind(Circuit circuit) => _create(circuit);
+
   /// Creates an untagged synchronous wire with no dependencies.
   ///
   /// The [create] closure is evaluated lazily when the singleton is first requested
@@ -263,6 +272,10 @@ final class AsyncWire<T>._({
   /// Optional disposal callback invoked when the circuit is disposed.
   final WireDisposer<T>? onDispose,
 }) extends CircuitWire {
+  /// Binds this wire recipe to [circuit], resolving all declared dependencies asynchronously and returning the singleton of type [T].
+  @override
+  Future<T> bind(Circuit circuit) => _create(circuit);
+
   /// Creates an untagged asynchronous wire with no dependencies.
   ///
   /// The [create] closure is evaluated asynchronously in parallel topological waves

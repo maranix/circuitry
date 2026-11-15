@@ -1,4 +1,4 @@
-import 'package:circuitry/src/circuit.dart';
+import 'package:circuitry/src/wire.dart';
 
 /// Base exception for all circuit-related errors.
 sealed class const CircuitException(final String message) implements Exception {

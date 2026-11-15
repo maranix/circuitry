@@ -43,11 +43,14 @@
 /// ```
 library;
 
-export 'src/circuit.dart'
+export 'src/circuit.dart';
+
+export 'src/exceptions.dart';
+
+export 'src/wire.dart'
     hide
         AsyncWireBuilder,
         AsyncWireBuilderFactory,
         WireBuilder,
         WireBuilderFactory,
         WireDependencyResolver;
-export 'src/exceptions.dart';
