@@ -56,7 +56,7 @@ circuitry/
 ### 4. Declarative Wire Recipes (`CircuitWire`, `Wire<T>`, `AsyncWire<T>`)
 - `Wire<T>`: Synchronous lazy singletons, constructed on first read or when required by an `AsyncWire` during build.
 - `AsyncWire<T>`: Asynchronous singletons resolved in parallel topological waves during `Circuit.build(wires)`.
-- Accumulator chaining builders (`WireBuilder<Acc>`, `AsyncWireBuilder<Acc>`) allow type-safe dependency declarations:
+- Fluent accumulator chaining (`Wire.takes`, `AsyncWire.takes` backed by internal `WireBuilder` / `AsyncWireBuilder` hidden from public exports) allows type-safe dependency declarations:
   - 1-dependency accumulator passes directly to 1-arg constructor/tear-off (`.to(UserService.new)`).
   - Multi-dependency accumulator unpacks nested record tuples (`(deps) => OrderService(deps.$1, deps.$2)`).
 

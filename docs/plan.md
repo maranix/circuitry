@@ -40,6 +40,16 @@
     - [x] Migrate test mock/helper classes in `packages/circuitry/test/wire_test.dart`, `circuit_test.dart`, and `circuit_provider_test.dart` to concise/primary constructor syntax.
     - [x] Update `docs/architecture.md` and `README.md` to reflect the new `src/` file tree and constructor syntax.
     - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
+- [x] Encapsulate Intermediate Builders and Internal Factories from Public Barrel Export
+  - Requirements:
+    - Hide `WireBuilder` and `AsyncWireBuilder` from the public export surface in `packages/circuitry/lib/circuitry.dart`.
+    - Hide internal factory typedefs (`WireBuilderFactory`, `AsyncWireBuilderFactory`, `WireDependencyResolver`) from the public export surface.
+    - Keep `WireBuilder` and `AsyncWireBuilder` classes public in `lib/src/wire.dart` to satisfy the `library_private_types_in_public_api` lint rule.
+    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, and full test suite.
+  - Sub-steps:
+    - [x] Configure export hide list in `packages/circuitry/lib/circuitry.dart`.
+    - [x] Update `docs/decisions.md` and `docs/architecture.md`.
+    - [x] Run verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
 
 ## Next
 - [ ] Publish v0.1.0 to pub.dev

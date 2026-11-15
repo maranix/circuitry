@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11-15: Encapsulation of Intermediate Builders and Internal Factories
+
+- **Status:** agreed
+- **Request:** Hide `WireBuilder` and `AsyncWireBuilder` from the public API and package export surface since they are intermediate fluent builders used internally for accumulator chaining.
+- **Scope:** `packages/circuitry` public barrel export (`lib/circuitry.dart`) and associated architectural documents.
+- **Choices:**
+  - **Hide Intermediate Builders from Barrel Export:**
+    - `packages/circuitry/lib/circuitry.dart` exports `src/circuit.dart hide AsyncWireBuilder, AsyncWireBuilderFactory, WireBuilder, WireBuilderFactory, WireDependencyResolver;`.
+    - `WireBuilder` and `AsyncWireBuilder` remain public classes in `lib/src/wire.dart` to avoid triggering Dart's `library_private_types_in_public_api` lint on the public `Wire.takes` / `AsyncWire.takes` return types.
+    - By hiding them from the package export, consumers cannot mistakenly reference or attempt to instantiate `WireBuilder` or `AsyncWireBuilder` directly, and IDE auto-completion will not pollute consumer namespaces with intermediate builder types or internal factory typedefs.
+
 ## 2026-11-15: Modular Package Decomposition and Dart 3.14+ Primary Constructors
 
 - **Status:** agreed
