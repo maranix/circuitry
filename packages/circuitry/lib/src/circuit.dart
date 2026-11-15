@@ -148,7 +148,7 @@ final class Circuit._({
         if (asyncWiresAtLevel.isNotEmpty) {
           await Future.wait(
             asyncWiresAtLevel.map((wire) async {
-              final instance = await wire.bind(circuit);
+              final instance = await wire.connect(circuit);
               instances[wire.key] = instance;
             }),
           );
@@ -199,26 +199,27 @@ final class Circuit._({
       );
     }
 
-    if (wire is! Wire<Object?>) {
-      throw StateError(
-        'Async wire ${_formatKey(key)} was not resolved during circuit build.',
-      );
-    }
+    switch (wire) {
+      case Wire<Object?>():
+        if (_creating.contains(key)) {
+          throw CircularDependencyException(
+            'Circular dependency detected while creating ${_formatKey(key)}.',
+            cycle: [..._creating, key],
+          );
+        }
 
-    if (_creating.contains(key)) {
-      throw CircularDependencyException(
-        'Circular dependency detected while creating ${_formatKey(key)}.',
-        cycle: [..._creating, key],
-      );
-    }
-
-    _creating.add(key);
-    try {
-      final instance = wire.bind(this);
-      _instances[key] = instance;
-      return instance;
-    } finally {
-      _creating.remove(key);
+        _creating.add(key);
+        try {
+          final instance = wire.connect(this);
+          _instances[key] = instance;
+          return instance;
+        } finally {
+          _creating.remove(key);
+        }
+      case AsyncWire<Object?>():
+        throw StateError(
+          'Async wire ${_formatKey(key)} was not resolved during circuit build.',
+        );
     }
   }
 

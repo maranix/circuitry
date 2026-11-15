@@ -86,9 +86,6 @@ sealed class CircuitWire({
   /// The record tuple keys of all dependencies required by this wire.
   required final List<WireKey> dependencies,
 }) {
-  /// Binds this wire recipe to [circuit], resolving all declared dependencies and returning the singleton instance.
-  FutureOr<Object?> bind(Circuit circuit);
-
   /// Cleans up the provided [instance] if an `onDispose` hook was registered for this wire.
   ///
   /// Invoked by [Circuit.dispose] in reverse topological order. If [instance] was never
@@ -157,9 +154,8 @@ final class Wire<T>._({
   required final WireBuilderFactory<T> _create,
   final WireDisposer<T>? onDispose,
 }) extends CircuitWire {
-  /// Binds this wire recipe to [circuit], resolving all declared dependencies synchronously and returning the singleton of type [T].
-  @override
-  T bind(Circuit circuit) => _create(circuit);
+  /// Connects this wire recipe to [circuit], resolving all declared dependencies synchronously and returning the singleton of type [T].
+  T connect(Circuit circuit) => _create(circuit);
 
   /// Creates an untagged synchronous wire with no dependencies.
   ///
@@ -272,9 +268,8 @@ final class AsyncWire<T>._({
   /// Optional disposal callback invoked when the circuit is disposed.
   final WireDisposer<T>? onDispose,
 }) extends CircuitWire {
-  /// Binds this wire recipe to [circuit], resolving all declared dependencies asynchronously and returning the singleton of type [T].
-  @override
-  Future<T> bind(Circuit circuit) => _create(circuit);
+  /// Connects this wire recipe to [circuit], resolving all declared dependencies asynchronously and returning the singleton of type [T].
+  Future<T> connect(Circuit circuit) => _create(circuit);
 
   /// Creates an untagged asynchronous wire with no dependencies.
   ///
