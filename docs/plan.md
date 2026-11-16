@@ -114,6 +114,28 @@
     - [x] Add Mermaid diagram to `docs/architecture.md`.
     - [x] Record decision in `docs/decisions.md`.
     - [x] Run full verification gate (`dart format`, `flutter analyze`, test suites, publish dry-runs).
+- [x] Taggable CircuitProvider with O(1) Ambient Registry Map Merging (Issue #1)
+  - Requirements:
+    - Pure Dart `packages/circuitry` remains completely untouched (circuits remain independent).
+    - Add `Enum? tag` parameter to `CircuitProvider` and `CircuitProvider.value` constructors in `packages/circuitry_flutter`.
+    - Propagate immutable ambient `taggedCircuits` (`Map<Enum, Circuit>`) registry map inside `_CircuitScope`, merged in O(1) from parent scope.
+    - Support O(1) context retrieval via `CircuitProvider.of(context, {Enum? tag})` and `CircuitProvider.maybeOf(context, {Enum? tag})`.
+    - Nearest ancestor retrieval when `tag == null`.
+    - Tagged ancestor retrieval in O(1) when `tag != null`, throwing descriptive `StateError` if not found.
+    - Lexical shadowing when nested providers register the same tag (nearer provider takes precedence).
+    - Reactive rebuild propagation to dependent widgets when an ancestor tagged circuit changes.
+    - Extensive unit/widget testing across nested scopes, intermediate untagged providers, `CircuitProvider.value`, missing tags, isolated contexts, sibling branches, and building states.
+    - Synchronize project documentation (`docs/decisions.md`, `docs/architecture.md`, `packages/circuitry_flutter/README.md`, `README.md`).
+    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, and test suites.
+  - Sub-steps:
+    - [x] Record architectural decision in `docs/decisions.md`.
+    - [x] Add `Enum? tag` parameter to `CircuitProvider` and `CircuitProvider.value`.
+    - [x] Update `_CircuitScope` to hold and propagate `Map<Enum, Circuit> taggedCircuits`.
+    - [x] Implement shallow copy map merging in `_CircuitValueProvider` and `_CircuitWireStatefulState`.
+    - [x] Update `CircuitProvider.of` and `CircuitProvider.maybeOf` with optional `Enum? tag`.
+    - [x] Add comprehensive widget test harness in `circuit_provider_test.dart` (14 new tests, 35 total tests).
+    - [x] Update `docs/architecture.md`, `packages/circuitry_flutter/README.md`, and `README.md`.
+    - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
 
 ## Next
 - [ ] Publish v0.1.0 to pub.dev

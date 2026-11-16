@@ -20,6 +20,10 @@ typedef CircuitStateWidgetBuilder = Widget Function(
 /// It exposes the active [Circuit] to descendant widgets via [CircuitProvider.of]
 /// and [CircuitProvider.maybeOf].
 ///
+/// When [tag] is provided, the [Circuit] is also registered in an ambient registry map,
+/// allowing deeply nested descendants to access ancestor circuits across nested scopes in O(1)
+/// via `CircuitProvider.of(context, tag: ...)`.
+///
 /// ## Modes of Operation
 ///
 /// 1. **Asynchronous DAG Compilation ([CircuitProvider])**:
@@ -55,6 +59,45 @@ typedef CircuitStateWidgetBuilder = Widget Function(
 ///       ErrorScreen(error: error, stackTrace: stackTrace),
 ///   },
 /// );
+/// ```
+///
+/// ### Nested Scopes and Tagged Circuits
+///
+/// When scoping dependencies hierarchically (e.g., global app vs. feature scope),
+/// tag each provider to allow descendants to retrieve ancestor circuits in O(1):
+///
+/// ```dart
+/// enum Scope { global, feature }
+///
+/// CircuitProvider(
+///   tag: Scope.global,
+///   wires: [Wire(GlobalAuthService.new)],
+///   builder: (context, state) => switch (state) {
+///     CircuitReady() => CircuitProvider(
+///       tag: Scope.feature,
+///       wires: [Wire(FeatureViewModel.new)],
+///       builder: (context, state) => switch (state) {
+///         CircuitReady() => const FeatureScreen(),
+///         _ => const SizedBox(),
+///       },
+///     ),
+///     _ => const SplashScreen(),
+///   },
+/// );
+///
+/// class FeatureScreen extends StatelessWidget {
+///   const FeatureScreen({super.key});
+///
+///   @override
+///   Widget build(BuildContext context) {
+///     // Nearest circuit (feature):
+///     final featureCircuit = CircuitProvider.of(context);
+///     // Ancestor tagged circuit (global) in O(1):
+///     final globalCircuit = CircuitProvider.of(context, tag: Scope.global);
+///
+///     return Text('Feature ready with global auth');
+///   }
+/// }
 /// ```
 ///
 /// ### Accessing Dependencies in Descendants
@@ -103,6 +146,9 @@ typedef CircuitStateWidgetBuilder = Widget Function(
 sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
   /// Asynchronously compiles [wires] into a [Circuit] and yields reactive [CircuitState] to [builder].
   ///
+  /// Optionally associates this provider's [Circuit] with [tag] for scoped O(1) retrieval
+  /// across nested [CircuitProvider] hierarchies via [CircuitProvider.of] or [CircuitProvider.maybeOf].
+  ///
   /// During initialization, [AsyncWire] singletons are resolved concurrently in
   /// topological waves. While compilation is in flight, [builder] receives a
   /// [CircuitBuilding] state. Once all wave dependencies settle, [builder] receives
@@ -119,11 +165,15 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
   /// compilation is not restarted and the existing circuit is preserved.
   const factory({
     Key? key,
+    Enum? tag,
     required List<CircuitWire> wires,
     required CircuitStateWidgetBuilder builder,
   }) = _CircuitWireProvider;
 
   /// Injects an existing [value] into the widget subtree without managing its lifecycle.
+  ///
+  /// Optionally associates [value] with [tag] for scoped O(1) retrieval
+  /// across nested [CircuitProvider] hierarchies via [CircuitProvider.of] or [CircuitProvider.maybeOf].
   ///
   /// Descendant widgets can immediately access [value] via [CircuitProvider.of] or
   /// [CircuitProvider.maybeOf].
@@ -133,23 +183,31 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
   /// responsible for managing the lifecycle and disposing [value].
   const factory value({
     Key? key,
+    Enum? tag,
     required Circuit value,
     required Widget child,
   }) = _CircuitValueProvider;
 
-  /// Finds the nearest [Circuit] ancestor provided by a [CircuitProvider].
+  /// Finds the nearest [Circuit] ancestor provided by a [CircuitProvider], or the [Circuit]
+  /// associated with the specified [tag] if provided.
+  ///
+  /// When [tag] is `null` (default), returns the nearest [Circuit] in O(1).
+  /// When [tag] is provided, returns the [Circuit] registered with that [tag] in O(1).
   ///
   /// Calling this method creates a dependency on the nearest [CircuitProvider],
-  /// causing the calling [context] to rebuild if the active [Circuit] changes.
+  /// causing the calling [context] to rebuild if the active [Circuit] or tagged circuits change.
   ///
-  /// Throws a [StateError] if no [CircuitProvider] is found in [context], or if
+  /// Throws a [StateError] if no matching [CircuitProvider] is found in [context], or if
   /// the enclosing [CircuitProvider.new] has not finished building and is not yet
   /// in the [CircuitReady] state.
   ///
   /// To safely query the [Circuit] without throwing when it is unavailable, use [maybeOf].
-  static Circuit of(BuildContext context) {
-    final circuit = maybeOf(context);
+  static Circuit of(BuildContext context, {Enum? tag}) {
+    final circuit = maybeOf(context, tag: tag);
     if (circuit == null) {
+      if (tag != null) {
+        throw StateError('No CircuitProvider found with tag $tag in context.');
+      }
       throw StateError(
         'No CircuitProvider found in context. Ensure that CircuitProvider or '
         'CircuitProvider.value wraps this widget tree and that the circuit is ready.',
@@ -158,15 +216,22 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
     return circuit;
   }
 
-  /// Finds the nearest [Circuit] ancestor provided by a [CircuitProvider], or `null` if none exists.
+  /// Finds the nearest [Circuit] ancestor provided by a [CircuitProvider], or the [Circuit]
+  /// associated with the specified [tag] if provided, or `null` if none exists.
   ///
-  /// Returns `null` if no [CircuitProvider] encloses [context], or if the enclosing
+  /// When [tag] is `null` (default), returns the nearest [Circuit] in O(1).
+  /// When [tag] is provided, returns the [Circuit] registered with that [tag] in O(1).
+  ///
+  /// Returns `null` if no matching [CircuitProvider] encloses [context], or if the enclosing
   /// [CircuitProvider.new] is currently in the [CircuitBuilding] or [CircuitFailure] state.
   ///
   /// Calling this method creates a dependency on the nearest [CircuitProvider],
-  /// causing the calling [context] to rebuild if the active [Circuit] changes.
-  static Circuit? maybeOf(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<_CircuitScope>()?.circuit;
+  /// causing the calling [context] to rebuild if the active [Circuit] or tagged circuits change.
+  static Circuit? maybeOf(BuildContext context, {Enum? tag}) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_CircuitScope>();
+    if (scope == null) return null;
+    if (tag == null) return scope.circuit;
+    return scope.taggedCircuits[tag];
   }
 }
 
@@ -177,14 +242,32 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
 /// tracking state transitions, or disposing [value] when unmounted from the tree.
 final class const _CircuitValueProvider({
   super.key,
+  final Enum? tag,
   required final Circuit value,
   required final Widget child,
 }) extends CircuitProvider {
   this : super._();
 
   @override
-  Widget build(BuildContext context) =>
-      _CircuitScope(circuit: value, child: child);
+  Widget build(BuildContext context) {
+    final parentScope = context
+        .dependOnInheritedWidgetOfExactType<_CircuitScope>();
+    final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};
+    final Map<Enum, Circuit> taggedCircuits = switch (tag) {
+      final t? => Map<Enum, Circuit>.unmodifiable({
+        ...effectiveTaggedCircuits,
+        t: value,
+      }),
+      _ => effectiveTaggedCircuits,
+    };
+
+    return _CircuitScope(
+      tag: tag,
+      circuit: value,
+      taggedCircuits: taggedCircuits,
+      child: child,
+    );
+  }
 }
 
 /// Internal [CircuitProvider] implementation that manages asynchronous compilation of [wires].
@@ -194,6 +277,7 @@ final class const _CircuitValueProvider({
 /// updates, and automatic reverse topological disposal on unmount.
 final class const _CircuitWireProvider({
   super.key,
+  final Enum? tag,
   required final List<CircuitWire> wires,
   required final CircuitStateWidgetBuilder builder,
 }) extends CircuitProvider {
@@ -201,12 +285,13 @@ final class const _CircuitWireProvider({
 
   @override
   Widget build(BuildContext context) {
-    return _CircuitWireStateful(wires: wires, builder: builder);
+    return _CircuitWireStateful(tag: tag, wires: wires, builder: builder);
   }
 }
 
 /// Internal stateful host widget that tracks compilation lifecycle and epoch state for [wires].
 final class const _CircuitWireStateful({
+  final Enum? tag,
   required final List<CircuitWire> wires,
   required final CircuitStateWidgetBuilder builder,
 }) extends StatefulWidget {
@@ -274,29 +359,49 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
 
   @override
   Widget build(BuildContext context) {
+    final parentScope = context
+        .dependOnInheritedWidgetOfExactType<_CircuitScope>();
+    final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};
+
     return switch (_state) {
       CircuitReady(:final circuit) => _CircuitScope(
+        tag: widget.tag,
         circuit: circuit,
+        taggedCircuits: switch (widget.tag) {
+          final t? => Map<Enum, Circuit>.unmodifiable({
+            ...effectiveTaggedCircuits,
+            t: circuit,
+          }),
+          _ => effectiveTaggedCircuits,
+        },
         child: Builder(builder: (context) => widget.builder(context, _state)),
       ),
-      _ => widget.builder(context, _state),
+      _ => _CircuitScope(
+        tag: widget.tag,
+        circuit: null,
+        taggedCircuits: effectiveTaggedCircuits,
+        child: Builder(builder: (context) => widget.builder(context, _state)),
+      ),
     };
   }
 }
 
 /// Internal [InheritedWidget] carrying the active [Circuit] through the widget tree.
 ///
-/// Inserted into the widget hierarchy by [_CircuitValueProvider] or by [_CircuitWireStatefulState]
-/// when the compilation state reaches [CircuitReady]. Descendant widgets access this container
-/// via [CircuitProvider.of] and [CircuitProvider.maybeOf].
+/// Inserted into the widget hierarchy by [_CircuitValueProvider] or by [_CircuitWireStatefulState].
+/// Descendant widgets access this container via [CircuitProvider.of] and [CircuitProvider.maybeOf].
 ///
-/// Dependent widgets are notified to rebuild whenever [circuit] identity changes
-/// according to [updateShouldNotify].
+/// Dependent widgets are notified to rebuild whenever [circuit], [tag], or [taggedCircuits]
+/// changes according to [updateShouldNotify].
 final class const _CircuitScope({
   required super.child,
-  required final Circuit circuit,
+  final Enum? tag,
+  final Circuit? circuit,
+  final Map<Enum, Circuit> taggedCircuits = const {},
 }) extends InheritedWidget {
   @override
   bool updateShouldNotify(_CircuitScope oldWidget) =>
-      circuit != oldWidget.circuit;
+      tag != oldWidget.tag ||
+      circuit != oldWidget.circuit ||
+      !mapEquals(taggedCircuits, oldWidget.taggedCircuits);
 }
