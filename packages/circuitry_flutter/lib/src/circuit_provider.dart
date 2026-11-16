@@ -253,16 +253,18 @@ final class const _CircuitValueProvider({
     final parentScope = context
         .dependOnInheritedWidgetOfExactType<_CircuitScope>();
     final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};
+    final Map<Enum, Circuit> taggedCircuits = switch (tag) {
+      final t? => Map<Enum, Circuit>.unmodifiable({
+        ...effectiveTaggedCircuits,
+        t: value,
+      }),
+      _ => effectiveTaggedCircuits,
+    };
 
     return _CircuitScope(
       tag: tag,
       circuit: value,
-      taggedCircuits: tag != null
-          ? Map.unmodifiable(<Enum, Circuit>{
-              ...effectiveTaggedCircuits,
-              tag!: value,
-            })
-          : effectiveTaggedCircuits,
+      taggedCircuits: taggedCircuits,
       child: child,
     );
   }
@@ -365,12 +367,13 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
       CircuitReady(:final circuit) => _CircuitScope(
         tag: widget.tag,
         circuit: circuit,
-        taggedCircuits: widget.tag != null
-            ? Map.unmodifiable(<Enum, Circuit>{
-                ...effectiveTaggedCircuits,
-                widget.tag!: circuit,
-              })
-            : effectiveTaggedCircuits,
+        taggedCircuits: switch (widget.tag) {
+          final t? => Map<Enum, Circuit>.unmodifiable({
+            ...effectiveTaggedCircuits,
+            t: circuit,
+          }),
+          _ => effectiveTaggedCircuits,
+        },
         child: Builder(builder: (context) => widget.builder(context, _state)),
       ),
       _ => _CircuitScope(
