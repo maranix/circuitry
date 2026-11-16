@@ -1,4 +1,5 @@
-name: circuitry
+name: circuitry_flutter
 issueTracker: https://github.com/maranix/circuitry/issues
 version: 0.1.0
-materialIconCode: '0xe318'
+materialIconCodePoint: '0xe318'
+requiresConnection: true

@@ -1,0 +1,3 @@
+description: This file stores settings for Dart & Flutter DevTools.
+extensions:
+  - circuitry_flutter: true
