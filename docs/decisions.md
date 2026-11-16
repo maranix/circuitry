@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-11-16: Compute-Optimized CI Workflows
+
+- **Status:** agreed
+- **Request:** Decrease GitHub compute load by eliminating automatic CI runs on arbitrary PR push events. Merging to `main` should run all lint, format, and test workflows. For PRs, workflows must be manually invoked before merging or run automatically only when the PR is approved.
+- **Scope:** `.github/workflows/ci.yml` and repository automation documentation.
+- **Choices:**
+  - **Main Branch Execution**:
+    - Retain `push: branches: [ main ]` to automatically run all format, lint, and test steps when code is merged into `main`.
+  - **PR Gating & Approval Trigger**:
+    - Remove automatic `pull_request` push/synchronize triggers.
+    - Add `pull_request_review: types: [ submitted ]` trigger guarded by `if: github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'main'` to run CI only when an approval review is submitted.
+    - Check out the PR head SHA via `ref: ${{ github.event.pull_request.head.sha || github.ref }}` so tests evaluate the exact reviewed commit.
+  - **Manual Dispatch**:
+    - Add `workflow_dispatch` to allow maintainers to manually run CI for any PR branch on demand via the GitHub Actions UI or `gh workflow run`.
+
 ## 2026-11-16: Taggable CircuitProvider with O(1) Ambient Registry Map Merging (Issue #1)
 
 - **Status:** agreed

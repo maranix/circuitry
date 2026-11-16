@@ -136,6 +136,18 @@
     - [x] Add comprehensive widget test harness in `circuit_provider_test.dart` (14 new tests, 35 total tests).
     - [x] Update `docs/architecture.md`, `packages/circuitry_flutter/README.md`, and `README.md`.
     - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
+- [x] Optimize CI Workflows for Reduced GitHub Compute
+  - Requirements:
+    - Retain automated format, analyze, and test execution upon merge/push to `main`.
+    - Eliminate automatic CI trigger on every pull request commit push.
+    - Add `pull_request_review` trigger with state check for approved PRs targeting `main`.
+    - Add `workflow_dispatch` trigger for manual CI execution on PR branches before merge.
+    - Ensure `actions/checkout` checks out the PR head commit when triggered by review approval.
+    - Synchronize project documentation (`docs/decisions.md`, `docs/plan.md`).
+  - Sub-steps:
+    - [x] Update `.github/workflows/ci.yml`.
+    - [x] Record architectural decision in `docs/decisions.md`.
+    - [x] Record plan entry in `docs/plan.md`.
 
 ## Next
 - [ ] Publish v0.1.0 to pub.dev
