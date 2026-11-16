@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:circuitry/src/exceptions.dart';
+import 'package:circuitry/src/introspection.dart';
+import 'package:circuitry/src/observer.dart';
 import 'package:circuitry/src/wire.dart';
 
 /// A dependency injection container managing lazy synchronous singletons
@@ -10,10 +12,33 @@ final class Circuit._({
   required final Map<WireKey, Object?> _instances,
   required final Map<WireKey, int> _levels,
   required final int _maxLevel,
+  required final Map<WireKey, Set<WireKey>> _reverseDependencies,
+  final CircuitObserver? _observer,
 }) {
   final Set<WireKey> _creating = {};
   bool _isDisposed = false;
   Future<void>? _disposeFuture;
+
+  /// The map of registered wires.
+  Map<WireKey, CircuitWire> get wires => _wires;
+
+  /// The map of currently instantiated instances.
+  Map<WireKey, Object?> get instances => _instances;
+
+  /// The topological level of each wire.
+  Map<WireKey, int> get levels => _levels;
+
+  /// The maximum topological level in the circuit.
+  int get maxLevel => _maxLevel;
+
+  /// The keys currently undergoing instantiation.
+  Set<WireKey> get creatingKeys => _creating;
+
+  /// The map of reverse dependencies (dependents) for each wire.
+  Map<WireKey, Set<WireKey>> get reverseDependencies => _reverseDependencies;
+
+  /// Inspects the Directed Acyclic Graph (DAG) and runtime status of this circuit.
+  CircuitIntrospection inspect() => CircuitIntrospection.of(this);
 
   /// Whether this circuit has been shut down via [dispose].
   bool get isDisposed => _isDisposed;
@@ -38,7 +63,32 @@ final class Circuit._({
   ///
   /// Once validated, all [AsyncWire]s are resolved in parallel topological waves
   /// using [Future.wait].
-  static Future<Circuit> build(List<CircuitWire> wires) async {
+  static Future<Circuit> build(
+    List<CircuitWire> wires, {
+    CircuitObserver? observer,
+  }) async {
+    final buildStopwatch = Stopwatch()..start();
+
+    // 0. Resolve active observer hierarchy (explicit -> Zone -> global)
+    final explicitObserver = observer;
+    final zoneObserver = Zone.current[#circuitObserver] as CircuitObserver?;
+    final globalObserver = CircuitObserver.global;
+
+    final activeObservers = <CircuitObserver>[];
+    if (explicitObserver != null) activeObservers.add(explicitObserver);
+    if (zoneObserver != null && !activeObservers.contains(zoneObserver)) {
+      activeObservers.add(zoneObserver);
+    }
+    if (globalObserver != null && !activeObservers.contains(globalObserver)) {
+      activeObservers.add(globalObserver);
+    }
+
+    final CircuitObserver? effectiveObserver = switch (activeObservers.length) {
+      0 => null,
+      1 => activeObservers.first,
+      _ => CircuitObserver.composite(activeObservers),
+    };
+
     // 1. Duplicate wire detection
     final wireMap = <WireKey, CircuitWire>{};
     for (final wire in wires) {
@@ -129,15 +179,44 @@ final class Circuit._({
       }
     }
 
+    // 5. Build reverse dependency map
+    final reverseDependencies = <WireKey, Set<WireKey>>{};
+    for (final key in wireMap.keys) {
+      reverseDependencies[key] = <WireKey>{};
+    }
+    for (final wire in wireMap.values) {
+      for (final depKey in wire.dependencies) {
+        reverseDependencies[depKey]!.add(wire.key);
+      }
+    }
+
+    // 6. Notify observer of circuit building
+    final asyncWireCount = wireMap.values
+        .whereType<AsyncWire<Object?>>()
+        .length;
+    effectiveObserver?.onCircuitBuilding(
+      CircuitInfo(
+        wireCount: wireMap.length,
+        asyncWireCount: asyncWireCount,
+        maxWaveLevel: maxLevel,
+      ),
+    );
+
     final instances = <WireKey, Object?>{};
     final circuit = Circuit._(
       wires: .unmodifiable(wireMap),
       levels: .unmodifiable(levels),
       instances: instances,
       maxLevel: maxLevel,
+      reverseDependencies: .unmodifiable(
+        reverseDependencies.map(
+          (k, v) => MapEntry(k, Set<WireKey>.unmodifiable(v)),
+        ),
+      ),
+      observer: effectiveObserver,
     );
 
-    // 5. Resolve AsyncWires in parallel topological waves
+    // 7. Resolve AsyncWires in parallel topological waves
     try {
       for (var i = 0; i <= maxLevel; i++) {
         final asyncWiresAtLevel = wireMap.values
@@ -146,12 +225,37 @@ final class Circuit._({
             .toList();
 
         if (asyncWiresAtLevel.isNotEmpty) {
+          final waveKeys = asyncWiresAtLevel.map((w) => w.key).toList();
+          effectiveObserver?.onWaveStarted(i, waveKeys);
+          final waveStopwatch = Stopwatch()..start();
+
           await Future.wait(
             asyncWiresAtLevel.map((wire) async {
-              final instance = await wire.connect(circuit);
-              instances[wire.key] = instance;
+              final wireStopwatch = Stopwatch()..start();
+              try {
+                final instance = await wire.connect(circuit);
+                wireStopwatch.stop();
+                instances[wire.key] = instance;
+                effectiveObserver?.onWireResolved(
+                  wire.key,
+                  wireStopwatch.elapsed,
+                  instance,
+                );
+              } catch (error, stackTrace) {
+                wireStopwatch.stop();
+                effectiveObserver?.onWireFailed(
+                  wire.key,
+                  error,
+                  stackTrace,
+                  wireStopwatch.elapsed,
+                );
+                rethrow;
+              }
             }),
           );
+
+          waveStopwatch.stop();
+          effectiveObserver?.onWaveCompleted(i, waveStopwatch.elapsed);
         }
       }
     } catch (error, stackTrace) {
@@ -162,6 +266,9 @@ final class Circuit._({
       }
       Error.throwWithStackTrace(error, stackTrace);
     }
+
+    buildStopwatch.stop();
+    effectiveObserver?.onCircuitReady(circuit, buildStopwatch.elapsed);
 
     return circuit;
   }
@@ -209,10 +316,22 @@ final class Circuit._({
         }
 
         _creating.add(key);
+        final wireStopwatch = Stopwatch()..start();
         try {
           final instance = wire.connect(this);
+          wireStopwatch.stop();
           _instances[key] = instance;
+          _observer?.onWireResolved(key, wireStopwatch.elapsed, instance);
           return instance;
+        } catch (error, stackTrace) {
+          wireStopwatch.stop();
+          _observer?.onWireFailed(
+            key,
+            error,
+            stackTrace,
+            wireStopwatch.elapsed,
+          );
+          rethrow;
         } finally {
           _creating.remove(key);
         }
@@ -241,6 +360,8 @@ final class Circuit._({
   }
 
   Future<void> _performDispose() async {
+    _observer?.onCircuitDisposing(this);
+    final disposeStopwatch = Stopwatch()..start();
     _isDisposed = true;
 
     final errors = <Object>[];
@@ -268,6 +389,8 @@ final class Circuit._({
       }
     } finally {
       _instances.clear();
+      disposeStopwatch.stop();
+      _observer?.onCircuitDisposed(this, disposeStopwatch.elapsed);
     }
 
     if (errors.isNotEmpty) {
