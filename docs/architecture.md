@@ -94,34 +94,76 @@ flowchart TD
 ### 2. Flutter Framework Bridge
 - `packages/circuitry_flutter` imports `circuitry` and `package:flutter/widgets.dart` / `package:flutter/foundation.dart`.
 - Re-exports `package:circuitry/circuitry.dart` so Flutter consumers need only depend on `circuitry_flutter`.
-- Encapsulates `InheritedWidget` scoping within `CircuitScope`, preventing `BuildContext` extension pollution.
+- Encapsulates `InheritedWidget` scoping within `_CircuitScope`, preventing `BuildContext` extension pollution.
 - Implements `didUpdateWidget` epoch generation tracking to safely cancel and tear down superseded in-flight compilations when wire inputs change.
+- Propagates tagged ancestor circuits via ambient immutable map merging in `_CircuitScope`, enabling descendants across nested scopes to access tagged ancestor circuits in **O(1)** without tree walking.
 
-### 3. Record Tuple Keys (`WireKey = (Type, Enum?)`)
+### 3. Nested Scopes & O(1) Ambient Registry Map Merging
+When `CircuitProvider` widgets are nested (e.g., global app provider -> feature provider), descendants often need access to both their local feature container and ancestor containers:
+- `CircuitProvider(tag: AppScope.global, ...)` and `CircuitProvider.value(tag: AppScope.feature, ...)` accept an optional `Enum? tag`.
+- Each `_CircuitScope` maintains an immutable `Map<Enum, Circuit> taggedCircuits` map, wrapping merged registries in `Map.unmodifiable`. When `tag` is omitted, parent maps are reused directly without allocations:
+  ```dart
+  final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};
+  taggedCircuits: tag != null
+      ? Map.unmodifiable(<Enum, Circuit>{
+          ...effectiveTaggedCircuits,
+          tag!: circuit,
+        })
+      : effectiveTaggedCircuits,
+  ```
+- Descendants access containers with true O(1) performance:
+  - `CircuitProvider.of(context)`: returns nearest `Circuit` in **O(1)**.
+  - `CircuitProvider.of(context, tag: AppScope.global)`: retrieves `scope.taggedCircuits[tag]` in **O(1)**.
+- If two nested providers share the same tag, the nearer ancestor lexically shadows the outer ancestor.
+- Sibling subtrees maintain isolated registries without leaking into each other.
+- When an inner `CircuitProvider` is in `CircuitBuilding` or `CircuitFailure`, it mounts `_CircuitScope(circuit: null, taggedCircuits: parentScope.taggedCircuits)` to properly intercept untagged lookups (returning `null` in `maybeOf` and throwing `StateError` in `of` rather than leaking the outer ancestor circuit) while continuing to provide access to ready ancestor tagged circuits in O(1).
+
+```mermaid
+flowchart TD
+  subgraph Root["1. Global CircuitProvider (tag: AppScope.global)"]
+    GCS["_CircuitScope<br/>circuit: GlobalCircuit<br/>tag: AppScope.global<br/>taggedCircuits: {global: GlobalCircuit}"]
+  end
+
+  subgraph Nested["2. Feature CircuitProvider (tag: AppScope.feature)"]
+    BCS["_CircuitScope<br/>circuit: FeatureCircuit<br/>tag: AppScope.feature<br/>taggedCircuits: {global: GlobalCircuit, feature: FeatureCircuit}"]
+  end
+
+  subgraph Descendant["3. Feature Descendant Widget"]
+    BF["FeatureScreen"]
+  end
+
+  Root -->|"build reads parentScope O(1)<br/>merges {global: GlobalCircuit}"| Nested
+  Nested -->|"InheritedWidget propagation"| Descendant
+
+  BF -->|"CircuitProvider.of(context)<br/>scope.circuit -> O(1)"| BCS
+  BF -->|"CircuitProvider.of(context, tag: .global)<br/>scope.taggedCircuits[tag] -> O(1)"| GCS
+```
+
+### 4. Record Tuple Keys (`WireKey = (Type, Enum?)`)
 - Dependency identifiers are Dart 3 record tuples.
 - Untagged dependencies use `(T, null)`.
 - Tagged dependencies constrain tags to enum values (`(T, K)` where `K extends Enum`).
 - Enables Dart dot-shorthands (e.g. `tag: .prod`, `tag: .fast`) and allows multiple distinct registrations of the same generic Dart type without collisions.
 
-### 4. Declarative Wire Recipes (`CircuitWire`, `Wire<T>`, `AsyncWire<T>`)
+### 5. Declarative Wire Recipes (`CircuitWire`, `Wire<T>`, `AsyncWire<T>`)
 - `Wire<T>`: Synchronous lazy singletons, constructed on first read or when required by an `AsyncWire` during build.
 - `AsyncWire<T>`: Asynchronous singletons resolved in parallel topological waves during `Circuit.build(wires)`.
 - Fluent accumulator chaining (`Wire.takes`, `AsyncWire.takes` backed by internal `WireBuilder` / `AsyncWireBuilder` hidden from public exports) allows type-safe dependency declarations:
   - 1-dependency accumulator passes directly to 1-arg constructor/tear-off (`.to(UserService.new)`).
   - Multi-dependency accumulator unpacks nested record tuples (`(deps) => OrderService(deps.$1, deps.$2)`).
 
-### 5. DAG Static Validation & Parallel Topological Wave Resolution
+### 6. DAG Static Validation & Parallel Topological Wave Resolution
 - `Circuit.build(wires)` executes full DAG validation before instantiation:
   - Duplicate keys throw `DuplicateWireException`
   - Missing dependencies throw `MissingWireException`
   - Cycles throw `CircularDependencyException` with cycle paths
 - Resolves `AsyncWire`s in parallel topological waves using `Future.wait`. Automatically tears down partially initialized instances in reverse topological order if any wave throws.
 
-### 6. Reverse Topological Wave Disposal
+### 7. Reverse Topological Wave Disposal
 - `Circuit.dispose()` performs idempotent teardown in reverse topological dependency waves (`leaves -> roots`), ensuring consumers are disposed before their underlying dependencies.
 - Executes `onDispose` callbacks concurrently across each level, aggregating failures into `DisposalException`. Subsequent calls are safe no-ops.
 
-### 7. Package Metadata & pub.dev Discovery
+### 8. Package Metadata & pub.dev Discovery
 - Centralizes project links on `https://github.com/maranix/circuitry` with issues routed to package-specific label queries (`label:circuitry` and `label:circuitry_flutter`).
 - Subpackage repository fields are deep-linked to their tree directories (`packages/circuitry` and `packages/circuitry_flutter`) to enable direct file browsing from pub.dev.
 - Curates up to 5 lowercase slug discovery topics per package targeting DI, IoC, DAG, Flutter, and architectural workflows.

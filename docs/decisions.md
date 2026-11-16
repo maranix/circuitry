@@ -1,5 +1,28 @@
 # Decisions
 
+## 2026-11-16: Taggable CircuitProvider with O(1) Ambient Registry Map Merging (Issue #1)
+
+- **Status:** agreed
+- **Request:** Resolve [Issue #1: Circuit should be tag-able like Wire](https://github.com/maranix/circuitry/issues/1). When `CircuitProvider` widgets are nested (e.g., `GlobalCircuitProvider` -> `FooApp` -> `BarCircuitProvider` -> `BarFeature`), descendants in `BarFeature` need to access tagged ancestor circuits (e.g. `GlobalCircuit`).
+- **Scope:** `packages/circuitry_flutter`, project documentation, and widget test suites. Core engine `packages/circuitry` remains untouched.
+- **Choices:**
+  - **Core Independence**: Pure Dart `Circuit` instances remain completely decoupled, independent containers without any cross-circuit parenting or graph merging in `packages/circuitry`.
+  - **Flutter Scoped Ambient Registry**:
+    - Add `Enum? tag` parameter to `CircuitProvider` and `CircuitProvider.value`.
+    - `_CircuitScope` maintains an ambient `Map<Enum, Circuit> taggedCircuits`.
+    - When a `_CircuitScope` is created, it merges its own `?tag: circuit` into an immutable copy (`Map.unmodifiable`) of its ancestor's `taggedCircuits`, reusing parent maps directly without allocation when `tag` is omitted.
+    - When `_CircuitWireStatefulState` is in `CircuitBuilding` or `CircuitFailure`, it mounts `_CircuitScope` with `circuit: null` and inherits `taggedCircuits`. This intercepts untagged `of`/`maybeOf` calls in nested scopes, preventing accidental leakage of outer ancestor circuits while preserving access to ready ancestor tagged circuits in O(1).
+  - **True O(1) Context Retrieval**:
+    - Flutter's `context.dependOnInheritedWidgetOfExactType<_CircuitScope>()` performs a single hash map lookup on `Element._inheritedElements` in **O(1)**.
+    - `CircuitProvider.of(context)` returns `scope.circuit` (nearest circuit) in **O(1)**.
+    - `CircuitProvider.of(context, tag: tag)` looks up `scope.taggedCircuits[tag]` in **O(1)**, throwing a descriptive `StateError` if not found.
+    - Avoids any O(N) tree-walking or `visitAncestorElements`.
+  - **Lexical Shadowing & Sibling Isolation**:
+    - Nearer ancestor providers registering the same tag shadow outer ancestors in the merged map.
+    - Sibling subtrees maintain isolated registries without leaking into each other.
+  - **Clean Public API**:
+    - Only `CircuitProvider.of(context, {Enum? tag})` and `CircuitProvider.maybeOf(context, {Enum? tag})`. No auxiliary helper methods (such as `.tagged(...)`) polluting the public surface.
+
 ## 2026-11-15: Package Examples and Visual Architecture Diagram Asset
 
 - **Status:** agreed
