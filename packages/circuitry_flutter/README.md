@@ -22,6 +22,7 @@ Flutter bridge for [`circuitry`](https://pub.dev/packages/circuitry) — providi
 - **Synchronous Value Injection (`CircuitProvider.value`)**: Injects an already resolved `Circuit` synchronously for test harnesses or sub-trees without managing lifecycle disposal.
 - **Taggable Scopes & O(1) Nested Lookup**: Associate providers with tags (`tag: Scope.global`) to retrieve ancestor containers across nested providers in **O(1)** via `CircuitProvider.of(context, tag: Scope.global)` without widget tree walking.
 - **Explicit Accessors**: Retrieve dependencies via `CircuitProvider.of(context)` and `CircuitProvider.maybeOf(context)` without `BuildContext` extension pollution.
+- **Circuit Registry & DevTools VM Service Extensions**: In debug mode, `CircuitRegistry` tracks mounted containers and exposes `ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`, and `ext.circuitry.forceResolveWire` to Flutter DevTools, completely tree-shaken in release builds.
 
 ---
 

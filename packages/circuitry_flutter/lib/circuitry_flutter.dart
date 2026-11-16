@@ -12,6 +12,8 @@
 ///   used to reactively render splash screens, main applications, or error views.
 /// * [CircuitProvider.of] and [CircuitProvider.maybeOf], descendant accessors for querying the
 ///   ambient [Circuit] container from any [BuildContext].
+/// * [CircuitRegistry], central registry tracking active [Circuit] instances mounted in the widget tree
+///   for DevTools and VM service extensions.
 ///
 /// ## Quickstart
 ///
@@ -46,4 +48,6 @@ library;
 export 'package:circuitry/circuitry.dart';
 
 export 'src/circuit_provider.dart';
+export 'src/circuit_registry.dart';
 export 'src/circuit_state.dart';
+export 'src/vm_service_extensions.dart';

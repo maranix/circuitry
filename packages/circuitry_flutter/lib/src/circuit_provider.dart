@@ -1,5 +1,7 @@
 import 'package:circuitry/circuitry.dart';
+import 'package:circuitry_flutter/src/circuit_registry.dart';
 import 'package:circuitry_flutter/src/circuit_state.dart';
+import 'package:circuitry_flutter/src/vm_service_extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
@@ -250,22 +252,75 @@ final class const _CircuitValueProvider({
 
   @override
   Widget build(BuildContext context) {
+    return _CircuitValueStateful(tag: tag, value: value, child: child);
+  }
+}
+
+/// Internal stateful host widget managing registry lifecycle for pre-built [Circuit] values.
+final class const _CircuitValueStateful({
+  final Enum? tag,
+  required final Circuit value,
+  required final Widget child,
+}) extends StatefulWidget {
+  @override
+  State<_CircuitValueStateful> createState() => _CircuitValueStatefulState();
+}
+
+class _CircuitValueStatefulState extends State<_CircuitValueStateful> {
+  @override
+  void initState() {
+    super.initState();
+    registerCircuitryVmServiceExtensions();
+    CircuitRegistry.instance.register(
+      widget.value,
+      tag: widget.tag,
+      state: CircuitState.ready(widget.value),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _CircuitValueStateful oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      CircuitRegistry.instance.unregister(oldWidget.value);
+      CircuitRegistry.instance.register(
+        widget.value,
+        tag: widget.tag,
+        state: CircuitState.ready(widget.value),
+      );
+    } else if (oldWidget.tag != widget.tag) {
+      CircuitRegistry.instance.register(
+        widget.value,
+        tag: widget.tag,
+        state: CircuitState.ready(widget.value),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    CircuitRegistry.instance.unregister(widget.value);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final parentScope = context
         .dependOnInheritedWidgetOfExactType<_CircuitScope>();
     final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};
-    final Map<Enum, Circuit> taggedCircuits = switch (tag) {
+    final Map<Enum, Circuit> taggedCircuits = switch (widget.tag) {
       final t? => Map<Enum, Circuit>.unmodifiable({
         ...effectiveTaggedCircuits,
-        t: value,
+        t: widget.value,
       }),
       _ => effectiveTaggedCircuits,
     };
 
     return _CircuitScope(
-      tag: tag,
-      circuit: value,
+      tag: widget.tag,
+      circuit: widget.value,
       taggedCircuits: taggedCircuits,
-      child: child,
+      child: widget.child,
     );
   }
 }
@@ -311,6 +366,7 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
   @override
   void initState() {
     super.initState();
+    registerCircuitryVmServiceExtensions();
     _startCompilation();
   }
 
@@ -319,12 +375,21 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(widget.wires, oldWidget.wires)) {
       _compilationEpoch++;
-      _circuit?.dispose().ignore();
-      _circuit = null;
+      if (_circuit != null) {
+        CircuitRegistry.instance.unregister(_circuit!);
+        _circuit?.dispose().ignore();
+        _circuit = null;
+      }
       setState(() {
         _state = const .building();
       });
       _startCompilation();
+    } else if (oldWidget.tag != widget.tag && _circuit != null) {
+      CircuitRegistry.instance.register(
+        _circuit!,
+        tag: widget.tag,
+        state: _state,
+      );
     }
   }
 
@@ -337,14 +402,24 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
           return;
         }
         _circuit = circuit;
+        final readyState = CircuitState.ready(circuit);
+        CircuitRegistry.instance.register(
+          circuit,
+          tag: widget.tag,
+          state: readyState,
+        );
         setState(() {
-          _state = .ready(circuit);
+          _state = readyState;
         });
       },
       onError: (Object error, StackTrace stackTrace) {
         if (!mounted || currentEpoch != _compilationEpoch) return;
+        final failureState = CircuitState.failure(error, stackTrace);
+        if (_circuit != null) {
+          CircuitRegistry.instance.updateState(_circuit!, failureState);
+        }
         setState(() {
-          _state = .failure(error, stackTrace);
+          _state = failureState;
         });
       },
     );
@@ -353,6 +428,9 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
   @override
   void dispose() {
     _compilationEpoch++;
+    if (_circuit != null) {
+      CircuitRegistry.instance.unregister(_circuit!);
+    }
     _circuit?.dispose().ignore();
     super.dispose();
   }
