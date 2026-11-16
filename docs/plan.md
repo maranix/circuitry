@@ -149,5 +149,103 @@
     - [x] Record architectural decision in `docs/decisions.md`.
     - [x] Record plan entry in `docs/plan.md`.
 
+- [x] Implement Core Diagnostics & Introspection API (Issue #4)
+  - Requirements:
+    - Declare `CircuitObserver`, `BaseCircuitObserver`, and `_CompositeCircuitObserver` in `packages/circuitry/lib/src/observer.dart` supporting tiered observer resolution (`local ?? zone ?? global`).
+    - Declare `WireStatus`, `WireDescriptor`, and `CircuitIntrospection` contract in `packages/circuitry/lib/src/introspection.dart`.
+    - Instrument `Circuit.build`, parallel wave execution loops, `Circuit._getByKey`, and `Circuit.dispose` in `packages/circuitry/lib/src/circuit.dart` to fire observer events and track reverse dependencies (`dependents`).
+    - Implement `CircuitIntrospectionImpl`:
+      - `dependenciesOf(key, {bool transitive = false})`
+      - `dependentsOf(key, {bool transitive = false})`
+      - `topologicalOrder`
+      - `statusOf(key)`
+      - `toMermaid({bool showStatus = true, bool groupByWave = true})`
+      - `toDot({bool showStatus = true})`
+      - `toJson()`
+      - `findOrphanWires()`
+      - `detectCriticalPath()`
+    - Export `src/observer.dart` and `src/introspection.dart` from `packages/circuitry/lib/circuitry.dart`.
+    - Comprehensive test suite in `packages/circuitry/test/observer_test.dart` and `packages/circuitry/test/introspection_test.dart`.
+    - Verify with `dart analyze` and `dart test` in `packages/circuitry`.
+  - Sub-steps:
+    - [x] Implement `CircuitObserver` and composite dispatcher.
+    - [x] Instrument `Circuit` lifecycle events and package-internal getters.
+    - [x] Implement `CircuitIntrospectionImpl` with graph queries, status tracking, Mermaid/DOT/JSON export, and structural checks.
+    - [x] Write observer and introspection test suites (90 tests total).
+    - [x] Verify static analysis and test execution.
+    - [x] Synchronize documentation.
+
+- [x] Implement Sugiyama Layered Topological Layout Engine for DevTools Extension
+  - Requirements:
+    - Create `packages/circuitry_devtools_extension` with `pubspec.yaml` configured for DevTools extension and added to root workspace.
+    - Implement `packages/circuitry_devtools_extension/lib/src/layout/sugiyama_layout.dart`:
+      - Data models: `LayoutNode`, `LayoutPoint`, `LayoutEdge`, `LayoutGraph`.
+      - `SugiyamaLayout` class with `execute(List<LayoutNode> nodes, List<LayoutEdge> edges)` executing:
+        1. Rank assignment: horizontal X locked to `waveLevel * columnWidth`.
+        2. Crossing reduction: iterative barycentric / median ordering across adjacent wave columns.
+        3. Coordinate assignment: space nodes vertically with minimum margin without overlap.
+        4. Spline routing: cubic Bézier waypoint generation (start, controlPoint1, controlPoint2, end).
+    - Unit tests in `packages/circuitry_devtools_extension/test/sugiyama_layout_test.dart` verifying:
+      - Wave column X alignment and progression.
+      - Vertical separation without overlap.
+      - Cubic Bézier waypoints calculation.
+      - Edge crossing reduction via barycentric ordering.
+    - Synchronize project documentation (`docs/decisions.md`, `docs/architecture.md`, `README.md`).
+    - Verify with `flutter test` in `packages/circuitry_devtools_extension`.
+  - Sub-steps:
+    - [x] Configure `pubspec.yaml` and register workspace package in root `pubspec.yaml`.
+    - [x] Implement layout data models and `SugiyamaLayout` engine.
+    - [x] Write unit test suite covering wave alignment, vertical spacing, Bézier splines, and crossing reduction.
+    - [x] Run test suite and static analysis.
+    - [x] Synchronize documentation.
+
+- [x] Implement Flutter Bridge Registry and VM Service Extensions
+  - Requirements:
+    - Implement `CircuitRegistry` in `packages/circuitry_flutter/lib/src/circuit_registry.dart` to track active mounted circuits gated by `kDebugMode`.
+    - Register standard VM service extensions in `packages/circuitry_flutter/lib/src/vm_service_extensions.dart`:
+      - `ext.circuitry.getCircuits`
+      - `ext.circuitry.getCircuitGraph`
+      - `ext.circuitry.forceResolveWire`
+    - Hook `CircuitProvider` and `CircuitProvider.value` into `CircuitRegistry` in `circuit_provider.dart` (`initState`, `didUpdateWidget`, `dispose`).
+    - Write comprehensive test suite in `packages/circuitry_flutter/test/circuit_registry_test.dart` verifying lifecycle, tag recording, unmount cleanup, and VM service query responses.
+    - Synchronize project documentation (`docs/decisions.md`, `docs/architecture.md`, `README.md`, `packages/circuitry_flutter/README.md`).
+    - Verify with `flutter test` and `flutter analyze` in `packages/circuitry_flutter`.
+  - Sub-steps:
+    - [x] Implement `CircuitRegistry` and `CircuitEntry`.
+    - [x] Implement `registerCircuitryVmServiceExtensions` and extension query handlers.
+    - [x] Hook `CircuitProvider` into `CircuitRegistry` lifecycle.
+    - [x] Write test suite in `test/circuit_registry_test.dart`.
+    - [x] Run full test suite and verify clean analysis.
+    - [x] Synchronize documentation.
+
+- [x] Implement DevTools Extension UI, Manifest, and Interactive Visual Inspection
+  - Requirements:
+    - Create `CircuitNavigator` widget in `packages/circuitry_devtools_extension/lib/src/ui/circuit_navigator.dart` displaying detected circuits with ID, tag, state badge (Building, Ready, Failure), wire count, search filter, and `onSelect` callback.
+    - Create `DagCanvas` widget in `packages/circuitry_devtools_extension/lib/src/ui/dag_canvas.dart` using `InteractiveViewer` and `CustomPainter`:
+      - Takes `LayoutGraph` from `SugiyamaLayout`.
+      - Renders wave column headers (Wave 0, Wave 1, Wave 2...).
+      - Renders nodes with distinct visual styling: Resolved (solid green border/fill, checkmark icon), UnresolvedLazy (dashed purple border, clock icon, 'Lazy'), Resolving (pulsing amber border, spinner, wave index), Failed (crimson alert border, exclamation badge).
+      - Renders cubic Bézier splines from Sugiyama waypoints with arrowheads.
+      - Node selection & hover highlighting upstream dependencies in blue, downstream dependents in amber, and dimming unrelated edges.
+      - Smooth interactive zoom/pan controls and `onNodeSelected` callback.
+    - Create `WireDrawer` widget in `packages/circuitry_devtools_extension/lib/src/ui/wire_drawer.dart` displaying selected node metadata (key, tag, isAsync, waveLevel, status, resolutionDuration), click-to-focus dependency and dependent chips, and 'Force Initialize' action for unresolved lazy wires.
+    - Create `WaveProfiler` widget in `packages/circuitry_devtools_extension/lib/src/ui/wave_profiler.dart` showing Gantt/waterfall timeline of wave execution, wave boundaries, parallel resolution bars, critical path highlights, and critical path toggle.
+    - Create main app in `packages/circuitry_devtools_extension/lib/main.dart` wrapping `CircuitryDashboard` in `DevToolsExtension` and communicating with target apps via VM service extensions.
+    - Create DevTools extension manifest in `packages/circuitry_flutter/extension/devtools/config.yaml` (`name: circuitry`, `issueTracker: https://github.com/maranix/circuitry/issues`, `version: 0.1.0`, `materialIconCode: '0xe318'`).
+    - Write comprehensive widget test harness in `packages/circuitry_devtools_extension/test/ui_test.dart` verifying all 4 widgets and `CircuitryDashboard`.
+    - Synchronize project documentation (`docs/decisions.md`, `docs/architecture.md`, `docs/plan.md`, `README.md`).
+    - Verify with `cd packages/circuitry_devtools_extension && flutter test` and full gate.
+  - Sub-steps:
+    - [x] Create DevTools extension manifest `packages/circuitry_flutter/extension/devtools/config.yaml`.
+    - [x] Create data models `CircuitSummary`, `WireModel`, `CircuitGraphData`.
+    - [x] Implement `CircuitNavigator`.
+    - [x] Implement `DagCanvas` with custom painting, wave headers, styled nodes, Bézier routing, and upstream/downstream edge highlights.
+    - [x] Implement `WireDrawer` with properties, dependencies/dependents, and force initialize action.
+    - [x] Implement `WaveProfiler` with Gantt waterfall timeline and critical path highlighting.
+    - [x] Implement `CircuitryDashboard`, `CircuitryClient` abstraction, and `main.dart` with `DevToolsExtension`.
+    - [x] Write comprehensive test suite in `test/ui_test.dart`.
+    - [x] Run full test suite and verify clean analysis.
+    - [x] Synchronize documentation.
+
 ## Next
 - [ ] Publish v0.1.0 to pub.dev

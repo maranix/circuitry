@@ -12,6 +12,7 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
 | --- | --- | --- |
 | [`circuitry`](packages/circuitry) | [![pub](https://img.shields.io/pub/v/circuitry.svg)](https://pub.dev/packages/circuitry) | Pure Dart dependency injection engine. Zero Flutter dependencies; runs on CLI, server, web, and mobile. |
 | [`circuitry_flutter`](packages/circuitry_flutter) | [![pub](https://img.shields.io/pub/v/circuitry_flutter.svg)](https://pub.dev/packages/circuitry_flutter) | Flutter bridge with `CircuitProvider`, `InheritedWidget` scoping, `CircuitState` matching, and unmount disposal. |
+| [`circuitry_devtools_extension`](packages/circuitry_devtools_extension) | — | DevTools extension for Circuitry DAG topological visualization, Sugiyama layout, and live debugging. |
 
 ---
 
@@ -49,12 +50,18 @@ circuitry/
 │   │   ├── lib/
 │   │   │   ├── circuitry.dart     # Public barrel export
 │   │   │   └── src/               # Core engine implementation (circuit, wire, exceptions)
-│   │   └── test/                  # 46 unit tests for DAG, waves, laziness, and disposal
-│   └── circuitry_flutter/         # Flutter companion package
+│   │   └── test/                  # 90 unit tests for DAG, waves, laziness, disposal, observers, and introspection
+│   ├── circuitry_flutter/         # Flutter companion package
+│   │   ├── lib/
+│   │   │   ├── circuitry_flutter.dart # Public barrel export
+│   │   │   └── src/               # Flutter bridge implementation (provider, scope, registry, state)
+│   │   └── test/                  # 49 widget, lifecycle, and integration tests
+│   └── circuitry_devtools_extension/ # DevTools companion extension
 │       ├── lib/
-│       │   ├── circuitry_flutter.dart # Public barrel export
-│       │   └── src/               # Flutter bridge implementation (provider, scope, state)
-│       └── test/                  # 35 widget, lifecycle, and integration tests
+│       │   ├── circuitry_devtools_extension.dart # Public barrel export
+│       │   ├── main.dart             # Extension entry point with DevToolsExtension
+│       │   └── src/                  # DAG layout, models, VM service clients, UI inspector
+│       └── test/                  # 20 unit & widget tests for layout and UI components
 ├── analysis_options.yaml          # Strict static analysis rules
 ├── pubspec.yaml                   # Root pub workspace
 └── README.md
@@ -89,6 +96,9 @@ cd packages/circuitry && dart test
 
 # Run Flutter tests in circuitry_flutter
 cd packages/circuitry_flutter && flutter test
+
+# Run DevTools extension tests in circuitry_devtools_extension
+cd packages/circuitry_devtools_extension && flutter test
 ```
 
 ---

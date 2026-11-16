@@ -1,5 +1,79 @@
 # Decisions
 
+## 2026-11-16: Core Diagnostics & Introspection API (Issue #4)
+
+- **Status:** agreed
+- **Request:** Implement comprehensive introspection and lifecycle telemetry in `packages/circuitry` to inspect the DAG, query dependencies and dependents (reverse lookup), track wire resolution states, generate diagrams (Mermaid, DOT, JSON), and hook into build/wave/dispose events.
+- **Scope:** `packages/circuitry/lib/src/observer.dart`, `packages/circuitry/lib/src/introspection.dart`, `packages/circuitry/lib/src/circuit.dart`, barrel exports, and unit test suites.
+- **Choices:**
+  - **Tiered Composite Observer Pattern (`CircuitObserver`):**
+    - `Circuit.build(wires, {CircuitObserver? observer})` resolves observers using a 3-tier cascade: `explicit ?? Zone.current[#circuitObserver] ?? CircuitObserver.global`.
+    - Multiple active observers are automatically wrapped in `_CompositeCircuitObserver` to fan out calls without per-event allocations.
+    - `BaseCircuitObserver` provides safe no-op default methods.
+    - Lifecycle hooks track `onCircuitBuilding`, `onWaveStarted`, `onWireResolved`, `onWireFailed`, `onWaveCompleted`, `onCircuitReady`, `onCircuitDisposing`, and `onCircuitDisposed`.
+  - **Immutable Graph Introspection Contract (`CircuitIntrospection`):**
+    - `circuit.inspect()` returns `CircuitIntrospectionImpl`, snapshotting container state without leaking mutable internals.
+    - `WireStatus`: tracks `unresolvedLazy`, `resolving`, `resolved`, `failed`, `disposed`.
+    - Bidirectional queries:
+      - `dependenciesOf(key, {bool transitive = false})`: forward upstream dependencies.
+      - `dependentsOf(key, {bool transitive = false})`: downstream dependents using internal `_reverseDependencies` index compiled during DAG validation.
+    - Exporters:
+      - `toMermaid({bool showStatus = true, bool groupByWave = true})`: produces valid Mermaid.js flowchart with wave subgraphs and classDef status styling.
+      - `toDot({bool showStatus = true})`: produces Graphviz DOT representation with clusters.
+      - `toJson()`: structured schema for tooling and VM Service extensions.
+    - Diagnostics: `findOrphanWires()` and `detectCriticalPath()`.
+
+## 2026-11-16: DevTools Extension UI Architecture, Manifest, and Interactive Visual Inspection
+
+- **Status:** agreed
+- **Request:** Implement complete UI layer for `packages/circuitry_devtools_extension` (CircuitNavigator, DagCanvas, WireDrawer, WaveProfiler, and main app) and configure extension manifest in `packages/circuitry_flutter/extension/devtools/config.yaml`.
+- **Scope:** `packages/circuitry_devtools_extension`, `packages/circuitry_flutter/extension/devtools/config.yaml`, unit and widget test suite in `packages/circuitry_devtools_extension/test/ui_test.dart`.
+- **Choices:**
+  - **Extension Manifest:**
+    - Configured in `packages/circuitry_flutter/extension/devtools/config.yaml` specifying name `circuitry`, issueTracker `https://github.com/maranix/circuitry/issues`, version `0.1.0`, and materialIconCode `'0xe318'`.
+  - **Decoupled Architecture with `CircuitryClient`:**
+    - `CircuitryClient`: Abstract interface specifying `getCircuits()`, `getCircuitGraph(id)`, and `forceResolveWire(id, key)`.
+    - `VmServiceCircuitryClient`: Production client communicating with Flutter VM Service extensions via `devtools_extensions`.
+    - `MockCircuitryClient`: In-memory client enabling 100% offline development, component previews, and deterministic widget testing.
+  - **Component Structure:**
+    - `CircuitNavigator`: Left sidebar displaying list of active circuits with tag chips, wire count badges, state indicators (Ready, Building, Failure), filter search box, and selection callbacks.
+    - `DagCanvas`: Central InteractiveViewer with CustomPainter rendering wave column headers, distinct node statuses (Resolved: solid green/checkmark, UnresolvedLazy: dashed purple/clock, Resolving: pulsing amber/spinner, Failed: crimson alert), cubic Bézier edge splines from Sugiyama waypoints, upstream/downstream edge highlighting, and zoom/pan controls.
+    - `WireDrawer`: Right sidebar displaying selected node metadata (key, tag, isAsync, waveLevel, status, resolution duration, critical path badge), click-to-focus dependency and dependent chips, and prominent "Force Initialize" action for lazy wires.
+    - `WaveProfiler`: Bottom drawer displaying Gantt/waterfall timeline of wave execution, wave boundaries, parallel wire bars, critical path highlights, and critical-path-only filter.
+    - `CircuitryDashboard`: Main container managing unified selection state, drawer expand/collapse, and error views.
+    - `main.dart`: Root entry point wrapping `CircuitryDashboard` in `DevToolsExtension`.
+
+## 2026-11-16: Flutter Bridge CircuitRegistry and DevTools VM Service Extensions
+
+- **Status:** agreed
+- **Request:** Implement `CircuitRegistry` and VM service extensions in `packages/circuitry_flutter` to track active mounted circuits, support live DevTools graph inspection, and allow manual triggering of lazy wires on running apps.
+- **Scope:** `packages/circuitry_flutter/lib/src/circuit_registry.dart`, `packages/circuitry_flutter/lib/src/vm_service_extensions.dart`, `packages/circuitry_flutter/lib/src/circuit_provider.dart`, and `packages/circuitry_flutter/test/circuit_registry_test.dart`.
+- **Choices:**
+  - **Debug-Gated Singleton Registry (`CircuitRegistry`):**
+    - Tracks active `Circuit` instances mounted in the Flutter widget tree using a monotonic ID mapping (`circuit_1`, `circuit_2`).
+    - Holds `Map<String, CircuitEntry>` with `CircuitEntry(id, circuit, tag, state)`.
+    - All tracking and registration maps are strictly gated by `kDebugMode` to ensure complete tree-shaking and zero overhead in production release builds.
+    - Lifecycle hooks: `CircuitProvider` and `CircuitProvider.value` register in `initState`, update on `didUpdateWidget` or state transitions, and unregister cleanly on `dispose`.
+  - **Standard VM Service Extensions (`registerExtension`):**
+    - `ext.circuitry.getCircuits`: returns list of registered active circuits with ID, tag, lifecycle state, isDisposed, and wire count.
+    - `ext.circuitry.getCircuitGraph`: queries `circuit.inspect().toJson()` for the requested circuit ID, serializing wires, waves, and maxWaveLevel for DevTools DAG rendering.
+    - `ext.circuitry.forceResolveWire`: dynamically triggers instantiation of lazy synchronous singletons on demand, supporting lookup by type name, tag, or composite key (`DatabaseService#dev`, `DatabaseService(tag: dev)`).
+
+## 2026-11-16: Sugiyama Layered Topological Layout Engine for DevTools Extension
+
+- **Status:** agreed
+- **Request:** Implement a pure Dart zero-dependency Sugiyama layered topological layout engine in `packages/circuitry_devtools_extension` to compute visual coordinates and cubic Bézier edge splines for Circuitry DAGs in Flutter DevTools.
+- **Scope:** `packages/circuitry_devtools_extension/lib/src/layout/sugiyama_layout.dart`, `packages/circuitry_devtools_extension/test/sugiyama_layout_test.dart`, root workspace configuration, and documentation.
+- **Choices:**
+  - **Modular Package Placement**:
+    - Place the layout engine under `packages/circuitry_devtools_extension` as a workspace package.
+    - Provide complete data models: `LayoutPoint`, `LayoutNode`, `LayoutEdge`, and `LayoutGraph`.
+  - **4-Phase Layered Sugiyama Algorithm**:
+    - **Phase 1: Rank Assignment**: Lock horizontal X coordinate strictly to `paddingX + waveLevel * columnWidth`.
+    - **Phase 2: Crossing Reduction**: Use iterative barycentric averaging across adjacent wave columns (alternating downsweep and upsweep) with crossing count evaluation to minimize edge crossings.
+    - **Phase 3: Coordinate Assignment**: Space nodes vertically within each column with a minimum `verticalMargin`, guaranteeing non-overlapping bounding boxes.
+    - **Phase 4: Spline Routing**: Generate smooth cubic Bézier waypoints `[start, cp1, cp2, end]` with horizontal tangent constraints for standard node editor rendering.
+
 ## 2026-11-16: Compute-Optimized CI Workflows
 
 - **Status:** agreed

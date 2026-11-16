@@ -2,26 +2,54 @@
 
 ## Current Shape & Monorepo Layout
 
-Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler split into two packages under a unified Dart workspace:
+Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler split into packages under a unified Dart workspace:
 
 ```
 circuitry/
 ├── packages/
 │   ├── circuitry/                 # Pure Dart runtime dependency injection engine
 │   │   ├── lib/
-│   │   │   ├── circuitry.dart     # Library entry point (wires, circuit, exceptions)
+│   │   │   ├── circuitry.dart     # Library entry point (wires, circuit, exceptions, introspection, observer)
 │   │   │   └── src/               # Modular source files
 │   │   │       ├── circuit.dart   # Circuit container and DAG compiler
 │   │   │       ├── exceptions.dart# CircuitException hierarchy with primary constructors
+│   │   │       ├── introspection.dart # Graph introspection, WireStatus, WireDescriptor, Mermaid/DOT/JSON
+│   │   │       ├── observer.dart  # CircuitObserver, CircuitInfo, and _CompositeCircuitObserver
 │   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, builders
-│   │   └── test/                  # Unit tests (DAG validation, waves, laziness, disposal)
-│   └── circuitry_flutter/         # Flutter framework bridge
+│   │   └── test/                  # Unit tests (DAG validation, waves, laziness, disposal, observer, introspection)
+│   ├── circuitry_flutter/         # Flutter framework bridge
+│   │   ├── extension/
+│   │   │   └── devtools/
+│   │   │       └── config.yaml    # DevTools extension discovery manifest
+│   │   ├── lib/
+│   │   │   ├── circuitry_flutter.dart # Library entry point and pure Dart re-export
+│   │   │   └── src/               # Flutter bridge implementation
+│   │   │       ├── circuit_provider.dart # CircuitProvider widget declarations and internal _CircuitScope
+│   │   │       ├── circuit_registry.dart # CircuitRegistry and CircuitEntry debug tracking
+│   │   │       ├── circuit_state.dart    # CircuitState sealed hierarchy
+│   │   │       └── vm_service_extensions.dart # Developer service extensions for DevTools
+│   │   └── test/                  # Widget & lifecycle tests
+│   └── circuitry_devtools_extension/ # Flutter DevTools companion extension
 │       ├── lib/
-│       │   ├── circuitry_flutter.dart # Library entry point and pure Dart re-export
-│       │   └── src/               # Flutter bridge implementation
-│       │       ├── circuit_provider.dart # CircuitProvider widget declarations and internal _CircuitScope
-│       │       └── circuit_state.dart    # CircuitState sealed hierarchy
-│       └── test/                  # Widget & lifecycle tests
+│       │   ├── circuitry_devtools_extension.dart # Public barrel export
+│       │   ├── main.dart             # Extension entry point with DevToolsExtension
+│       │   └── src/
+│       │       ├── layout/
+│       │       │   └── sugiyama_layout.dart # Sugiyama topological DAG layout engine
+│       │       ├── model/
+│       │       │   └── circuit_devtools_models.dart # CircuitSummary, WireModel, CircuitGraphData
+│       │       ├── service/
+│       │       │   ├── circuitry_client.dart # CircuitryClient and MockCircuitryClient
+│       │       │   └── vm_service_circuitry_client.dart # VmServiceCircuitryClient
+│       │       └── ui/
+│       │           ├── circuit_navigator.dart # List & filtering of active circuits
+│       │           ├── circuitry_dashboard.dart # Integrated inspection workbench
+│       │           ├── dag_canvas.dart      # InteractiveViewer DAG CustomPainter
+│       │           ├── wave_profiler.dart   # Gantt waterfall timeline & critical path
+│       │           └── wire_drawer.dart     # Node details & force initialize
+│       └── test/
+│           ├── sugiyama_layout_test.dart
+│           └── ui_test.dart                 # Widget tests for extension components
 ├── docs/
 │   ├── decisions.md               # Architectural decision records
 │   ├── architecture.md            # Detailed system architecture, seams, and module tree
@@ -169,6 +197,26 @@ flowchart TD
 - Curates up to 5 lowercase slug discovery topics per package targeting DI, IoC, DAG, Flutter, and architectural workflows.
 - Maintains standalone `CHANGELOG.md` and MIT `LICENSE` files within each package to satisfy pub publishing requirements.
 
+### 9. Core Introspection API & Lifecycle Observers
+- `circuit.inspect()` returns an immutable `CircuitIntrospection` snapshot enabling bidirectional dependency graph queries:
+  - `dependenciesOf(key)`: direct or transitive upstream dependencies required by `key`.
+  - `dependentsOf(key)`: direct or transitive downstream dependents that rely on `key`, backed by internal reverse dependency index compiled during DAG validation.
+  - `topologicalOrder`: resolved wave order.
+  - `statusOf(key)`: real-time `WireStatus` (`unresolvedLazy`, `resolving`, `resolved`, `failed`, `disposed`).
+  - `toMermaid()` / `toDot()` / `toJson()`: automated graph diagram export with wave subgraphs and status styling.
+  - `findOrphanWires()` and `detectCriticalPath()`: structural linting.
+- `CircuitObserver`: Tiered composite lifecycle telemetry (`local ?? Zone.current[#circuitObserver] ?? CircuitObserver.global`) tracking build progress, wave starts/completions, wire resolution durations, and disposal without test leakage.
+
+### 10. Flutter DevTools Extension & VM Service Bridge
+- `packages/circuitry_flutter` integrates an ambient `CircuitRegistry` tracking active/tagged circuits mounted in the widget tree.
+- Exposes VM Service extensions (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`, `ext.circuitry.forceResolveWire`), completely tree-shaken in release builds (`kDebugMode` guarded).
+- `packages/circuitry_devtools_extension` provides an interactive DevTools extension panel:
+  - **CircuitNavigator**: tree list of detected circuits with tags and lifecycle states.
+  - **DagCanvas**: interactive canvas powered by a 4-phase **Layered Sugiyama Layout Engine** (wave columns, median barycentric crossing reduction, cubic Bézier splines), distinct node styling by status, and bilateral dependency edge highlights.
+  - **WireDrawer**: inspection panel with click-to-focus navigation and on-demand "Force Initialize" for lazy wires.
+  - **WaveProfiler**: waterfall Gantt timeline of async wave resolution highlighting critical path bottlenecks.
+- Discovered automatically by Flutter DevTools via `packages/circuitry_flutter/extension/devtools/config.yaml`.
+
 ---
 
 ## Verification & Commands
@@ -185,4 +233,7 @@ cd packages/circuitry && dart test
 
 # Run all widget & lifecycle tests for circuitry_flutter
 cd packages/circuitry_flutter && flutter test
+
+# Run all tests for DevTools extension
+cd packages/circuitry_devtools_extension && flutter test
 ```
