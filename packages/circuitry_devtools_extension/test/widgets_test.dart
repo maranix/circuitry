@@ -11,6 +11,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
+  final testTheme = ThemeData(
+    useMaterial3: true,
+    splashFactory: InkRipple.splashFactory,
+  );
+
   group('Circuitry DevTools UI Widgets', () {
     late MockCircuitryServiceClient client;
     late CircuitryDevToolsController controller;
@@ -38,6 +43,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: testTheme,
           home: Scaffold(
             body: SizedBox(
               width: 300,
@@ -71,6 +77,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: testTheme,
           home: Scaffold(body: DevToolsToolbar(controller: controller)),
         ),
       );
@@ -114,13 +121,12 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: testTheme,
           home: Scaffold(body: DagCanvas(controller: controller)),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Wave 0'), findsOneWidget);
-      expect(find.text('Wave 1'), findsOneWidget);
       expect(find.text('AppConfig'), findsOneWidget);
       expect(find.text('DatabaseConnection'), findsOneWidget);
 
@@ -143,6 +149,7 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
+            theme: testTheme,
             home: Scaffold(body: WireDetailDrawer(controller: controller)),
           ),
         );
@@ -152,9 +159,10 @@ void main() {
         expect(find.textContaining('Select a wire node'), findsOneWidget);
 
         // Select uninitialized lazy wire
-        controller.selectWireByKey('AnalyticsService#prod');
+        controller.selectWireByKey('AnalyticsService');
         await tester.pumpWidget(
           MaterialApp(
+            theme: testTheme,
             home: Scaffold(body: WireDetailDrawer(controller: controller)),
           ),
         );
@@ -191,6 +199,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: testTheme,
           home: Scaffold(body: WaveWaterfallProfiler(controller: controller)),
         ),
       );
@@ -213,7 +222,10 @@ void main() {
       });
 
       await tester.pumpWidget(
-        MaterialApp(home: CircuitryDevToolsScreen(serviceClient: client)),
+        MaterialApp(
+          theme: testTheme,
+          home: CircuitryDevToolsScreen(serviceClient: client),
+        ),
       );
       await tester.pumpAndSettle();
 

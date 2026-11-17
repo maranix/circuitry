@@ -102,7 +102,7 @@ class _DevToolsToolbarState extends State<DevToolsToolbar> {
                     horizontal: denseSpacing,
                     vertical: 4,
                   ),
-                  hintText: 'Filter by type or tag (e.g. .prod, Auth)...',
+                  hintText: 'Filter by type or tag (e.g. Database, Auth)...',
                   hintStyle: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                     fontSize: 11,

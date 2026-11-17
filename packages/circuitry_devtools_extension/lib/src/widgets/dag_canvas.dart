@@ -22,7 +22,6 @@ class _DagCanvasState extends State<DagCanvas> {
   static const double nodeWidth = 175.0;
   static const double nodeHeight = 56.0;
   static const double verticalSpacing = 28.0;
-  static const double waveHeaderHeight = 40.0;
   static const double padding = 32.0;
 
   void _resetZoom() {
@@ -69,18 +68,14 @@ class _DagCanvasState extends State<DagCanvas> {
       }
       final x = padding + level * columnWidth;
       for (var row = 0; row < waveWires.length; row++) {
-        final y =
-            padding + waveHeaderHeight + row * (nodeHeight + verticalSpacing);
+        final y = padding + row * (nodeHeight + verticalSpacing);
         positions[waveWires[row].key] = Offset(x, y);
       }
     }
 
     final canvasWidth = padding * 2 + (graph.maxWaveLevel + 1) * columnWidth;
     final canvasHeight =
-        padding * 2 +
-        waveHeaderHeight +
-        maxRowCount * (nodeHeight + verticalSpacing) +
-        60.0;
+        padding * 2 + maxRowCount * (nodeHeight + verticalSpacing) + 60.0;
 
     return Stack(
       children: [
@@ -96,10 +91,6 @@ class _DagCanvasState extends State<DagCanvas> {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Wave column headers & backgrounds
-                for (var level = 0; level <= graph.maxWaveLevel; level++)
-                  _buildWaveColumn(level, canvasHeight, theme),
-
                 // Smooth Bézier Spline Edges
                 Positioned.fill(
                   child: CustomPaint(
@@ -169,51 +160,6 @@ class _DagCanvasState extends State<DagCanvas> {
     );
   }
 
-  Widget _buildWaveColumn(int level, double height, ThemeData theme) {
-    final x = padding + level * columnWidth;
-    final colorScheme = theme.colorScheme;
-
-    return Positioned(
-      left: x,
-      top: padding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: nodeWidth,
-            height: waveHeaderHeight - 8,
-            padding: const .symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              borderRadius: const .all(.circular(6)),
-              border: Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Wave $level',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  level == 0 ? 'Roots' : 'Tier $level',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildNodeCard(WireNode wire, ThemeData theme) {
     final controller = widget.controller;
     final isSelected = controller.selectedWire?.key == wire.key;
@@ -251,6 +197,7 @@ class _DagCanvasState extends State<DagCanvas> {
       opacity: isDimmed ? 0.28 : 1.0,
       child: InkWell(
         onTap: () => controller.selectWire(wire),
+        splashFactory: InkRipple.splashFactory,
         borderRadius: const .all(.circular(8)),
         child: Container(
           width: nodeWidth,
@@ -320,22 +267,44 @@ class _DagCanvasState extends State<DagCanvas> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const .symmetric(horizontal: 4, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.12),
-                      borderRadius: const .all(.circular(3)),
-                    ),
-                    child: Text(
-                      wire.tag != null
-                          ? '#${wire.tag}'
-                          : (wire.isAsync ? 'async' : 'lazy'),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: accentColor,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const .symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: accentColor.withValues(alpha: 0.12),
+                          borderRadius: const .all(.circular(3)),
+                        ),
+                        child: Text(
+                          wire.isAsync ? 'async' : 'lazy',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: accentColor,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
+                      if (wire.tag != null) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const .symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.secondaryContainer
+                                .withValues(alpha: 0.6),
+                            borderRadius: const .all(.circular(3)),
+                          ),
+                          child: Text(
+                            '#${wire.tag}',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSecondaryContainer,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   Text(
                     wire.isInitialized

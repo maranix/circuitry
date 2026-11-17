@@ -28,11 +28,13 @@ class const CircuitryDevToolsApp({
               colorSchemeSeed: const Color(0xFF1976D2),
               useMaterial3: true,
               brightness: Brightness.light,
+              splashFactory: InkRipple.splashFactory,
             ),
             darkTheme: ThemeData(
               colorSchemeSeed: const Color(0xFF1976D2),
               useMaterial3: true,
               brightness: Brightness.dark,
+              splashFactory: InkRipple.splashFactory,
             ),
             themeMode: ThemeMode.system,
             debugShowCheckedModeBanner: false,

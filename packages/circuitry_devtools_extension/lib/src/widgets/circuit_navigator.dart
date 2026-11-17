@@ -101,6 +101,7 @@ class const _CircuitCard({
 
     return InkWell(
       onTap: onTap,
+      splashFactory: InkRipple.splashFactory,
       borderRadius: const .all(.circular(8.0)),
       child: Container(
         padding: const .all(10.0),

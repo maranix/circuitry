@@ -45,13 +45,13 @@ void main() {
       expect(controller.selectedWire, isNotNull);
       expect(controller.selectedWire!.key, 'UserFacade');
 
-      // Upstream dependencies of UserFacade: AuthRepository, AnalyticsService#prod, DatabaseConnection, AppConfig, LoggerService
+      // Upstream dependencies of UserFacade: AuthRepository, AnalyticsService, DatabaseConnection, AppConfig, LoggerService
       final deps = controller.highlightedDependencies;
       expect(
         deps,
         containsAll([
           'AuthRepository',
-          'AnalyticsService#prod',
+          'AnalyticsService',
           'DatabaseConnection',
           'AppConfig',
           'LoggerService',
@@ -94,25 +94,19 @@ void main() {
     test('forceResolveWire updates node status and circuit initialized counter in-place', () async {
       await controller.init();
 
-      // AnalyticsService#prod is uninitialized lazy in circuit_0
-      final initialNode = controller.graphData!.findNode(
-        'AnalyticsService#prod',
-      )!;
+      // AnalyticsService is uninitialized lazy in circuit_0
+      final initialNode = controller.graphData!.findNode('AnalyticsService')!;
       expect(initialNode.isInitialized, isFalse);
       final initialResolvedCount =
           controller.selectedCircuit!.initializedWireCount;
 
       controller.selectWire(initialNode);
 
-      final success = await controller.forceResolveWire(
-        'AnalyticsService#prod',
-      );
+      final success = await controller.forceResolveWire('AnalyticsService');
       expect(success, isTrue);
 
       // Node should now be initialized
-      final updatedNode = controller.graphData!.findNode(
-        'AnalyticsService#prod',
-      )!;
+      final updatedNode = controller.graphData!.findNode('AnalyticsService')!;
       expect(updatedNode.isInitialized, isTrue);
       expect(controller.selectedWire?.isInitialized, isTrue);
       expect(

@@ -70,7 +70,7 @@ void main() {
 
     test('parses from and converts to JSON', () {
       final json = <String, Object?>{
-        'key': 'AnalyticsService#prod',
+        'key': 'Database#secondary',
         'dependencies': ['Logger'],
         'isAsync': false,
         'topologicalLevel': 1,
@@ -81,7 +81,7 @@ void main() {
       };
 
       final WireNode node = .fromJson(json);
-      expect(node.key, 'AnalyticsService#prod');
+      expect(node.key, 'Database#secondary');
       expect(node.dependencies, ['Logger']);
       expect(node.isAsync, isFalse);
       expect(node.topologicalLevel, 1);
@@ -89,7 +89,7 @@ void main() {
       expect(node.durationMs, 12);
 
       final outJson = node.toJson();
-      expect(outJson['key'], 'AnalyticsService#prod');
+      expect(outJson['key'], 'Database#secondary');
       expect(outJson['durationMs'], 12);
     });
   });
