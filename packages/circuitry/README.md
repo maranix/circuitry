@@ -22,7 +22,7 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
   - Detects duplicate wire keys (`DuplicateWireException`)
   - Identifies missing dependencies (`MissingWireException`)
   - Detects dependency cycles with exact cycle paths (`CircularDependencyException`)
-- **Parallel Topological Wave Resolution**: Resolves asynchronous singletons (`AsyncWire<T>`) concurrently level-by-level using `Future.wait`. Automatically rolls back and tears down partially created singletons if any wave fails.
+- **Parallel Topological Wave Resolution**: Resolves asynchronous singletons (`AsyncWire<T>`) concurrently level-by-level using `Future.wait` with fail-fast semantics (`eagerError: true`). Immediately rolls back and tears down partially created singletons if any wave fails.
 - **Type-Safe Accumulator Chaining**: Declare dependencies using `takes<A>()` and `takesTagged<B, K>(tag)`. Supports direct tear-offs (`.to(UserService.new)`) and destructuring nested tuples for multiple dependencies.
 - **Dot-Shorthand Tagging**: Supports tagged dependencies with Dart enum dot-shorthands (e.g. `tag: .prod`, `tag: .fast`), enabling multiple distinct singletons of the same generic Dart type without collisions.
 - **Reverse Topological Wave Disposal**: Idempotent teardown in reverse dependency waves (`leaves -> roots`), running parallel asynchronous `onDispose` callbacks and aggregating errors into `DisposalException`.

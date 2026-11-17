@@ -28,7 +28,7 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
    - Duplicate wire keys throw `DuplicateWireException`
    - Missing dependencies throw `MissingWireException`
    - Cycles throw `CircularDependencyException` with exact cycle paths
-3. **Parallel Topological Wave Resolution**: Asynchronous singletons (`AsyncWire<T>`) resolve concurrently wave-by-wave using `Future.wait`. Automatically rolls back and disposes partially created instances if any wave fails.
+3. **Parallel Topological Wave Resolution**: Asynchronous singletons (`AsyncWire<T>`) resolve concurrently wave-by-wave using `Future.wait` with fail-fast semantics (`eagerError: true`). Immediately rolls back and disposes partially created instances in reverse topological order if any wave fails.
 4. **Type-Safe Accumulator Chaining**: Chain dependencies with `.takes<A>()` and `.takesTagged<B, K>(tag)` producing strongly-typed accumulators. Direct tear-offs (`.to(UserService.new)`) or destructuring for multi-dependencies.
 5. **Reverse Topological Wave Disposal**: Idempotent teardown in reverse dependency waves (`leaves -> roots`), awaiting asynchronous `onDispose` callbacks concurrently and aggregating errors into `DisposalException`.
 6. **Flutter Lifecycle Integration & Scoped Registries**: `CircuitProvider` manages async build lifecycles, didUpdateWidget monotonic compilation epoch race prevention, unmount teardown, and ambient `Map<Enum, Circuit>` scoping for nested tagged providers with **O(1)** retrieval (`CircuitProvider.of(context, tag: Scope.global)`).

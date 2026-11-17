@@ -162,7 +162,7 @@ flowchart TD
   - Cycles throw `CircularDependencyException` with cycle paths
 - `CircuitGraph` exposes validation methods (`validateDuplicates()`, `validateDependencies()`, `detectCycles()`, `computeTopologicalLevels()`) for isolated testing and maintenance.
 - Precomputes topological levels and wave buckets (`wiresByLevel`, `asyncWiresByLevel`) in `CircuitGraph` during `compile()` for O(1) wave access.
-- Resolves `AsyncWire`s in parallel topological waves using `Future.wait`. Automatically tears down partially initialized instances in reverse topological order if any wave throws.
+- Resolves `AsyncWire`s in parallel topological waves using `Future.wait` with fail-fast semantics (`eagerError: true`). Immediately aborts wave execution and tears down partially initialized instances in reverse topological order upon the first failure, safely disposing late-completing in-flight async singletons.
 
 ### 7. Reverse Topological Wave Disposal
 - `Circuit.dispose()` performs idempotent teardown in reverse topological dependency waves (`leaves -> roots`), ensuring consumers are disposed before their underlying dependencies.
