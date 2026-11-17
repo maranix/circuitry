@@ -4,25 +4,13 @@ import 'dart:developer' as developer;
 import 'package:circuitry/circuitry.dart';
 import 'package:test/test.dart';
 
-final class Config {
-  final String host;
-  const Config(this.host);
-}
+final class Config(final String host);
 
-final class Logger {
-  const Logger();
-}
+final class Logger();
 
-final class ApiService {
-  final Config config;
-  final Logger logger;
-  const ApiService(this.config, this.logger);
-}
+final class ApiService(final Config config, final Logger logger);
 
-final class AsyncService {
-  final String data;
-  const AsyncService(this.data);
-}
+final class AsyncService(final String data);
 
 void main() {
   setUp(() {
@@ -38,14 +26,14 @@ void main() {
       'automatically registers circuit on Circuit.build in debug mode',
       () async {
         final circuit = await Circuit.build([
-          Wire(() => const Config('localhost')),
+          Wire(() => Config('localhost')),
           Wire(Logger.new),
         ]);
 
         final descriptors = CircuitRegistry.instance.descriptors;
         expect(descriptors.length, 1);
         expect(descriptors.first.id, 'circuit_0');
-        expect(descriptors.first.tag, isNull);
+        expect(descriptors.first.debugTag, isNull);
         expect(descriptors.first.wireCount, 2);
         expect(descriptors.first.initializedWireCount, 0);
         expect(descriptors.first.isDisposed, isFalse);
@@ -55,27 +43,24 @@ void main() {
       },
     );
 
-    test(
-      'captures optional tag during Circuit.build and supports setTag',
-      () async {
-        final circuit = await Circuit.build([
-          Wire(() => const Config('localhost')),
-        ], tag: 'global');
+    test('captures optional debugTag during Circuit.build and supports setDebugTag', () async {
+      final circuit = await Circuit.build([
+        Wire(() => Config('localhost')),
+      ], debugTag: 'global');
 
-        final id = CircuitRegistry.instance.getId(circuit);
-        expect(id, 'circuit_0');
-        expect(CircuitRegistry.instance.getTag(id!), 'global');
+      final id = CircuitRegistry.instance.getId(circuit);
+      expect(id, 'circuit_0');
+      expect(CircuitRegistry.instance.getDebugTag(id!), 'global');
 
-        CircuitRegistry.instance.setTag(circuit, 'custom_scope');
-        expect(CircuitRegistry.instance.getTag(id), 'custom_scope');
+      CircuitRegistry.instance.setDebugTag(circuit, 'custom_scope');
+      expect(CircuitRegistry.instance.getDebugTag(id), 'custom_scope');
 
-        await circuit.dispose();
-      },
-    );
+      await circuit.dispose();
+    });
 
     test('updates initializedWireCount when lazy wires resolve', () async {
       final circuit = await Circuit.build([
-        Wire(() => const Config('localhost')),
+        Wire(() => Config('localhost')),
         Wire(Logger.new),
         Wire.takes<Config>().takes<Logger>().to(
           (deps) => ApiService(deps.$1, deps.$2),
@@ -104,8 +89,8 @@ void main() {
     });
 
     test('assigns sequential monotonic IDs to multiple circuits', () async {
-      final circuit1 = await Circuit.build([Wire(() => const Config('1'))]);
-      final circuit2 = await Circuit.build([Wire(() => const Config('2'))]);
+      final circuit1 = await Circuit.build([Wire(() => Config('1'))]);
+      final circuit2 = await Circuit.build([Wire(() => Config('2'))]);
 
       expect(CircuitRegistry.instance.getId(circuit1), 'circuit_0');
       expect(CircuitRegistry.instance.getId(circuit2), 'circuit_1');
@@ -133,9 +118,9 @@ void main() {
         expect(jsonEmpty['circuits'], isEmpty);
 
         final circuit = await Circuit.build([
-          Wire(() => const Config('db.internal')),
-          AsyncWire(() async => const AsyncService('async-data')),
-        ], tag: 'core');
+          Wire(() => Config('db.internal')),
+          AsyncWire(() async => AsyncService('async-data')),
+        ], debugTag: 'core');
 
         final response = await CircuitRegistry.instance.handleGetCircuits(
           'ext.circuitry.getCircuits',
@@ -147,7 +132,7 @@ void main() {
 
         final first = circuits.first as Map<String, dynamic>;
         expect(first['id'], 'circuit_0');
-        expect(first['tag'], 'core');
+        expect(first['debugTag'], 'core');
         expect(first['wireCount'], 2);
         expect(
           first['initializedWireCount'],
@@ -191,12 +176,12 @@ void main() {
 
     test('handleGetCircuitGraph returns complete serialized DAG schema and live status', () async {
       final circuit = await Circuit.build([
-        Wire(() => const Config('db.internal')),
+        Wire(() => Config('db.internal')),
         Wire(Logger.new),
         Wire.takes<Config>().takes<Logger>().to(
           (deps) => ApiService(deps.$1, deps.$2),
         ),
-      ], tag: 'service_layer');
+      ], debugTag: 'service_layer');
 
       final id = CircuitRegistry.instance.getId(circuit)!;
       final responseBefore = await CircuitRegistry.instance
@@ -208,7 +193,7 @@ void main() {
       final jsonBefore =
           jsonDecode(responseBefore.result!) as Map<String, dynamic>;
       expect(jsonBefore['id'], id);
-      expect(jsonBefore['tag'], 'service_layer');
+      expect(jsonBefore['debugTag'], 'service_layer');
       expect(jsonBefore['wireCount'], 3);
       expect(jsonBefore['maxWaveLevel'], 1);
 
@@ -238,7 +223,7 @@ void main() {
     test('supports equality and toJson formatting', () {
       const desc1 = CircuitDescriptor(
         id: 'circuit_0',
-        tag: 'auth',
+        debugTag: 'auth',
         wireCount: 5,
         initializedWireCount: 2,
         maxLevel: 1,
@@ -246,7 +231,7 @@ void main() {
       );
       const desc2 = CircuitDescriptor(
         id: 'circuit_0',
-        tag: 'auth',
+        debugTag: 'auth',
         wireCount: 5,
         initializedWireCount: 2,
         maxLevel: 1,
@@ -254,7 +239,7 @@ void main() {
       );
       const descDifferent = CircuitDescriptor(
         id: 'circuit_1',
-        tag: 'auth',
+        debugTag: 'auth',
         wireCount: 5,
         initializedWireCount: 2,
         maxLevel: 1,
@@ -267,7 +252,7 @@ void main() {
 
       final json = desc1.toJson();
       expect(json['id'], 'circuit_0');
-      expect(json['tag'], 'auth');
+      expect(json['debugTag'], 'auth');
       expect(json['wireCount'], 5);
       expect(json['initializedWireCount'], 2);
       expect(json['maxLevel'], 1);

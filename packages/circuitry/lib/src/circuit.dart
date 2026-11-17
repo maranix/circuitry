@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer' as developer;
 
 import 'package:circuitry/src/exceptions.dart';
 import 'package:circuitry/src/graph.dart';
@@ -38,7 +37,7 @@ final class Circuit._(final CircuitGraph _graph) {
 
   /// Builds a [Circuit] from the provided [wires].
   ///
-  /// Optionally accepts a debug [tag] string to label the container in DevTools
+  /// Optionally accepts a [debugTag] string to label the container in DevTools
   /// and the ambient [CircuitRegistry].
   ///
   /// Validates the dependency graph for:
@@ -48,47 +47,25 @@ final class Circuit._(final CircuitGraph _graph) {
   ///
   /// Once validated, all [AsyncWire]s are resolved in parallel topological waves
   /// using [Future.wait] with fail-fast error handling.
-  static Future<Circuit> build(List<CircuitWire> wires, {String? tag}) async {
+  static Future<Circuit> build(
+    List<CircuitWire> wires, {
+    String? debugTag,
+  }) async {
     final graph = CircuitGraph(wires)..compile();
     final circuit = Circuit._(graph);
 
-    assert(() {
-      final id = CircuitRegistry.instance.register(circuit, tag: tag);
-      developer.postEvent('Circuitry', {
-        'type': 'circuit_building',
-        'circuitId': id,
-        'tag': ?tag,
-      });
-      return true;
-    }());
+    CircuitRegistry.instance.onCircuitBuilding(circuit, debugTag: debugTag);
 
     try {
       await circuit._resolveAsyncWaves();
-      assert(() {
-        final id = CircuitRegistry.instance.getId(circuit);
-        if (id != null) {
-          developer.postEvent('Circuitry', {
-            'type': 'circuit_ready',
-            'circuitId': id,
-            'tag': ?tag,
-          });
-        }
-        return true;
-      }());
+      CircuitRegistry.instance.onCircuitReady(circuit, debugTag: debugTag);
       return circuit;
     } catch (error) {
-      assert(() {
-        final id = CircuitRegistry.instance.getId(circuit);
-        if (id != null) {
-          developer.postEvent('Circuitry', {
-            'type': 'circuit_failed',
-            'circuitId': id,
-            'tag': ?tag,
-            'error': error.toString(),
-          });
-        }
-        return true;
-      }());
+      CircuitRegistry.instance.onCircuitFailed(
+        circuit,
+        error,
+        debugTag: debugTag,
+      );
       rethrow;
     }
   }
@@ -139,18 +116,7 @@ final class Circuit._(final CircuitGraph _graph) {
         try {
           final instance = wire.connect(this);
           _instances[key] = instance;
-          assert(() {
-            final id = CircuitRegistry.instance.getId(this);
-            if (id != null) {
-              developer.postEvent('Circuitry', {
-                'type': 'wire_resolved',
-                'circuitId': id,
-                'key': formatWireKey(key),
-                'isAsync': false,
-              });
-            }
-            return true;
-          }());
+          CircuitRegistry.instance.onWireResolved(this, key, isAsync: false);
           return instance;
         } finally {
           _creating.remove(key);
@@ -184,18 +150,11 @@ final class Circuit._(final CircuitGraph _graph) {
               }
             } else {
               _instances[wire.key] = instance;
-              assert(() {
-                final id = CircuitRegistry.instance.getId(this);
-                if (id != null) {
-                  developer.postEvent('Circuitry', {
-                    'type': 'wire_resolved',
-                    'circuitId': id,
-                    'key': formatWireKey(wire.key),
-                    'isAsync': true,
-                  });
-                }
-                return true;
-              }());
+              CircuitRegistry.instance.onWireResolved(
+                this,
+                wire.key,
+                isAsync: true,
+              );
             }
           }),
           eagerError: true,
@@ -230,16 +189,7 @@ final class Circuit._(final CircuitGraph _graph) {
 
   Future<void> _performDispose() async {
     _isDisposed = true;
-    assert(() {
-      final id = CircuitRegistry.instance.unregister(this);
-      if (id != null) {
-        developer.postEvent('Circuitry', {
-          'type': 'circuit_disposed',
-          'circuitId': id,
-        });
-      }
-      return true;
-    }());
+    CircuitRegistry.instance.onCircuitDisposed(this);
 
     final errors = <Object>[];
     final stackTraces = <StackTrace>[];
