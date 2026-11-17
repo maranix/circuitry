@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:circuitry/circuitry.dart';
+import 'package:circuitry/src/utils.dart';
 import 'package:test/test.dart';
 
 final class Config(final String host);

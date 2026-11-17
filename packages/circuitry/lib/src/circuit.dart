@@ -38,7 +38,8 @@ final class Circuit._(final CircuitGraph _graph) {
   /// Builds a [Circuit] from the provided [wires].
   ///
   /// Optionally accepts a [debugTag] string to label the container in DevTools
-  /// and the ambient [CircuitRegistry].
+  /// and the ambient [CircuitRegistry]. In profile and release modes (when assertions
+  /// are disabled), [debugTag] is a complete no-op and is stripped by the compiler.
   ///
   /// Validates the dependency graph for:
   /// - Duplicate keys -> throws [DuplicateWireException]

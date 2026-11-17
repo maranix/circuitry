@@ -80,7 +80,7 @@
 ## 2026-11-17: Ambient CircuitRegistry, VM Service Extensions and Universal Extension Host (Issue #11)
 
 - **Status:** agreed
-- **Choice:** Host the DevTools extension packaging (`extension/devtools/config.yaml`), ambient `CircuitRegistry`, and standard Dart VM Service extensions (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`) in pure Dart `packages/circuitry`, guarded by `isDebugMode` / `kDebugMode` for 100% release/AOT compile-time tree-shaking.
+- **Choice:** Host the DevTools extension packaging (`extension/devtools/config.yaml`), ambient `CircuitRegistry`, and standard Dart VM Service extensions (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`) in pure Dart `packages/circuitry`. In profile and release modes (when assertions are disabled), `debugTag`, `CircuitRegistry`, and all its methods and properties are complete no-ops, with VM service extensions omitted and telemetry calls tree-shaken by the compiler for zero memory and runtime overhead.
 - **Reason:** Provides universal DevTools inspection across all Dart runtimes (CLI tools, server frameworks like Shelf/Serverpod, and Flutter apps via transitive dependency) without adding Flutter SDK dependencies to `circuitry`.
 - **Alternative:** Hosting DevTools extensions and registry solely in `packages/circuitry_flutter`, locking non-Flutter Dart developers out of DevTools inspection.
 

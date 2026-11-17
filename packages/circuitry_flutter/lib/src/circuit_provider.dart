@@ -148,6 +148,9 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
   ///
   /// Optionally associates this provider's [Circuit] with [tag] for scoped O(1) retrieval
   /// across nested [CircuitProvider] hierarchies via [CircuitProvider.of] or [CircuitProvider.maybeOf].
+  /// In debug mode (`kDebugMode`), [tag] also labels the container in DevTools and the ambient
+  /// [CircuitRegistry]. In profile and release modes, DevTools labeling in [CircuitRegistry] is
+  /// a complete no-op and is stripped by the compiler.
   ///
   /// During initialization, [AsyncWire] singletons are resolved concurrently in
   /// topological waves. While compilation is in flight, [builder] receives a
@@ -174,6 +177,9 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
   ///
   /// Optionally associates [value] with [tag] for scoped O(1) retrieval
   /// across nested [CircuitProvider] hierarchies via [CircuitProvider.of] or [CircuitProvider.maybeOf].
+  /// In debug mode (`kDebugMode`), [tag] also labels the container in DevTools and the ambient
+  /// [CircuitRegistry]. In profile and release modes, DevTools labeling in [CircuitRegistry] is
+  /// a complete no-op and is stripped by the compiler.
   ///
   /// Descendant widgets can immediately access [value] via [CircuitProvider.of] or
   /// [CircuitProvider.maybeOf].
