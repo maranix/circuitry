@@ -8,7 +8,8 @@ Major feature release adding Dart and Flutter DevTools extension integration, co
 
 ### `circuitry` v0.2.0
 - Ambient `CircuitRegistry` tracking active containers and exposing Dart VM Service extensions (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`, `ext.circuitry.forceResolveWire`) with zero profile/release overhead.
-- Bundles DevTools extension configuration and compiled Web assets (`extension/devtools/`) for auto-discovery across CLI, server, and Flutter apps.
+- Decoupled the 15 MB DevTools extension web bundle into the opt-in companion package `circuitry_devtools_extension`, reducing `circuitry` package archive size to ~28 KB.
+- Added explicit VM Service extension registration and deregistration methods on `CircuitRegistry`.
 - On-demand graph introspection API (`circuit.inspect()`) with precomputed reverse dependencies, direct and transitive queries, and Mermaid (`toMermaid()`) and JSON (`toJson()`) exporters.
 - Fail-fast async wave resolution using `Future.wait` with `eagerError: true` and guarded rollback teardown of in-flight operations.
 - Modularized DAG compiler (`CircuitGraph` in `src/graph.dart`) and runtime container (`Circuit` in `src/circuit.dart`).
@@ -21,6 +22,8 @@ Major feature release adding Dart and Flutter DevTools extension integration, co
 - Internal refactoring to Dart 3.14+ primary constructors and exhaustive pattern matching.
 
 ### `circuitry_devtools_extension` v0.2.0
+- Published as an opt-in companion package (`dev_dependencies`) containing the compiled DevTools extension web bundle (~15 MB).
+- Exposes `registerCircuitryDevToolsExtension()` and `unregisterCircuitryDevToolsExtension()` (and `CircuitryDevTools` static helper) for explicit runtime activation.
 - Dedicated Flutter Web DevTools extension UI featuring an interactive DAG canvas, horizontal topological wave columns, cubic Bézier spline edge routing, multi-scope circuit navigation, startup wave waterfall profiler with critical path calculation, and live on-demand wire initialization.
 
 ## 0.1.0 - 2026-11-15

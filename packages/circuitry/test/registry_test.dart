@@ -107,7 +107,27 @@ void main() {
     });
   });
 
+  group('VM Service Extension Registration & Lifecycle', () {
+    test('extensions are disabled by default until registered', () {
+      expect(CircuitRegistry.instance.areExtensionsRegistered, isFalse);
+    });
+
+    test('registerVmServiceExtensions enables extensions and unregister disables them', () {
+      expect(CircuitRegistry.instance.areExtensionsRegistered, isFalse);
+
+      CircuitRegistry.instance.registerVmServiceExtensions();
+      expect(CircuitRegistry.instance.areExtensionsRegistered, isTrue);
+
+      CircuitRegistry.instance.unregisterVmServiceExtensions();
+      expect(CircuitRegistry.instance.areExtensionsRegistered, isFalse);
+    });
+  });
+
   group('VM Service Extension Handlers', () {
+    setUp(() {
+      CircuitRegistry.instance.registerVmServiceExtensions();
+    });
+
     test(
       'handleGetCircuits returns valid JSON with circuit descriptors',
       () async {

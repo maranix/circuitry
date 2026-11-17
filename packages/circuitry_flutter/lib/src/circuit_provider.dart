@@ -256,10 +256,6 @@ final class const _CircuitValueProvider({
 
   @override
   Widget build(BuildContext context) {
-    if (kDebugMode && tag != null) {
-      CircuitRegistry.instance.setDebugTag(value, tag!.name);
-    }
-
     final parentScope = context
         .dependOnInheritedWidgetOfExactType<_CircuitScope>();
     final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};

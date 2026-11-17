@@ -133,11 +133,32 @@ class FeatureScreen extends StatelessWidget {
 
 ## DevTools Extension
 
-When developing Flutter applications with `circuitry_flutter`, the bundled Circuitry DevTools extension is automatically discovered:
+To inspect your Flutter application's dependency graphs in DevTools without bloating production app size, add the optional companion package: [`circuitry_devtools_extension`](https://pub.dev/packages/circuitry_devtools_extension).
 
-1. Launch your Flutter app in debug mode.
-2. Open Dart & Flutter DevTools.
-3. Switch to the **Circuitry** tab to inspect active containers (labeled by `debugTag`), visualize the dependency graph across topological waves, review async resolution durations, and force resolve lazy wires on demand.
+### Opt-in Setup
+
+1. Add `circuitry_devtools_extension` to your Flutter app's `dev_dependencies`:
+```yaml
+dev_dependencies:
+  circuitry_devtools_extension: ^0.2.0
+```
+
+2. Register the extension in your `main()` function during debug mode:
+```dart
+import 'package:circuitry_devtools_extension/circuitry_devtools_extension.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
+void main() {
+  if (kDebugMode) {
+    registerCircuitryDevToolsExtension();
+  }
+  runApp(const MyApp());
+}
+```
+
+3. Launch your Flutter app in debug mode and open Flutter DevTools.
+4. Switch to the **Circuitry** tab to inspect active containers (labeled by `tag`), visualize the dependency graph across topological waves, review async resolution durations, and force resolve lazy wires on demand.
 
 ---
 

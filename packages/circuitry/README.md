@@ -108,12 +108,34 @@ void main() async {
 
 ## DevTools Extension
 
-`circuitry` bundles a built-in Dart & Flutter DevTools extension located in `extension/devtools/`.
+To keep `circuitry` ultra-lightweight (~28 KB), the interactive visualizer is distributed as an optional companion package: [`circuitry_devtools_extension`](https://pub.dev/packages/circuitry_devtools_extension).
 
-When running in debug mode with Dart DevTools:
-1. Open Dart DevTools in your browser or IDE.
-2. Select the **Circuitry** tab.
-3. Explore the interactive DAG canvas, horizontal topological wave columns, cubic Bézier dependency edge splines, startup wave waterfall profiler with critical path calculation, and on-demand wire initialization.
+### Opt-in Setup
+
+1. Add `circuitry_devtools_extension` to your `dev_dependencies`:
+```yaml
+dev_dependencies:
+  circuitry_devtools_extension: ^0.2.0
+```
+
+2. Register the extension in your application entry point during debug mode:
+```dart
+import 'package:circuitry/circuitry.dart';
+import 'package:circuitry_devtools_extension/circuitry_devtools_extension.dart';
+
+void main() async {
+  assert(() {
+    registerCircuitryDevToolsExtension();
+    return true;
+  }());
+
+  final circuit = await Circuit.build([...]);
+  // ...
+}
+```
+
+3. Launch your app in debug mode and open Dart DevTools in your browser or IDE.
+4. Select the **Circuitry** tab to explore the interactive DAG canvas, horizontal topological wave columns, cubic Bézier dependency edge splines, startup wave waterfall profiler with critical path calculation, and on-demand wire initialization.
 
 In profile and release modes, DevTools VM Service extensions and ambient tracking are completely disabled and tree-shaken with zero runtime overhead.
 

@@ -81,12 +81,13 @@ final class CircuitRegistry._() {
   final Map<Circuit, String> _circuitIds = {};
   final Map<String, String?> _circuitDebugTags = {};
   int _counter = 0;
+  bool _enabled = false;
   bool _extensionsRegistered = false;
 
-  /// Whether VM service extensions have been registered with `dart:developer`.
+  /// Whether the DevTools VM service extensions and telemetry events are currently active.
   ///
-  /// Always returns `false` in profile and release modes where extensions are not registered.
-  bool get areExtensionsRegistered => _extensionsRegistered;
+  /// Always returns `false` in profile and release modes or when not explicitly enabled.
+  bool get areExtensionsRegistered => _enabled;
 
   /// Returns descriptors for all currently registered active circuits.
   ///
@@ -138,13 +139,11 @@ final class CircuitRegistry._() {
 
   /// Registers [circuit] in the registry with an optional [debugTag].
   ///
-  /// Automatically initializes VM Service extensions in debug mode if not already registered.
   /// Returns the assigned unique circuit ID (e.g. `circuit_0`).
   ///
   /// A complete no-op in profile and release modes, returning an empty string.
   String register(Circuit circuit, {String? debugTag}) {
     if (!isDebugMode) return '';
-    registerVmServiceExtensions();
 
     final existingId = _circuitIds[circuit];
     if (existingId != null) {
@@ -181,14 +180,16 @@ final class CircuitRegistry._() {
     _circuitIds.clear();
     _circuitDebugTags.clear();
     _counter = 0;
+    _enabled = false;
   }
 
   /// Called by [Circuit.build] to register a building container and emit a lifecycle event.
   ///
-  /// A complete no-op in profile and release modes.
+  /// A complete no-op in profile and release modes or when DevTools extension is not enabled.
   void onCircuitBuilding(Circuit circuit, {String? debugTag}) {
     if (!isDebugMode) return;
     final id = register(circuit, debugTag: debugTag);
+    if (!_enabled) return;
     developer.postEvent('Circuitry', {
       'type': 'circuit_building',
       'circuitId': id,
@@ -198,9 +199,9 @@ final class CircuitRegistry._() {
 
   /// Called by [Circuit.build] when all async waves have resolved successfully.
   ///
-  /// A complete no-op in profile and release modes.
+  /// A complete no-op in profile and release modes or when DevTools extension is not enabled.
   void onCircuitReady(Circuit circuit, {String? debugTag}) {
-    if (!isDebugMode) return;
+    if (!isDebugMode || !_enabled) return;
     final id = getId(circuit);
     if (id != null) {
       developer.postEvent('Circuitry', {
@@ -213,9 +214,9 @@ final class CircuitRegistry._() {
 
   /// Called by [Circuit.build] when async wave compilation fails.
   ///
-  /// A complete no-op in profile and release modes.
+  /// A complete no-op in profile and release modes or when DevTools extension is not enabled.
   void onCircuitFailed(Circuit circuit, Object error, {String? debugTag}) {
-    if (!isDebugMode) return;
+    if (!isDebugMode || !_enabled) return;
     final id = getId(circuit);
     if (id != null) {
       developer.postEvent('Circuitry', {
@@ -229,9 +230,9 @@ final class CircuitRegistry._() {
 
   /// Called when a wire resolves to an instance.
   ///
-  /// A complete no-op in profile and release modes.
+  /// A complete no-op in profile and release modes or when DevTools extension is not enabled.
   void onWireResolved(Circuit circuit, WireKey key, {required bool isAsync}) {
-    if (!isDebugMode) return;
+    if (!isDebugMode || !_enabled) return;
     final id = getId(circuit);
     if (id != null) {
       developer.postEvent('Circuitry', {
@@ -245,11 +246,11 @@ final class CircuitRegistry._() {
 
   /// Called when a circuit is disposed.
   ///
-  /// A complete no-op in profile and release modes.
+  /// A complete no-op in profile and release modes or when DevTools extension is not enabled.
   void onCircuitDisposed(Circuit circuit) {
     if (!isDebugMode) return;
     final id = unregister(circuit);
-    if (id != null) {
+    if (id != null && _enabled) {
       developer.postEvent('Circuitry', {
         'type': 'circuit_disposed',
         'circuitId': id,
@@ -257,11 +258,13 @@ final class CircuitRegistry._() {
     }
   }
 
-  /// Registers Dart VM Service extensions for Circuitry (`ext.circuitry.*`).
+  /// Registers Dart VM Service extensions for Circuitry (`ext.circuitry.*`) and enables telemetry.
   ///
   /// A complete no-op in profile and release modes.
   void registerVmServiceExtensions() {
-    if (!isDebugMode || _extensionsRegistered) return;
+    if (!isDebugMode) return;
+    _enabled = true;
+    if (_extensionsRegistered) return;
     _extensionsRegistered = true;
 
     try {
@@ -286,14 +289,21 @@ final class CircuitRegistry._() {
     } catch (_) {}
   }
 
+  /// Deregisters and disables Circuitry DevTools VM service extensions and telemetry events.
+  ///
+  /// A complete no-op in profile and release modes.
+  void unregisterVmServiceExtensions() {
+    _enabled = false;
+  }
+
   /// Handles VM service invocations for `ext.circuitry.getCircuits`.
   ///
-  /// In profile and release modes, returns an empty circuit list.
+  /// In profile and release modes or when disabled, returns an empty circuit list.
   Future<developer.ServiceExtensionResponse> handleGetCircuits(
     String method,
     Map<String, String> parameters,
   ) async {
-    if (!isDebugMode) {
+    if (!isDebugMode || !_enabled) {
       return developer.ServiceExtensionResponse.result(
         jsonEncode({'circuits': const <Map<String, Object?>>[]}),
       );
@@ -305,15 +315,15 @@ final class CircuitRegistry._() {
 
   /// Handles VM service invocations for `ext.circuitry.getCircuitGraph`.
   ///
-  /// In profile and release modes, returns an error response.
+  /// In profile and release modes or when disabled, returns an error response.
   Future<developer.ServiceExtensionResponse> handleGetCircuitGraph(
     String method,
     Map<String, String> parameters,
   ) async {
-    if (!isDebugMode) {
+    if (!isDebugMode || !_enabled) {
       return developer.ServiceExtensionResponse.error(
         developer.ServiceExtensionResponse.extensionError,
-        'Circuitry DevTools inspection is only available in debug mode.',
+        'Circuitry DevTools extension is not registered or has been deregistered.',
       );
     }
     final id = parameters['id'] ?? parameters['circuitId'];
@@ -345,15 +355,15 @@ final class CircuitRegistry._() {
 
   /// Handles VM service invocations for `ext.circuitry.forceResolveWire`.
   ///
-  /// In profile and release modes, returns an error response.
+  /// In profile and release modes or when disabled, returns an error response.
   Future<developer.ServiceExtensionResponse> handleForceResolveWire(
     String method,
     Map<String, String> parameters,
   ) async {
-    if (!isDebugMode) {
+    if (!isDebugMode || !_enabled) {
       return developer.ServiceExtensionResponse.error(
         developer.ServiceExtensionResponse.extensionError,
-        'Circuitry DevTools inspection is only available in debug mode.',
+        'Circuitry DevTools extension is not registered or has been deregistered.',
       );
     }
     final id = parameters['id'] ?? parameters['circuitId'];

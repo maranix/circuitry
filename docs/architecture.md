@@ -7,11 +7,7 @@ Circuitry is architected as an offline, zero-codegen runtime dependency graph co
 ```
 circuitry/
 ├── packages/
-│   ├── circuitry/                 # Pure Dart runtime dependency injection engine
-│   │   ├── extension/             # Dart & Flutter DevTools extension configuration
-│   │   │   └── devtools/
-│   │   │       ├── build/         # Compiled Flutter Web extension bundle
-│   │   │       └── config.yaml
+│   ├── circuitry/                 # Pure Dart runtime dependency injection engine (~28 KB)
 │   │   ├── lib/
 │   │   │   ├── circuitry.dart     # Library entry point (wires, circuit, exceptions, registry)
 │   │   │   └── src/               # Modular source files
@@ -24,16 +20,22 @@ circuitry/
 │   │   │       ├── utils.dart     # Internal formatting and utility functions
 │   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, builders
 │   │   └── test/                  # Unit tests (DAG validation, waves, laziness, disposal, registry)
-│   ├── circuitry_devtools_extension/ # Standalone Flutter Web DevTools extension UI
+│   ├── circuitry_devtools_extension/ # Standalone Flutter Web DevTools extension UI & companion package
+│   │   ├── extension/             # Dart & Flutter DevTools extension configuration
+│   │   │   └── devtools/
+│   │   │       ├── build/         # Compiled Flutter Web extension bundle
+│   │   │       └── config.yaml
 │   │   ├── lib/
+│   │   │   ├── circuitry_devtools_extension.dart # Public registration entry point
 │   │   │   ├── main.dart          # DevToolsExtension web entry point
 │   │   │   └── src/
 │   │   │       ├── controllers/   # CircuitryDevToolsController state manager
 │   │   │       ├── models/        # CircuitSummary, WireNode, CircuitGraphData, CircuitLifecycleStatus
+│   │   │       ├── registration.dart # Explicit VM Service extension registration & deregistration
 │   │   │       ├── screens/       # CircuitryDevToolsScreen dashboard root
 │   │   │       ├── services/      # CircuitryServiceClient seam (VM & Mock clients)
 │   │   │       └── widgets/       # Navigator, DagCanvas, WireDetailDrawer, WaveWaterfallProfiler, Toolbar
-│   │   └── test/                  # Model, controller, and widget test suite
+│   │   └── test/                  # Model, controller, widget, and registration test suite
 │   └── circuitry_flutter/         # Flutter framework bridge
 │       ├── lib/
 │       │   ├── circuitry_flutter.dart # Library entry point and pure Dart re-export
@@ -192,12 +194,16 @@ flowchart TD
 
 ### 9. DevTools Integration & Ambient Registry (Issue #11)
 - `CircuitRegistry` in `src/registry.dart` tracks live `Circuit` instances and optional `debugTag` exclusively in debug mode. In profile and release modes (when assertions are disabled), `debugTag`, `CircuitRegistry`, and all its methods and properties are complete no-ops, with VM service extensions omitted and telemetry calls tree-shaken by the compiler for zero memory and runtime overhead.
-- Standard Dart VM Service extensions (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`, `ext.circuitry.forceResolveWire`) registered using `dart:developer` allow external DevTools clients to query container states and DAG graphs over the wire and force on-demand singleton initialization.
+- Standard Dart VM Service extensions (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`, `ext.circuitry.forceResolveWire`) are registered via `dart:developer` through explicit registration methods (`CircuitRegistry.instance.registerVmServiceExtensions()`). External DevTools clients query container states and DAG graphs over the wire and force on-demand singleton initialization.
+- Calling `CircuitRegistry.instance.unregisterVmServiceExtensions()` disables active extension invocation responses and silences live event streams.
 - Real-time container lifecycle events (`circuit_building`, `circuit_ready`, `circuit_failed`, `circuit_disposed`, `wire_resolved`) are streamed to the `'Circuitry'` extension stream via `developer.postEvent`.
-- `packages/circuitry/extension/devtools/config.yaml` declares DevTools extension integration, providing universal inspection across CLI tools, backend microservices, and Flutter applications (via transitive dependency) with zero Flutter dependencies in the engine.
+- Automatic extension registration has been decoupled from `packages/circuitry` and `packages/circuitry_flutter` so the core DI engine remains an ultra-lightweight (~28 KB) pure Dart package without embedding a 15 MB DevTools web bundle.
 
 ### 10. DevTools Extension UI: Interactive DAG Visualizer & Wave Waterfall Profiler (Issue #5)
-- Implemented as a standalone Flutter Web extension in `packages/circuitry_devtools_extension` using `package:devtools_extensions` and `package:devtools_app_shared`.
+- Published as an optional opt-in companion package `circuitry_devtools_extension` (added under `dev_dependencies`).
+- Contains the compiled Flutter Web extension bundle in `packages/circuitry_devtools_extension/extension/devtools/` and `config.yaml` so DevTools loads the extension tab seamlessly only when developers opt into it.
+- Exposes `registerCircuitryDevToolsExtension()` and `unregisterCircuitryDevToolsExtension()` (or `CircuitryDevTools.register()` / `CircuitryDevTools.unregister()`) for explicit opt-in enablement in application entry points (`main()`).
+- Implemented using `package:devtools_extensions` and `package:devtools_app_shared`.
 - Decouples UI rendering from the VM Service transport via the `CircuitryServiceClient` interface, with `VmCircuitryServiceClient` communicating over Dart VM Service protocol and `MockCircuitryServiceClient` providing offline testing and preview capabilities.
 - **Circuit Navigator:** Multi-scope sidebar listing detected containers with tag badges (`[tag: AppScope.global]`), lifecycle state badges (`Ready`, `Building`, `Failed`, `Disposed`), and wire initialization counters.
 - **Interactive DAG Canvas:** Arranges dependency nodes horizontally in distinct columns by topological wave level (Wave 0 roots to Wave $N$ consumers). Connects dependencies with smooth cubic Bézier splines via `CustomPainter`, illuminating upstream dependencies (blue) and downstream dependents (purple) upon node selection while dimming unrelated graph elements.
@@ -205,7 +211,7 @@ flowchart TD
 - **Wire Detail Drawer & Live Actions:** Displays full wire metadata, wave level, interactive dependency links, and a "Force Initialize" action triggering `ext.circuitry.forceResolveWire` to instantiate sleeping lazy singletons in real time.
 - **Startup Wave Waterfall Profiler:** Renders a Gantt timeline of parallel wave execution during `Circuit.build(wires)`, pinpointing startup latency bottlenecks and highlighting the critical path.
 - **Toolbar & Exporters:** Provides search filtering by type or tag, status filters (`Unresolved Only`, `Async Only`, `Critical Path`), view mode switching, and multi-format diagram export (Mermaid flowchart, JSON schema, and SVG markup).
-- Compiled via `dart run devtools_extensions build_and_copy` into `packages/circuitry/extension/devtools/build/`.
+- Compiled via `dart run devtools_extensions build_and_copy` into `packages/circuitry_devtools_extension/extension/devtools/build/`.
 
 ---
 

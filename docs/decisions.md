@@ -77,19 +77,19 @@
 - **Reason:** Enables instant O(1) direct dependent queries and tree-shakes 100% of introspection and export logic in production builds where `inspect()` is unused.
 - **Alternative:** Storing live mutable telemetry state, Stopwatches, or observers inside `Circuit`, which incurs memory and GC overhead in release builds.
 
-## 2026-11-17: Ambient CircuitRegistry, VM Service Extensions and Universal Extension Host (Issue #11)
+## 2026-11-17: Ambient CircuitRegistry and VM Service Extension Endpoints (Issue #11)
 
 - **Status:** agreed
-- **Choice:** Host the DevTools extension packaging (`extension/devtools/config.yaml`), ambient `CircuitRegistry`, and standard Dart VM Service extensions (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`) in pure Dart `packages/circuitry`. In profile and release modes (when assertions are disabled), `debugTag`, `CircuitRegistry`, and all its methods and properties are complete no-ops, with VM service extensions omitted and telemetry calls tree-shaken by the compiler for zero memory and runtime overhead.
-- **Reason:** Provides universal DevTools inspection across all Dart runtimes (CLI tools, server frameworks like Shelf/Serverpod, and Flutter apps via transitive dependency) without adding Flutter SDK dependencies to `circuitry`.
-- **Alternative:** Hosting DevTools extensions and registry solely in `packages/circuitry_flutter`, locking non-Flutter Dart developers out of DevTools inspection.
+- **Choice:** Maintain ambient `CircuitRegistry` and VM Service extension handlers (`ext.circuitry.*`) in pure Dart `packages/circuitry`, disabled by default and activated explicitly via `registerVmServiceExtensions()`. In profile and release modes or when disabled, `CircuitRegistry` methods and properties are complete no-ops, with VM service extensions omitted and telemetry calls tree-shaken by the compiler for zero memory and runtime overhead.
+- **Reason:** Provides pure Dart VM Service inspection endpoints across all runtimes without adding Flutter SDK dependencies or web build bloat to `circuitry`.
+- **Alternative:** Automatic registration on `Circuit.build`, which binds extension handlers unconditionally.
 
-## 2026-11-17: Standalone DevTools Extension UI and Seamed VM Service Client (Issue #5)
+## 2026-11-17: Standalone Opt-In Companion DevTools Extension Package (Issue #5)
 
 - **Status:** agreed
-- **Choice:** Implement the DevTools Extension UI as a standalone Flutter Web package in `packages/circuitry_devtools_extension`, decoupled from the live VM Service behind a `CircuitryServiceClient` interface (`VmCircuitryServiceClient` and `MockCircuitryServiceClient`). The UI features an interactive DAG canvas organized into horizontal topological wave columns with cubic Bézier spline edge routing, multi-scope circuit navigation, live on-demand singleton initialization via `ext.circuitry.forceResolveWire`, a startup wave waterfall profiler with critical path calculation, and multi-format exporters (Mermaid, JSON, SVG). The compiled Flutter Web bundle is deployed into `packages/circuitry/extension/devtools/build/`.
-- **Reason:** Isolates extension UI logic from VM Service transport, allowing 100% of the UI widgets, state controllers, and layout algorithms to be tested natively via `flutter test` without a running VM Service daemon. Packaging the compiled web bundle inside `packages/circuitry` enables auto-discovery across CLI, backend, and Flutter apps.
-- **Alternative:** Embedding extension UI directly within `packages/circuitry_flutter` or tightly coupling the UI directly to `serviceManager.service` without a testable client seam.
+- **Choice:** Package and publish the DevTools Extension as an independent companion package in `packages/circuitry_devtools_extension`, containing the extension UI, `extension/devtools/` configuration, pre-built web bundle, and public registration/deregistration methods (`registerCircuitryDevToolsExtension`, `unregisterCircuitryDevToolsExtension`). Users opt into DevTools inspection by adding `circuitry_devtools_extension` to `dev_dependencies` and calling `registerCircuitryDevToolsExtension()`.
+- **Reason:** Keeps `circuitry` (~28 KB) and `circuitry_flutter` (~25 KB) ultra-lightweight runtime dependencies without forcing users to download the ~15 MB compiled web bundle. Only developers who explicitly add the extension to `dev_dependencies` download the DevTools assets, which DevTools discovers automatically from `package_config.json`.
+- **Alternative:** Bundling the precompiled web assets inside `packages/circuitry` (superseded, forced a 15 MB archive on all users) or `packages/circuitry_flutter`.
 
 ### Architecture Sketch
 

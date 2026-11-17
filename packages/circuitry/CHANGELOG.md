@@ -4,14 +4,14 @@
 
 ### Features
 - **Ambient `CircuitRegistry` & DevTools Integration**:
-  - Automatically registers `Circuit` instances in debug mode (`assert(...)`), tracking status, wire resolution counts, and lifecycle events.
-  - Registers standard Dart VM Service extension handlers for DevTools and external tooling:
+  - Automatically tracks `Circuit` instances in debug mode (`assert(...)`), tracking status, wire resolution counts, and lifecycle events.
+  - Exposes `registerVmServiceExtensions()` and `unregisterVmServiceExtensions()` for explicit Dart VM Service extension lifecycle control:
     - `ext.circuitry.getCircuits`: Lists all active circuits, descriptors, and metadata.
     - `ext.circuitry.getCircuitGraph`: Returns full graph schema, waves, wire details, dependencies, and resolution timings.
     - `ext.circuitry.forceResolveWire`: Triggers on-demand wire resolution across the VM Service protocol.
   - Streams real-time lifecycle events via `developer.postEvent('circuitry:lifecycle', ...)`.
   - Added optional `debugTag` identifier to `Circuit.build(wires, debugTag: '...')` for multi-circuit identification in DevTools.
-  - Bundles built-in DevTools extension configuration (`extension/devtools/config.yaml`) and compiled Web assets (`extension/devtools/build/`) for auto-discovery across CLI, backend, and Flutter apps.
+  - Decoupled the 15 MB compiled DevTools extension web bundle into the opt-in `circuitry_devtools_extension` package, reducing `circuitry` package archive size to ~28 KB.
   - Zero-overhead in profile and release builds: assertions are disabled, `CircuitRegistry` methods and properties become no-ops, and telemetry call sites are fully tree-shaken by the compiler.
 - **Core Introspection API & Exporters**:
   - Precomputes reverse dependency adjacency in `CircuitGraph.compile()` for instant O(1) direct and transitive queries.
