@@ -63,6 +63,13 @@
 - **Reason:** Separates static graph analysis from runtime instance caching and wave execution, enabling isolated testing of graph validation.
 - **Alternative:** Keeping all graph compilation and container logic in a single monolithic `Circuit` class.
 
+## 2026-11-17: Fail-Fast AsyncWave Resolution with Immediate Rollback
+
+- **Status:** agreed
+- **Choice:** Configure `Future.wait` during async wave resolution with `eagerError: true` and guarded post-completion lifecycle teardown for late-completing in-flight wires (`if (_isDisposed) await wire.disposeInstance(instance)`).
+- **Reason:** Prevents circuit initialization from stalling on slow or hanging concurrent async operations when another wire in the same wave has already failed, while maintaining strict leak-free instance disposal.
+- **Alternative:** Default `eagerError: false` waiting for all futures in the wave to complete before teardown and error propagation.
+
 ### Architecture Sketch
 
 Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler. `packages/circuitry` defines declarative dependency recipes (`Wire<T>`, `AsyncWire<T>`), record tuple keys `(Type, Enum?)`, and accumulator builders (`takes<A>().to(...)`), validated and compiled by `Circuit.build(wires)` into a Directed Acyclic Graph (DAG) with parallel topological wave resolution and reverse-wave disposal. `packages/circuitry_flutter` bridges this compiled container to the Flutter widget hierarchy via `CircuitProvider`, managing asynchronous build lifecycles, didUpdateWidget epoch race prevention, and unmount cleanup. For full architectural details, see [architecture.md](architecture.md).

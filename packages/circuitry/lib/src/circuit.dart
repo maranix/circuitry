@@ -35,7 +35,7 @@ final class Circuit._(final CircuitGraph _graph) {
   /// - Circular dependencies -> throws [CircularDependencyException]
   ///
   /// Once validated, all [AsyncWire]s are resolved in parallel topological waves
-  /// using [Future.wait].
+  /// using [Future.wait] with fail-fast error handling.
   static Future<Circuit> build(List<CircuitWire> wires) async {
     final graph = CircuitGraph(wires)..compile();
     final circuit = Circuit._(graph);
@@ -101,6 +101,10 @@ final class Circuit._(final CircuitGraph _graph) {
   }
 
   /// Resolves all [AsyncWire]s in parallel topological waves.
+  ///
+  /// Fails fast upon the first error in any wave using [Future.wait] with `eagerError: true`,
+  /// immediately performing reverse topological disposal on already-initialized instances
+  /// before rethrowing the failure.
   Future<void> _resolveAsyncWaves() async {
     try {
       for (var level = 0; level <= _graph.maxLevel; level++) {
@@ -110,8 +114,17 @@ final class Circuit._(final CircuitGraph _graph) {
         await Future.wait(
           asyncWires.map((wire) async {
             final instance = await wire.connect(this);
-            _instances[wire.key] = instance;
+            if (_isDisposed) {
+              try {
+                await wire.disposeInstance(instance);
+              } catch (_) {
+                // Suppress disposal errors during teardown of late-resolving wire.
+              }
+            } else {
+              _instances[wire.key] = instance;
+            }
           }),
+          eagerError: true,
         );
       }
     } catch (error, stackTrace) {

@@ -365,6 +365,109 @@ void main() {
       expect(syncDisposed, isTrue);
     });
 
+    test('fails fast upon first AsyncWire error in parallel wave without waiting for others', () async {
+      final completer = Completer<void>();
+      var lateWireDisposed = false;
+
+      final buildFuture = Circuit.build([
+        AsyncWire(() async {
+          await completer.future;
+          return DatabaseService('late.db');
+        }, onDispose: (_) => lateWireDisposed = true),
+        AsyncWire(() async {
+          throw StateError('Fast wave failure');
+        }),
+      ]);
+
+      // Fails fast without waiting for completer.complete()
+      await expectLater(
+        buildFuture,
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            equals('Fast wave failure'),
+          ),
+        ),
+      );
+
+      // Verify that when late wire resolves, it is safely disposed
+      completer.complete();
+      await Future<void>.delayed(Duration.zero);
+      expect(lateWireDisposed, isTrue);
+    });
+
+    test('disposes both early-resolved instances and late-resolving instances on fail-fast abort', () async {
+      final slowCompleter = Completer<void>();
+      var earlyDisposed = false;
+      var lateDisposed = false;
+
+      final buildFuture = Circuit.build([
+        AsyncWire(
+          () async => DatabaseService('early.db'),
+          onDispose: (_) => earlyDisposed = true,
+        ),
+        AsyncWire(() async {
+          // Yield to ensure early wire finishes first
+          await Future<void>.delayed(Duration.zero);
+          throw StateError('Mid-wave error');
+        }),
+        AsyncWire(() async {
+          await slowCompleter.future;
+          return CacheService('slow-cache');
+        }, onDispose: (_) => lateDisposed = true),
+      ]);
+
+      await expectLater(
+        buildFuture,
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            equals('Mid-wave error'),
+          ),
+        ),
+      );
+
+      // Early wire must already be disposed as part of circuit rollback
+      expect(earlyDisposed, isTrue);
+      expect(lateDisposed, isFalse);
+
+      // Complete the slow wire; should be disposed upon completion
+      slowCompleter.complete();
+      await Future<void>.delayed(Duration.zero);
+      expect(lateDisposed, isTrue);
+    });
+
+    test('absorbs errors from late-failing in-flight async wires without crashing the test zone', () async {
+      final slowCompleter = Completer<void>();
+
+      final buildFuture = Circuit.build([
+        AsyncWire<DatabaseService>(() async {
+          throw StateError('Initial failure');
+        }),
+        AsyncWire<CacheService>(() async {
+          await slowCompleter.future;
+          throw StateError('Secondary late failure');
+        }),
+      ]);
+
+      await expectLater(
+        buildFuture,
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            equals('Initial failure'),
+          ),
+        ),
+      );
+
+      // Trigger secondary late failure and ensure it is safely absorbed by Future.wait listener
+      slowCompleter.complete();
+      await Future<void>.delayed(Duration.zero);
+    });
+
     test('6-level deep diamond DAG with mixed async and sync wires', () async {
       final log = <String>[];
 
