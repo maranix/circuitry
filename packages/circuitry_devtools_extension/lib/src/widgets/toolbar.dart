@@ -1,22 +1,56 @@
 import 'dart:convert';
 
 import 'package:circuitry_devtools_extension/src/controllers/circuitry_devtools_controller.dart';
+import 'package:devtools_app_shared/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Top action and search toolbar for filtering, highlighting, and exporting graph data.
-class DevToolsToolbar extends StatelessWidget {
+class DevToolsToolbar extends StatefulWidget {
   const DevToolsToolbar({super.key, required this.controller});
 
   final CircuitryDevToolsController controller;
 
   @override
+  State<DevToolsToolbar> createState() => _DevToolsToolbarState();
+}
+
+class _DevToolsToolbarState extends State<DevToolsToolbar> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(
+      text: widget.controller.searchQuery,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant DevToolsToolbar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller.searchQuery != _searchController.text) {
+      _searchController.text = widget.controller.searchQuery;
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final controller = widget.controller;
 
     return Container(
-      padding: const .symmetric(horizontal: 12.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(
+        horizontal: defaultSpacing,
+        vertical: densePadding,
+      ),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         border: Border(
@@ -52,60 +86,45 @@ class DevToolsToolbar extends StatelessWidget {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: defaultSpacing),
 
-            // Search Field
+            // Search Field using DevToolsClearableTextField
             SizedBox(
-              width: 250,
-              height: 36,
-              child: TextField(
+              width: 260,
+              child: DevToolsClearableTextField(
+                controller: _searchController,
+                hintText: 'Filter by type or tag (e.g. .prod, Auth)...',
+                prefixIcon: const Icon(Icons.search, size: 16),
                 onChanged: controller.setSearchQuery,
-                decoration: InputDecoration(
-                  hintText: 'Filter by type or tag (e.g. .prod, Auth)...',
-                  prefixIcon: const Icon(Icons.search, size: 18),
-                  suffixIcon: controller.searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, size: 16),
-                          onPressed: () => controller.setSearchQuery(''),
-                        )
-                      : null,
-                  contentPadding: const .symmetric(horizontal: 12, vertical: 8),
-                  border: const OutlineInputBorder(
-                    borderRadius: .all(.circular(6)),
-                    borderSide: BorderSide(width: 0.8),
-                  ),
-                  isDense: true,
-                ),
-                style: theme.textTheme.bodySmall,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: defaultSpacing),
 
-            // Filter Toggles
-            FilterChip(
-              label: const Text('Unresolved Only'),
-              selected: controller.showUnresolvedOnly,
-              onSelected: (_) => controller.toggleUnresolvedOnly(),
-              visualDensity: VisualDensity.compact,
-              labelStyle: theme.textTheme.labelSmall,
+            // Filter Toggles using official DevToolsToggleButton
+            DevToolsToggleButton(
+              isSelected: controller.showUnresolvedOnly,
+              onPressed: controller.toggleUnresolvedOnly,
+              message: 'Filter to show unresolved lazy wires only',
+              icon: Icons.hourglass_empty,
+              label: 'Unresolved Only',
             ),
-            const SizedBox(width: 6),
-            FilterChip(
-              label: const Text('Async Only'),
-              selected: controller.showAsyncOnly,
-              onSelected: (_) => controller.toggleAsyncOnly(),
-              visualDensity: VisualDensity.compact,
-              labelStyle: theme.textTheme.labelSmall,
+            const SizedBox(width: denseSpacing),
+            DevToolsToggleButton(
+              isSelected: controller.showAsyncOnly,
+              onPressed: controller.toggleAsyncOnly,
+              message: 'Filter to show asynchronous wires only',
+              icon: Icons.bolt,
+              label: 'Async Only',
             ),
-            const SizedBox(width: 6),
-            FilterChip(
-              label: const Text('Critical Path'),
-              selected: controller.highlightCriticalPath,
-              onSelected: (_) => controller.toggleCriticalPath(),
-              visualDensity: VisualDensity.compact,
-              labelStyle: theme.textTheme.labelSmall,
+            const SizedBox(width: denseSpacing),
+            DevToolsToggleButton(
+              isSelected: controller.highlightCriticalPath,
+              onPressed: controller.toggleCriticalPath,
+              message: 'Highlight longest initialization sequence',
+              icon: Icons.route,
+              label: 'Critical Path',
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: defaultSpacing),
 
             // Export Actions Menu
             PopupMenuButton<String>(
@@ -152,7 +171,7 @@ class DevToolsToolbar extends StatelessWidget {
   }
 
   void _handleExportAction(BuildContext context, String action) async {
-    final graph = controller.graphData;
+    final graph = widget.controller.graphData;
     if (graph == null) return;
 
     switch (action) {

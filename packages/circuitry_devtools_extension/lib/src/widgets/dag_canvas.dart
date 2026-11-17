@@ -1,6 +1,7 @@
 import 'package:circuitry_devtools_extension/src/controllers/circuitry_devtools_controller.dart';
 import 'package:circuitry_devtools_extension/src/models/circuit_graph_data.dart';
 import 'package:circuitry_devtools_extension/src/models/wire_node.dart';
+import 'package:devtools_app_shared/ui.dart';
 import 'package:flutter/material.dart';
 
 /// Center workspace visualizing the Directed Acyclic Graph (DAG) with topological wave columns,
@@ -128,34 +129,38 @@ class _DagCanvasState extends State<DagCanvas> {
           ),
         ),
 
-        // Zoom Controls Overlay
+        // Zoom Controls Overlay using DevToolsButton and RoundedOutlinedBorder
         Positioned(
-          right: 16,
-          bottom: 16,
-          child: Card(
-            elevation: 3,
-            shape: const RoundedRectangleBorder(
-              borderRadius: .all(.circular(8)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.add, size: 18),
-                  tooltip: 'Zoom In',
-                  onPressed: _zoomIn,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.remove, size: 18),
-                  tooltip: 'Zoom Out',
-                  onPressed: _zoomOut,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.center_focus_strong, size: 18),
-                  tooltip: 'Reset Zoom (100%)',
-                  onPressed: _resetZoom,
-                ),
-              ],
+          right: defaultSpacing,
+          bottom: defaultSpacing,
+          child: RoundedOutlinedBorder(
+            clip: true,
+            child: Container(
+              color: theme.colorScheme.surface,
+              padding: const EdgeInsets.all(borderPadding),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DevToolsButton(
+                    icon: Icons.add,
+                    tooltip: 'Zoom In',
+                    outlined: false,
+                    onPressed: _zoomIn,
+                  ),
+                  DevToolsButton(
+                    icon: Icons.remove,
+                    tooltip: 'Zoom Out',
+                    outlined: false,
+                    onPressed: _zoomOut,
+                  ),
+                  DevToolsButton(
+                    icon: Icons.center_focus_strong,
+                    tooltip: 'Reset Zoom (100%)',
+                    outlined: false,
+                    onPressed: _resetZoom,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

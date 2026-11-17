@@ -2,6 +2,7 @@ import 'package:circuitry_devtools_extension/src/screens/circuitry_devtools_scre
 import 'package:circuitry_devtools_extension/src/services/circuitry_service_client.dart';
 import 'package:circuitry_devtools_extension/src/services/mock_circuitry_service_client.dart';
 import 'package:circuitry_devtools_extension/src/services/vm_circuitry_service_client.dart';
+import 'package:devtools_app_shared/ui.dart';
 import 'package:devtools_extensions/devtools_extensions.dart';
 import 'package:flutter/material.dart';
 
@@ -24,15 +25,23 @@ class CircuitryDevToolsApp extends StatelessWidget {
           final client = serviceClient ?? _resolveClient();
           return MaterialApp(
             title: 'Circuitry DevTools',
-            theme: ThemeData(
-              colorSchemeSeed: const Color(0xFF1976D2),
-              useMaterial3: true,
-              brightness: Brightness.light,
+            theme: themeFor(
+              isDarkTheme: false,
+              ideTheme: ideTheme,
+              theme: ThemeData(
+                colorSchemeSeed: const Color(0xFF1976D2),
+                useMaterial3: true,
+                brightness: Brightness.light,
+              ),
             ),
-            darkTheme: ThemeData(
-              colorSchemeSeed: const Color(0xFF1976D2),
-              useMaterial3: true,
-              brightness: Brightness.dark,
+            darkTheme: themeFor(
+              isDarkTheme: true,
+              ideTheme: ideTheme,
+              theme: ThemeData(
+                colorSchemeSeed: const Color(0xFF1976D2),
+                useMaterial3: true,
+                brightness: Brightness.dark,
+              ),
             ),
             themeMode: ThemeMode.system,
             debugShowCheckedModeBanner: false,

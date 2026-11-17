@@ -5,6 +5,7 @@ import 'package:circuitry_devtools_extension/src/widgets/dag_canvas.dart';
 import 'package:circuitry_devtools_extension/src/widgets/toolbar.dart';
 import 'package:circuitry_devtools_extension/src/widgets/wave_waterfall_profiler.dart';
 import 'package:circuitry_devtools_extension/src/widgets/wire_detail_drawer.dart';
+import 'package:devtools_app_shared/ui.dart';
 import 'package:flutter/material.dart';
 
 /// Root DevTools extension screen hosting the Circuit Navigator, Interactive DAG Canvas,
@@ -37,9 +38,6 @@ class _CircuitryDevToolsScreenState extends State<CircuitryDevToolsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
@@ -66,39 +64,42 @@ class _CircuitryDevToolsScreenState extends State<CircuitryDevToolsScreen> {
                   ],
                 ),
 
-              // Workspace Tri-Pane Layout
+              // Workspace Tri-Pane Resizable Layout using devtools_app_shared SplitPane
               Expanded(
-                child: Row(
-                  children: [
-                    // Left Sidebar: Circuit Navigator
-                    SizedBox(
-                      width: 250,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            right: BorderSide(
-                              color: colorScheme.outlineVariant.withValues(
-                                alpha: 0.5,
-                              ),
-                            ),
+                child: Padding(
+                  padding: const EdgeInsets.all(densePadding),
+                  child: SplitPane(
+                    axis: Axis.horizontal,
+                    initialFractions: const [0.20, 0.55, 0.25],
+                    minSizes: const [180.0, 320.0, 220.0],
+                    children: [
+                      // Left Sidebar: Circuit Navigator
+                      CircuitNavigator(controller: _controller),
+
+                      // Center Workspace: DAG Canvas or Waterfall Profiler
+                      DevToolsAreaPane(
+                        header: AreaPaneHeader(
+                          title: Text(
+                            _controller.isWaterfallView
+                                ? 'Startup Wave Waterfall'
+                                : (_controller.graphData != null
+                                      ? 'DAG Canvas (${_controller.selectedCircuitId ?? ""})'
+                                      : 'Interactive DAG Canvas'),
                           ),
                         ),
-                        child: CircuitNavigator(controller: _controller),
+                        child: _controller.isLoadingGraph
+                            ? const Center(child: CircularProgressIndicator())
+                            : (_controller.isWaterfallView
+                                  ? WaveWaterfallProfiler(
+                                      controller: _controller,
+                                    )
+                                  : DagCanvas(controller: _controller)),
                       ),
-                    ),
 
-                    // Center Workspace: DAG Canvas or Waterfall Profiler
-                    Expanded(
-                      child: _controller.isLoadingGraph
-                          ? const Center(child: CircularProgressIndicator())
-                          : (_controller.isWaterfallView
-                                ? WaveWaterfallProfiler(controller: _controller)
-                                : DagCanvas(controller: _controller)),
-                    ),
-
-                    // Right Drawer: Wire Detail & Live Actions
-                    WireDetailDrawer(controller: _controller),
-                  ],
+                      // Right Drawer: Wire Detail & Live Actions
+                      WireDetailDrawer(controller: _controller),
+                    ],
+                  ),
                 ),
               ),
             ],

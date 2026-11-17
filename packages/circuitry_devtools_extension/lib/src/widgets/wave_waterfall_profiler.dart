@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:circuitry_devtools_extension/src/controllers/circuitry_devtools_controller.dart';
 import 'package:circuitry_devtools_extension/src/models/wire_node.dart';
+import 'package:devtools_app_shared/ui.dart';
 import 'package:flutter/material.dart';
 
 /// Gantt-style timeline waterfall profiler visualizing parallel topological wave execution,
@@ -280,45 +281,37 @@ class WaveWaterfallProfiler extends StatelessWidget {
     Color accentColor,
     ThemeData theme,
   ) {
-    return Container(
-      width: 170,
-      padding: const .all(10),
-      decoration: BoxDecoration(
+    return RoundedOutlinedBorder(
+      clip: true,
+      child: Container(
+        width: 170,
+        padding: const EdgeInsets.all(denseSpacing),
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: const .all(.circular(6)),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: accentColor),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontSize: 10,
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: accentColor),
+            const SizedBox(width: denseSpacing),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: theme.subtleTextStyle.copyWith(fontSize: 10),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  value,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  Text(
+                    value,
+                    style: theme.boldTextStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -14,56 +14,57 @@ class CircuitNavigator extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        AreaPaneHeader(
-          title: const Text('Circuits'),
-          actions: [
-            DevToolsButton(
-              icon: Icons.refresh,
-              tooltip: 'Refresh circuit registry',
-              onPressed: controller.isLoadingCircuits
-                  ? null
-                  : controller.loadCircuits,
-            ),
-          ],
-        ),
-        if (controller.isLoadingCircuits)
-          const LinearProgressIndicator(minHeight: 2)
-        else
-          const SizedBox(height: 2),
-        Expanded(
-          child: controller.circuits.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const .all(16.0),
-                    child: Text(
-                      'No circuits detected.\nEnsure debug assertions are enabled.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+    return DevToolsAreaPane(
+      header: AreaPaneHeader(
+        title: const Text('Circuits'),
+        actions: [
+          DevToolsButton(
+            icon: Icons.refresh,
+            tooltip: 'Refresh circuit registry',
+            onPressed: controller.isLoadingCircuits
+                ? null
+                : controller.loadCircuits,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (controller.isLoadingCircuits)
+            const LinearProgressIndicator(minHeight: 2)
+          else
+            const SizedBox(height: 2),
+          Expanded(
+            child: controller.circuits.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(defaultSpacing),
+                      child: Text(
+                        'No circuits detected.\nEnsure debug assertions are enabled.',
+                        textAlign: TextAlign.center,
+                        style: theme.subtleTextStyle,
                       ),
                     ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(densePadding),
+                    itemCount: controller.circuits.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: denseSpacing),
+                    itemBuilder: (context, index) {
+                      final circuit = controller.circuits[index];
+                      final isSelected =
+                          circuit.id == controller.selectedCircuitId;
+                      return _CircuitCard(
+                        circuit: circuit,
+                        isSelected: isSelected,
+                        onTap: () => controller.selectCircuit(circuit.id),
+                      );
+                    },
                   ),
-                )
-              : ListView.separated(
-                  padding: const .all(8.0),
-                  itemCount: controller.circuits.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 6),
-                  itemBuilder: (context, index) {
-                    final circuit = controller.circuits[index];
-                    final isSelected =
-                        circuit.id == controller.selectedCircuitId;
-                    return _CircuitCard(
-                      circuit: circuit,
-                      isSelected: isSelected,
-                      onTap: () => controller.selectCircuit(circuit.id),
-                    );
-                  },
-                ),
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
