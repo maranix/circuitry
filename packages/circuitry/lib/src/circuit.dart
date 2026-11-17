@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:circuitry/src/exceptions.dart';
 import 'package:circuitry/src/graph.dart';
+import 'package:circuitry/src/introspection.dart';
 import 'package:circuitry/src/utils.dart';
 import 'package:circuitry/src/wire.dart';
 
@@ -12,6 +13,12 @@ final class Circuit._(final CircuitGraph _graph) {
   final Set<WireKey> _creating = {};
   bool _isDisposed = false;
   Future<void>? _disposeFuture;
+
+  /// The compiled [CircuitGraph] backing this container.
+  CircuitGraph get graph => _graph;
+
+  /// Returns an on-demand [CircuitIntrospection] snapshot inspecting this circuit.
+  CircuitIntrospection inspect() => CircuitIntrospection.of(this);
 
   /// Whether this circuit has been shut down via [dispose].
   bool get isDisposed => _isDisposed;

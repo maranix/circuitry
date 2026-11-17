@@ -70,6 +70,13 @@
 - **Reason:** Prevents circuit initialization from stalling on slow or hanging concurrent async operations when another wire in the same wave has already failed, while maintaining strict leak-free instance disposal.
 - **Alternative:** Default `eagerError: false` waiting for all futures in the wave to complete before teardown and error propagation.
 
+## 2026-11-17: On-Demand Introspection and Compile-Time Reverse Adjacency (Issue #4)
+
+- **Status:** agreed
+- **Choice:** Precompute `reverseDependencies` in `CircuitGraph.compile()` and expose on-demand immutable snapshots via `circuit.inspect()` (`CircuitIntrospection`) without storing extra diagnostic fields in `Circuit`.
+- **Reason:** Enables instant O(1) direct dependent queries and tree-shakes 100% of introspection and export logic in production builds where `inspect()` is unused.
+- **Alternative:** Storing live mutable telemetry state, Stopwatches, or observers inside `Circuit`, which incurs memory and GC overhead in release builds.
+
 ### Architecture Sketch
 
 Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler. `packages/circuitry` defines declarative dependency recipes (`Wire<T>`, `AsyncWire<T>`), record tuple keys `(Type, Enum?)`, and accumulator builders (`takes<A>().to(...)`), validated and compiled by `Circuit.build(wires)` into a Directed Acyclic Graph (DAG) with parallel topological wave resolution and reverse-wave disposal. `packages/circuitry_flutter` bridges this compiled container to the Flutter widget hierarchy via `CircuitProvider`, managing asynchronous build lifecycles, didUpdateWidget epoch race prevention, and unmount cleanup. For full architectural details, see [architecture.md](architecture.md).

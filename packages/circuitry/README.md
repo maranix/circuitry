@@ -26,6 +26,7 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
 - **Type-Safe Accumulator Chaining**: Declare dependencies using `takes<A>()` and `takesTagged<B, K>(tag)`. Supports direct tear-offs (`.to(UserService.new)`) and destructuring nested tuples for multiple dependencies.
 - **Dot-Shorthand Tagging**: Supports tagged dependencies with Dart enum dot-shorthands (e.g. `tag: .prod`, `tag: .fast`), enabling multiple distinct singletons of the same generic Dart type without collisions.
 - **Reverse Topological Wave Disposal**: Idempotent teardown in reverse dependency waves (`leaves -> roots`), running parallel asynchronous `onDispose` callbacks and aggregating errors into `DisposalException`.
+- **On-Demand Introspection & Exporters**: Query direct and transitive dependents (`circuit.inspect().dependentsOf(key)`), inspect topological waves, and generate Mermaid diagrams (`toMermaid()`) or JSON schemas (`toJson()`). Fully tree-shaken in release builds when unused.
 
 ---
 

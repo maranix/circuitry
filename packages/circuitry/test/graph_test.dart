@@ -127,6 +127,144 @@ void main() {
       expect(graph.maxLevel, equals(0));
       expect(graph.wiresAtLevel(0), isEmpty);
       expect(graph.asyncWiresAtLevel(0), isEmpty);
+      expect(graph.reverseDependencies, isEmpty);
+      expect(graph.topologicalOrder, isEmpty);
+    });
+
+    test('reverseDependencies precomputes direct dependents for all wires', () {
+      final configWire = Wire(ConfigService.new);
+      final dbWire = Wire.takes<ConfigService>().to((_) => DatabaseService());
+      final userWire = Wire.takes<DatabaseService>().to((_) => UserService());
+      final orderWire = Wire.takes<DatabaseService>().to((_) => OrderService());
+
+      final graph = CircuitGraph([configWire, dbWire, userWire, orderWire])
+          .compile();
+
+      expect(
+        graph.reverseDependencies[(ConfigService, null)],
+        equals({(DatabaseService, null)}),
+      );
+      expect(
+        graph.reverseDependencies[(DatabaseService, null)],
+        equals({(UserService, null), (OrderService, null)}),
+      );
+      expect(graph.reverseDependencies[(UserService, null)], isEmpty);
+      expect(graph.reverseDependencies[(OrderService, null)], isEmpty);
+    });
+
+    test('dependentsOf returns direct dependents when transitive is false', () {
+      final configWire = Wire(ConfigService.new);
+      final dbWire = Wire.takes<ConfigService>().to((_) => DatabaseService());
+      final userWire = Wire.takes<DatabaseService>().to((_) => UserService());
+
+      final graph = CircuitGraph([configWire, dbWire, userWire]).compile();
+
+      expect(
+        graph.dependentsOf((ConfigService, null)),
+        equals({(DatabaseService, null)}),
+      );
+      expect(
+        graph.dependentsOf((DatabaseService, null)),
+        equals({(UserService, null)}),
+      );
+      expect(graph.dependentsOf((UserService, null)), isEmpty);
+    });
+
+    test(
+      'dependentsOf returns all transitive dependents across diamond graph',
+      () {
+        // Config -> (Database, Cache) -> AppGateway
+        final configWire = Wire(ConfigService.new);
+        final dbWire = Wire.takes<ConfigService>().to((_) => DatabaseService());
+        final userWire = Wire.takes<ConfigService>().to((_) => UserService());
+        final orderWire = Wire.takes<DatabaseService>().takes<UserService>().to(
+          (_) => OrderService(),
+        );
+
+        final graph = CircuitGraph([configWire, dbWire, userWire, orderWire])
+            .compile();
+
+        expect(
+          graph.dependentsOf((ConfigService, null), transitive: true),
+          equals({
+            (DatabaseService, null),
+            (UserService, null),
+            (OrderService, null),
+          }),
+        );
+        expect(
+          graph.dependentsOf((DatabaseService, null), transitive: true),
+          equals({(OrderService, null)}),
+        );
+        expect(
+          graph.dependentsOf((OrderService, null), transitive: true),
+          isEmpty,
+        );
+      },
+    );
+
+    test('dependenciesOf returns direct and transitive dependencies', () {
+      final configWire = Wire(ConfigService.new);
+      final dbWire = Wire.takes<ConfigService>().to((_) => DatabaseService());
+      final userWire = Wire.takes<DatabaseService>().to((_) => UserService());
+
+      final graph = CircuitGraph([configWire, dbWire, userWire]).compile();
+
+      expect(graph.dependenciesOf((ConfigService, null)), isEmpty);
+      expect(
+        graph.dependenciesOf((DatabaseService, null)),
+        equals({(ConfigService, null)}),
+      );
+      expect(
+        graph.dependenciesOf((UserService, null)),
+        equals({(DatabaseService, null)}),
+      );
+      expect(
+        graph.dependenciesOf((UserService, null), transitive: true),
+        equals({(DatabaseService, null), (ConfigService, null)}),
+      );
+    });
+
+    test('topologicalOrder returns deterministic wave-sorted ordering', () {
+      final configWire = Wire(ConfigService.new);
+      final dbWire = Wire.takes<ConfigService>().to((_) => DatabaseService());
+      final userWire = Wire.takes<DatabaseService>().to((_) => UserService());
+
+      final graph = CircuitGraph([userWire, configWire, dbWire]).compile();
+
+      expect(
+        graph.topologicalOrder,
+        equals([
+          (ConfigService, null),
+          (DatabaseService, null),
+          (UserService, null),
+        ]),
+      );
+    });
+
+    test('dependentsOf and dependenciesOf throw WireNotFoundException for unknown keys', () {
+      final graph = CircuitGraph([Wire(ConfigService.new)]).compile();
+
+      expect(
+        () => graph.dependentsOf((DatabaseService, null)),
+        throwsA(isA<WireNotFoundException>()),
+      );
+      expect(
+        () => graph.dependenciesOf((DatabaseService, null)),
+        throwsA(isA<WireNotFoundException>()),
+      );
+    });
+
+    test('dependentsOf, dependenciesOf, and topologicalOrder throw StateError when uncompiled', () {
+      final graph = CircuitGraph([Wire(ConfigService.new)]);
+
+      expect(() => graph.reverseDependencies, throwsStateError);
+      expect(() => graph.topologicalOrder, throwsStateError);
+      expect(() => graph.dependentsOf((ConfigService, null)), throwsStateError);
+      expect(
+        () => graph.dependenciesOf((ConfigService, null)),
+        throwsStateError,
+      );
     });
   });
 }

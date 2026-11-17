@@ -14,7 +14,8 @@ circuitry/
 │   │   │       ├── circuit.dart   # Circuit container and runtime lifecycle
 │   │   │       ├── exceptions.dart# CircuitException hierarchy with primary constructors
 │   │   │       ├── extensions.dart# WireKeyFormatting extension
-│   │   │       ├── graph.dart     # CircuitGraph: DAG compiler, static validation, wave precomputation
+│   │   │       ├── graph.dart     # CircuitGraph: DAG compiler, static validation, wave precomputation, reverse index
+│   │   │       ├── introspection.dart # CircuitIntrospection, WireDescriptor, Mermaid/JSON export
 │   │   │       ├── utils.dart     # Internal formatting and utility functions
 │   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, builders
 │   │   └── test/                  # Unit tests (DAG validation, waves, laziness, disposal)
@@ -167,6 +168,12 @@ flowchart TD
 ### 7. Reverse Topological Wave Disposal
 - `Circuit.dispose()` performs idempotent teardown in reverse topological dependency waves (`leaves -> roots`), ensuring consumers are disposed before their underlying dependencies.
 - Executes `onDispose` callbacks concurrently across each level, aggregating failures into `DisposalException`. Subsequent calls are safe no-ops.
+
+### 8. Introspection & Reverse Adjacency Querying (Issue #4)
+- `CircuitGraph` precomputes an unmodifiable `reverseDependencies` map (`depKey -> dependents`) during `compile()`, enabling instant O(1) direct dependent lookups and iterative BFS transitive resolution via `dependentsOf(key, {bool transitive = false})` and `dependenciesOf(key, {bool transitive = false})`.
+- `circuit.inspect()` returns an immutable `CircuitIntrospection` snapshot capturing `WireDescriptor` states (`isInitialized`, `isAsync`, `topologicalLevel`), wave groupings (`waves`), `maxWaveLevel`, and `topologicalOrder`.
+- Exports valid `flowchart TD` Mermaid markup via `toMermaid({bool showStatus = true, bool groupByWave = true})` with wave subgraphs and initialization styling, plus structured `toJson()` data serialization.
+- Zero runtime or memory overhead when uninspected; 100% tree-shaken by the Dart compiler in production release builds.
 
 ---
 

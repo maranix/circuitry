@@ -49,6 +49,8 @@ export 'src/exceptions.dart';
 
 export 'src/extensions.dart';
 
+export 'src/introspection.dart' hide CircuitIntrospectionImpl;
+
 export 'src/wire.dart'
     hide
         AsyncWireBuilder,
