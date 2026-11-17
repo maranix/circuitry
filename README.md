@@ -12,6 +12,7 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
 | --- | --- | --- |
 | [`circuitry`](packages/circuitry) | [![pub](https://img.shields.io/pub/v/circuitry.svg)](https://pub.dev/packages/circuitry) | Pure Dart dependency injection engine. Zero Flutter dependencies; runs on CLI, server, web, and mobile. |
 | [`circuitry_flutter`](packages/circuitry_flutter) | [![pub](https://img.shields.io/pub/v/circuitry_flutter.svg)](https://pub.dev/packages/circuitry_flutter) | Flutter bridge with `CircuitProvider`, `InheritedWidget` scoping, `CircuitState` matching, and unmount disposal. |
+| [`circuitry_devtools_extension`](packages/circuitry_devtools_extension) | [![pub](https://img.shields.io/pub/v/circuitry_devtools_extension.svg)](https://pub.dev/packages/circuitry_devtools_extension) | Standalone Flutter Web DevTools extension UI: interactive DAG canvas, wave waterfall profiler, and live wire inspector. |
 
 ---
 
@@ -33,7 +34,8 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
 5. **Reverse Topological Wave Disposal**: Idempotent teardown in reverse dependency waves (`leaves -> roots`), awaiting asynchronous `onDispose` callbacks concurrently and aggregating errors into `DisposalException`.
 6. **Flutter Lifecycle Integration & Scoped Registries**: `CircuitProvider` manages async build lifecycles, didUpdateWidget monotonic compilation epoch race prevention, unmount teardown, and ambient `Map<Enum, Circuit>` scoping for nested tagged providers with **O(1)** retrieval (`CircuitProvider.of(context, tag: Scope.global)`).
 7. **On-Demand Introspection & Exporters**: `circuit.inspect()` provides on-demand DAG inspection (`dependentsOf`, `dependenciesOf`, `topologicalOrder`), valid Mermaid flowchart generation (`toMermaid()`), and structured JSON serialization (`toJson()`), fully tree-shaken in release builds when unused.
-8. **DevTools Integration & Universal Extension Host**: Ambient `CircuitRegistry` tracks containers exclusively in debug mode, exposing VM Service endpoints (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`) and streaming lifecycle events via `developer.postEvent`. In profile and release modes, `CircuitRegistry`, its properties, and `debugTag` are complete no-ops and tree-shaken with zero runtime or memory overhead. Preconfigured `extension/devtools/config.yaml` provides universal DevTools extension discovery across CLI, server, and Flutter runtimes.
+8. **DevTools Integration & Universal Extension Host**: Ambient `CircuitRegistry` tracks containers exclusively in debug mode, exposing VM Service endpoints (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`, `ext.circuitry.forceResolveWire`) and streaming lifecycle events via `developer.postEvent`. In profile and release modes, `CircuitRegistry`, its properties, and `debugTag` are complete no-ops and tree-shaken with zero runtime or memory overhead. Preconfigured `extension/devtools/config.yaml` provides universal DevTools extension discovery across CLI, server, and Flutter runtimes.
+9. **Interactive DevTools Extension UI**: Dedicated Flutter Web extension in `packages/circuitry_devtools_extension` featuring horizontal topological wave column layout, cubic Bézier spline edge routing, multi-scope container navigation, startup wave waterfall profiler with critical path calculation, and on-demand singleton initialization via `ext.circuitry.forceResolveWire`.
 
 ---
 
@@ -49,10 +51,18 @@ circuitry/
 ├── packages/
 │   ├── circuitry/                 # Pure Dart dependency injection engine
 │   │   ├── extension/             # Dart & Flutter DevTools extension configuration
+│   │   │   └── devtools/
+│   │   │       ├── build/         # Compiled Flutter Web extension bundle
+│   │   │       └── config.yaml
 │   │   ├── lib/
 │   │   │   ├── circuitry.dart     # Public barrel export
 │   │   │   └── src/               # Core engine implementation (circuit, graph, wire, registry, utils, extensions)
 │   │   └── test/                  # Unit tests for DAG, waves, laziness, disposal, and registry
+│   ├── circuitry_devtools_extension/ # Standalone Flutter Web DevTools extension UI
+│   │   ├── lib/
+│   │   │   ├── main.dart          # DevToolsExtension web entry point
+│   │   │   └── src/               # UI controllers, models, screens, services, widgets
+│   │   └── test/                  # Model, controller, and widget unit test suite
 │   └── circuitry_flutter/         # Flutter companion package
 │       ├── lib/
 │       │   ├── circuitry_flutter.dart # Public barrel export
@@ -92,6 +102,9 @@ cd packages/circuitry && dart test
 
 # Run Flutter tests in circuitry_flutter
 cd packages/circuitry_flutter && flutter test
+
+# Run DevTools extension tests in circuitry_devtools_extension
+cd packages/circuitry_devtools_extension && flutter test
 ```
 
 ---

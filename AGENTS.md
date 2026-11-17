@@ -31,10 +31,13 @@ Always read these four core project documents before proposing or implementing c
 
   # Flutter bridge package:
   cd packages/circuitry_flutter && flutter test
+
+  # DevTools extension:
+  cd packages/circuitry_devtools_extension && flutter test
   ```
 - Run the full verification gate before completing work:
   ```bash
   dart format --output=none --set-exit-if-changed .
   flutter analyze --fatal-infos --fatal-warnings
-  (cd packages/circuitry && dart test) && (cd packages/circuitry_flutter && flutter test)
+  (cd packages/circuitry && dart test) && (cd packages/circuitry_flutter && flutter test) && (cd packages/circuitry_devtools_extension && flutter test)
   ```

@@ -95,6 +95,16 @@ final class Circuit._(final CircuitGraph _graph) {
     return _getByKey((T, tag)) as T;
   }
 
+  /// Synchronously resolves and returns the dependency instance registered for [key].
+  ///
+  /// Instantiates lazy synchronous singletons on-demand if not already created.
+  /// Throws [DisposedCircuitException] if this circuit has been disposed.
+  /// Throws [WireNotFoundException] if no wire is registered for [key].
+  Object? resolveWireKey(WireKey key) {
+    _checkNotDisposed();
+    return _getByKey(key);
+  }
+
   Object? _getByKey(WireKey key) {
     _checkNotDisposed();
 

@@ -48,3 +48,8 @@ jobs:
         run: |
           cd packages/circuitry_flutter
           flutter test
+
+      - name: Run DevTools Extension Tests (circuitry_devtools_extension)
+        run: |
+          cd packages/circuitry_devtools_extension
+          flutter test

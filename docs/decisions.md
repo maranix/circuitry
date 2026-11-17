@@ -84,6 +84,13 @@
 - **Reason:** Provides universal DevTools inspection across all Dart runtimes (CLI tools, server frameworks like Shelf/Serverpod, and Flutter apps via transitive dependency) without adding Flutter SDK dependencies to `circuitry`.
 - **Alternative:** Hosting DevTools extensions and registry solely in `packages/circuitry_flutter`, locking non-Flutter Dart developers out of DevTools inspection.
 
+## 2026-11-17: Standalone DevTools Extension UI and Seamed VM Service Client (Issue #5)
+
+- **Status:** agreed
+- **Choice:** Implement the DevTools Extension UI as a standalone Flutter Web package in `packages/circuitry_devtools_extension`, decoupled from the live VM Service behind a `CircuitryServiceClient` interface (`VmCircuitryServiceClient` and `MockCircuitryServiceClient`). The UI features an interactive DAG canvas organized into horizontal topological wave columns with cubic Bézier spline edge routing, multi-scope circuit navigation, live on-demand singleton initialization via `ext.circuitry.forceResolveWire`, a startup wave waterfall profiler with critical path calculation, and multi-format exporters (Mermaid, JSON, SVG). The compiled Flutter Web bundle is deployed into `packages/circuitry/extension/devtools/build/`.
+- **Reason:** Isolates extension UI logic from VM Service transport, allowing 100% of the UI widgets, state controllers, and layout algorithms to be tested natively via `flutter test` without a running VM Service daemon. Packaging the compiled web bundle inside `packages/circuitry` enables auto-discovery across CLI, backend, and Flutter apps.
+- **Alternative:** Embedding extension UI directly within `packages/circuitry_flutter` or tightly coupling the UI directly to `serviceManager.service` without a testable client seam.
+
 ### Architecture Sketch
 
 Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler. `packages/circuitry` defines declarative dependency recipes (`Wire<T>`, `AsyncWire<T>`), record tuple keys `(Type, Enum?)`, and accumulator builders (`takes<A>().to(...)`), validated and compiled by `Circuit.build(wires)` into a Directed Acyclic Graph (DAG) with parallel topological wave resolution and reverse-wave disposal. `packages/circuitry_flutter` bridges this compiled container to the Flutter widget hierarchy via `CircuitProvider`, managing asynchronous build lifecycles, didUpdateWidget epoch race prevention, and unmount cleanup. For full architectural details, see [architecture.md](architecture.md).
