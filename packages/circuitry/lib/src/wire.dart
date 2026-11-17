@@ -20,6 +20,19 @@ import 'package:circuitry/src/circuit.dart';
 /// ```
 typedef WireKey = (Type type, Enum? tag);
 
+/// Formats a [WireKey] into a human-readable string representation (e.g. `Type` or `Type#tag`).
+String formatWireKey(WireKey key) {
+  final typeName = key.$1.toString();
+  final tag = key.$2;
+  return tag == null ? typeName : '$typeName#$tag';
+}
+
+/// Extension on [WireKey] providing human-readable formatting.
+extension WireKeyFormatting on WireKey {
+  /// Returns a human-readable string representation of this key (e.g. `Type` or `Type#tag`).
+  String format() => formatWireKey(this);
+}
+
 /// Signature for a synchronous zero-dependency factory closure that constructs an instance of [T].
 ///
 /// Because zero-dependency singletons accept no parameters, existing constructor tear-offs

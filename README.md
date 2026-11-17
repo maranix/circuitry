@@ -48,7 +48,7 @@ circuitry/
 │   ├── circuitry/                 # Pure Dart dependency injection engine
 │   │   ├── lib/
 │   │   │   ├── circuitry.dart     # Public barrel export
-│   │   │   └── src/               # Core engine implementation (circuit, wire, exceptions)
+│   │   │   └── src/               # Core engine implementation (circuit, graph, wire, exceptions)
 │   │   └── test/                  # 46 unit tests for DAG, waves, laziness, and disposal
 │   └── circuitry_flutter/         # Flutter companion package
 │       ├── lib/

@@ -1,19 +1,19 @@
 import 'dart:async';
 
 import 'package:circuitry/src/exceptions.dart';
+import 'package:circuitry/src/graph.dart';
 import 'package:circuitry/src/wire.dart';
 
 /// A dependency injection container managing lazy synchronous singletons
 /// and asynchronously resolved dependencies backed by a Directed Acyclic Graph (DAG).
-final class Circuit._({
-  required final Map<WireKey, CircuitWire> _wires,
-  required final Map<WireKey, Object?> _instances,
-  required final Map<WireKey, int> _levels,
-  required final int _maxLevel,
-}) {
+final class Circuit {
+  final CircuitGraph _graph;
+  final Map<WireKey, Object?> _instances = {};
   final Set<WireKey> _creating = {};
   bool _isDisposed = false;
   Future<void>? _disposeFuture;
+
+  Circuit._(this._graph);
 
   /// Whether this circuit has been shut down via [dispose].
   bool get isDisposed => _isDisposed;
@@ -39,130 +39,9 @@ final class Circuit._({
   /// Once validated, all [AsyncWire]s are resolved in parallel topological waves
   /// using [Future.wait].
   static Future<Circuit> build(List<CircuitWire> wires) async {
-    // 1. Duplicate wire detection
-    final wireMap = <WireKey, CircuitWire>{};
-    for (final wire in wires) {
-      if (wireMap.containsKey(wire.key)) {
-        throw DuplicateWireException(
-          'Duplicate wire registered for key ${_formatKey(wire.key)}.',
-          key: wire.key,
-        );
-      }
-      wireMap[wire.key] = wire;
-    }
-
-    // 2. Missing dependency validation
-    for (final wire in wires) {
-      for (final depKey in wire.dependencies) {
-        if (!wireMap.containsKey(depKey)) {
-          throw MissingWireException(
-            'Missing wire for dependency ${_formatKey(depKey)} required by ${_formatKey(wire.key)}.',
-            missingKey: depKey,
-            requiredBy: wire.key,
-          );
-        }
-      }
-    }
-
-    // 3. Cycle detection (DFS with recursion stack tracking)
-    final visitState =
-        <WireKey, int>{}; // 0 = unvisited, 1 = visiting, 2 = visited
-    final recursionStack = <WireKey>[];
-
-    void checkCycle(WireKey current) {
-      visitState[current] = 1;
-      recursionStack.add(current);
-
-      final currentWire = wireMap[current]!;
-      for (final depKey in currentWire.dependencies) {
-        final state = visitState[depKey] ?? 0;
-        if (state == 1) {
-          final cycleStartIndex = recursionStack.indexOf(depKey);
-          final cycle = [...recursionStack.sublist(cycleStartIndex), depKey];
-          throw CircularDependencyException(
-            'Circular dependency detected: ${cycle.map(_formatKey).join(' -> ')}',
-            cycle: .unmodifiable(cycle),
-          );
-        } else if (state == 0) {
-          checkCycle(depKey);
-        }
-      }
-
-      recursionStack.removeLast();
-      visitState[current] = 2;
-    }
-
-    for (final key in wireMap.keys) {
-      if ((visitState[key] ?? 0) == 0) {
-        checkCycle(key);
-      }
-    }
-
-    // 4. Compute topological levels
-    final levels = <WireKey, int>{};
-    int computeLevel(WireKey key) {
-      if (levels.containsKey(key)) {
-        return levels[key]!;
-      }
-      final wire = wireMap[key]!;
-      if (wire.dependencies.isEmpty) {
-        levels[key] = 0;
-        return 0;
-      }
-      var maxDep = 0;
-      for (final depKey in wire.dependencies) {
-        final depLevel = computeLevel(depKey);
-        if (depLevel > maxDep) {
-          maxDep = depLevel;
-        }
-      }
-      final level = maxDep + 1;
-      levels[key] = level;
-      return level;
-    }
-
-    var maxLevel = 0;
-    for (final key in wireMap.keys) {
-      final lvl = computeLevel(key);
-      if (lvl > maxLevel) {
-        maxLevel = lvl;
-      }
-    }
-
-    final instances = <WireKey, Object?>{};
-    final circuit = Circuit._(
-      wires: .unmodifiable(wireMap),
-      levels: .unmodifiable(levels),
-      instances: instances,
-      maxLevel: maxLevel,
-    );
-
-    // 5. Resolve AsyncWires in parallel topological waves
-    try {
-      for (var i = 0; i <= maxLevel; i++) {
-        final asyncWiresAtLevel = wireMap.values
-            .whereType<AsyncWire<Object?>>()
-            .where((w) => levels[w.key] == i)
-            .toList();
-
-        if (asyncWiresAtLevel.isNotEmpty) {
-          await Future.wait(
-            asyncWiresAtLevel.map((wire) async {
-              final instance = await wire.connect(circuit);
-              instances[wire.key] = instance;
-            }),
-          );
-        }
-      }
-    } catch (error, stackTrace) {
-      try {
-        await circuit.dispose();
-      } catch (_) {
-        // Suppress secondary disposal errors so original build failure is preserved.
-      }
-      Error.throwWithStackTrace(error, stackTrace);
-    }
-
+    final graph = CircuitGraph.compile(wires);
+    final circuit = Circuit._(graph);
+    await circuit._resolveAsyncWaves();
     return circuit;
   }
 
@@ -191,10 +70,10 @@ final class Circuit._({
       return _instances[key];
     }
 
-    final wire = _wires[key];
+    final wire = _graph.wires[key];
     if (wire == null) {
       throw WireNotFoundException(
-        'Wire for key ${_formatKey(key)} not found in circuit.',
+        'Wire for key ${formatWireKey(key)} not found in circuit.',
         key: key,
       );
     }
@@ -203,7 +82,7 @@ final class Circuit._({
       case Wire<Object?>():
         if (_creating.contains(key)) {
           throw CircularDependencyException(
-            'Circular dependency detected while creating ${_formatKey(key)}.',
+            'Circular dependency detected while creating ${formatWireKey(key)}.',
             cycle: [..._creating, key],
           );
         }
@@ -218,8 +97,32 @@ final class Circuit._({
         }
       case AsyncWire<Object?>():
         throw StateError(
-          'Async wire ${_formatKey(key)} was not resolved during circuit build.',
+          'Async wire ${formatWireKey(key)} was not resolved during circuit build.',
         );
+    }
+  }
+
+  /// Resolves all [AsyncWire]s in parallel topological waves.
+  Future<void> _resolveAsyncWaves() async {
+    try {
+      for (var level = 0; level <= _graph.maxLevel; level++) {
+        final asyncWires = _graph.asyncWiresAtLevel(level);
+        if (asyncWires.isEmpty) continue;
+
+        await Future.wait(
+          asyncWires.map((wire) async {
+            final instance = await wire.connect(this);
+            _instances[wire.key] = instance;
+          }),
+        );
+      }
+    } catch (error, stackTrace) {
+      try {
+        await dispose();
+      } catch (_) {
+        // Suppress secondary disposal errors so original build failure is preserved.
+      }
+      Error.throwWithStackTrace(error, stackTrace);
     }
   }
 
@@ -247,9 +150,10 @@ final class Circuit._({
     final stackTraces = <StackTrace>[];
 
     try {
-      for (var i = _maxLevel; i >= 0; i--) {
-        final wiresAtLevel = _wires.values
-            .where((w) => _levels[w.key] == i && _instances.containsKey(w.key))
+      for (var level = _graph.maxLevel; level >= 0; level--) {
+        final wiresAtLevel = _graph
+            .wiresAtLevel(level)
+            .where((w) => _instances.containsKey(w.key))
             .toList();
 
         if (wiresAtLevel.isEmpty) continue;
@@ -273,8 +177,8 @@ final class Circuit._({
     if (errors.isNotEmpty) {
       throw DisposalException(
         'Circuit disposal encountered ${errors.length} error(s).',
-        errors: .unmodifiable(errors),
-        stackTraces: .unmodifiable(stackTraces),
+        errors: List.unmodifiable(errors),
+        stackTraces: List.unmodifiable(stackTraces),
       );
     }
   }
@@ -285,13 +189,5 @@ final class Circuit._({
         'The Circuit has been disposed and cannot be used.',
       );
     }
-  }
-
-  static String _formatKey(WireKey key) {
-    final typeName = key.$1.toString();
-    if (key.$2 == null) {
-      return typeName;
-    }
-    return '$typeName#${key.$2}';
   }
 }
