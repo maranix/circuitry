@@ -168,26 +168,8 @@ flowchart TD
 - `Circuit.dispose()` performs idempotent teardown in reverse topological dependency waves (`leaves -> roots`), ensuring consumers are disposed before their underlying dependencies.
 - Executes `onDispose` callbacks concurrently across each level, aggregating failures into `DisposalException`. Subsequent calls are safe no-ops.
 
-### 8. Package Metadata & pub.dev Discovery
-- Centralizes project links on `https://github.com/maranix/circuitry` with issues routed to package-specific label queries (`label:circuitry` and `label:circuitry_flutter`).
-- Subpackage repository fields are deep-linked to their tree directories (`packages/circuitry` and `packages/circuitry_flutter`) to enable direct file browsing from pub.dev.
-- Curates up to 5 lowercase slug discovery topics per package targeting DI, IoC, DAG, Flutter, and architectural workflows.
-- Maintains standalone `CHANGELOG.md` and MIT `LICENSE` files within each package to satisfy pub publishing requirements.
-
 ---
 
 ## Verification & Commands
 
-```bash
-# Workspace format check
-dart format --output=none --set-exit-if-changed .
-
-# Workspace static analysis
-flutter analyze --fatal-infos --fatal-warnings
-
-# Run all unit tests for pure Dart circuitry
-cd packages/circuitry && dart test
-
-# Run all widget & lifecycle tests for circuitry_flutter
-cd packages/circuitry_flutter && flutter test
-```
+For workspace formatting, static analysis, and test commands, see [README.md#verification--commands](../README.md#verification--commands).

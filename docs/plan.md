@@ -1,192 +1,21 @@
 # Plan
 
-## Done
-- [x] Scaffold Circuitry Monorepo (`circuitry` and `circuitry_flutter`)
-  - Requirements:
-    - Configure root pub workspace in `/Users/maranix/Developer/circuitry/pubspec.yaml` with packages `circuitry` and `circuitry_flutter`.
-    - Create `packages/circuitry` as a pure Dart package with zero Flutter dependencies, housing `WireKey`, `CircuitWire`, `Wire<T>`, `AsyncWire<T>`, `WireBuilder`, `AsyncWireBuilder`, `CircuitException` hierarchy, and `Circuit` DAG container.
-    - Create `packages/circuitry_flutter` as a Flutter bridge package depending on `circuitry` and Flutter SDK, housing `CircuitState` sealed hierarchy, `CircuitProvider` (`CircuitWireProvider`, `CircuitValueProvider`), `_CircuitScope`, and re-exporting `package:circuitry/circuitry.dart`.
-    - Create comprehensive test suites across both packages (pure Dart unit tests in `circuitry/test/`, Flutter widget & lifecycle tests in `circuitry_flutter/test/`).
-    - Setup strict linting (`analysis_options.yaml`) and GitHub Actions CI workflow (`.github/workflows/ci.yml`).
-    - Provide complete project documentation (`README.md`, package READMEs, `docs/architecture.md`, `docs/decisions.md`, `AGENTS.md`).
-    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, and all tests passing.
-  - Sub-steps:
-    - [x] Record decisions in `docs/decisions.md`.
-    - [x] Create root `pubspec.yaml`, `analysis_options.yaml`, and workspace structure.
-    - [x] Implement `packages/circuitry` (pure Dart library, exceptions, wires, DAG compiler).
-    - [x] Port pure Dart tests to `packages/circuitry/test/` (wire tests, circuit tests - 46 tests).
-    - [x] Implement `packages/circuitry_flutter` (Flutter bridge widgets and state matching).
-    - [x] Port Flutter tests to `packages/circuitry_flutter/test/` (21 tests).
-    - [x] Run `flutter pub get` and verify compilation across workspace.
-    - [x] Add GitHub Actions CI workflow.
-    - [x] Complete `README.md`, `docs/architecture.md`, and `AGENTS.md`.
-    - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, `flutter test`).
-- [x] Refactor Monorepo to Modular `src/` Architecture and Dart 3.14+ Primary Constructors
-  - Requirements:
-    - Modularize `packages/circuitry/lib/` into separate domain units under `lib/src/` (`exceptions.dart`, `wire.dart`, `circuit.dart`) and expose them via public barrel file `lib/circuitry.dart`.
-    - Modularize `packages/circuitry_flutter/lib/` into separate units under `lib/src/` (`circuit_state.dart`, `circuit_provider.dart` with internal `_CircuitScope`) and expose via public barrel file `lib/circuitry_flutter.dart`.
-    - Eliminate redundant type aliases and remove unnecessary public `createInstance` redirection methods by leveraging library-level `part of` encapsulation so `Circuit` accesses `_create` directly without exposing internal details to package consumers.
-    - Introduce strongly typed and documented functional contracts (`WireFactory`, `AsyncWireFactory`, `WireBuilderFactory`, `AsyncWireBuilderFactory`, `WireDependencyResolver`, `WireDisposer`).
-    - Refactor classes across production code and test suites (`wire_test.dart`, `circuit_test.dart`, `circuit_provider_test.dart`) to use Dart 3.14+ primary constructors and concise constructor syntax.
-    - Preserve `name: circuitry_workspace` in root `pubspec.yaml` to satisfy `package_names` linter rules.
-    - Synchronize project documentation (`docs/decisions.md`, `docs/architecture.md`, `README.md`).
-    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, and all tests passing.
-  - Sub-steps:
-    - [x] Update `docs/decisions.md` with architectural decision on modularization, encapsulation, and primary constructors.
-    - [x] Add modular `src/` structure and barrel exports to `packages/circuitry/lib/circuitry.dart` and `packages/circuitry_flutter/lib/circuitry_flutter.dart`.
-    - [x] Eliminate `createInstance` and keep wire creation private to the library using `part of`.
-    - [x] Define typed functional contracts (`WireFactory`, `AsyncWireFactory`, `WireBuilderFactory`, `AsyncWireBuilderFactory`, `WireDependencyResolver`, `WireDisposer`) with dartdoc.
-    - [x] Restore valid workspace package name `circuitry_workspace` in root `pubspec.yaml`.
-    - [x] Migrate test mock/helper classes in `packages/circuitry/test/wire_test.dart`, `circuit_test.dart`, and `circuit_provider_test.dart` to concise/primary constructor syntax.
-    - [x] Update `docs/architecture.md` and `README.md` to reflect the new `src/` file tree and constructor syntax.
-    - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
-- [x] Encapsulate Intermediate Builders and Internal Factories from Public Barrel Export
-  - Requirements:
-    - Hide `WireBuilder` and `AsyncWireBuilder` from the public export surface in `packages/circuitry/lib/circuitry.dart`.
-    - Hide internal factory typedefs (`WireBuilderFactory`, `AsyncWireBuilderFactory`, `WireDependencyResolver`) from the public export surface.
-    - Keep `WireBuilder` and `AsyncWireBuilder` classes public in `lib/src/wire.dart` to satisfy the `library_private_types_in_public_api` lint rule.
-    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, and full test suite.
-  - Sub-steps:
-    - [x] Configure export hide list in `packages/circuitry/lib/circuitry.dart`.
-    - [x] Update `docs/decisions.md` and `docs/architecture.md`.
-    - [x] Run verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
-- [x] Eliminate `part` / `part of` in Core Engine and Introduce `wire.connect(circuit)`
-  - Requirements:
-    - Decouple `circuit.dart`, `wire.dart`, and `exceptions.dart` into standalone libraries using standard package imports.
-    - Replace `wire.bind` and remove unnecessary `FutureOr` from `CircuitWire`; use exhaustive pattern matching over sealed `CircuitWire` in `Circuit._getByKey`.
-    - Define `connect(Circuit circuit)` specifically on `Wire<T>` (synchronous `T`) and `AsyncWire<T>` (asynchronous `Future<T>`).
-    - Keep underlying `_create` closure fields private to `wire.dart`.
-    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, and full test suite.
-  - Sub-steps:
-    - [x] Implement `connect(Circuit circuit)` on `Wire<T>` and `AsyncWire<T>`.
-    - [x] Update `Circuit` to pattern match on `CircuitWire` and call `wire.connect(circuit)` and `wire.connect(this)`.
-    - [x] Remove `part` and `part of` directives, adding appropriate package imports.
-    - [x] Update `docs/decisions.md`, `docs/architecture.md`, and `docs/plan.md`.
-    - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
-- [x] Configure pubspec.yaml Metadata and Topics for pub.dev Discovery
-  - Requirements:
-    - Add `homepage`, `repository`, and `issue_tracker` links pointing to `github.com/maranix/circuitry` across `packages/circuitry/pubspec.yaml` and `packages/circuitry_flutter/pubspec.yaml`.
-    - Add relevant, pub.dev-compliant topics (up to 5 per package) for discovery:
-      - `circuitry`: `dependency-injection`, `di`, `ioc`, `dag`, `architecture`
-      - `circuitry_flutter`: `dependency-injection`, `di`, `ioc`, `flutter`, `state-management`
-    - Refine package descriptions to ensure concise, informative presentation within pub.dev scoring recommendations.
-    - Add repository and issue tracker metadata to root `pubspec.yaml` for workspace consistency.
-    - Synchronize project documentation (`docs/decisions.md`, `docs/architecture.md`, `README.md`).
-    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, and test suites.
-  - Sub-steps:
-    - [x] Update `packages/circuitry/pubspec.yaml`.
-    - [x] Update `packages/circuitry_flutter/pubspec.yaml`.
-    - [x] Update root `pubspec.yaml`.
-    - [x] Record decision in `docs/decisions.md` and sync `docs/architecture.md`.
-    - [x] Run verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
-- [x] Add Package-Specific Issue Tracker Labels, CHANGELOGs, and Package Licenses
-  - Requirements:
-    - Update `issue_tracker` in `packages/circuitry/pubspec.yaml` to include package label filter `label%3Acircuitry`.
-    - Update `issue_tracker` in `packages/circuitry_flutter/pubspec.yaml` to include package label filter `label%3Acircuitry_flutter`.
-    - Create `packages/circuitry/CHANGELOG.md` detailing the 0.1.0 initial release.
-    - Create `packages/circuitry_flutter/CHANGELOG.md` detailing the 0.1.0 initial release.
-    - Create root `CHANGELOG.md` summarizing monorepo releases.
-    - Copy MIT `LICENSE` into `packages/circuitry/` and `packages/circuitry_flutter/` to satisfy `pub publish` validation requirements.
-    - Synchronize project documentation (`docs/decisions.md`, `docs/architecture.md`).
-    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites, and `pub publish --dry-run`.
-  - Sub-steps:
-    - [x] Update `issue_tracker` URLs in package pubspecs with package-specific labels.
-    - [x] Create `packages/circuitry/CHANGELOG.md`.
-    - [x] Create `packages/circuitry_flutter/CHANGELOG.md`.
-    - [x] Create root `CHANGELOG.md`.
-    - [x] Copy `LICENSE` into both package directories.
-    - [x] Record decision in `docs/decisions.md` and sync `docs/architecture.md`.
-    - [x] Run verification gate and publish dry-run checks.
-- [x] Provide Package Examples and Visual Architecture Diagram Asset
-  - Requirements:
-    - Create runnable example for `circuitry` at `packages/circuitry/example/main.dart` showcasing DAG resolution, accumulator chaining, tagged singletons, and disposal.
-    - Create runnable Flutter example for `circuitry_flutter` at `packages/circuitry_flutter/example/lib/main.dart` and `packages/circuitry_flutter/example/pubspec.yaml` showcasing `CircuitProvider`, `CircuitState` matching, and widget context resolution.
-    - Create visual diagram asset of Circuitry DAG workflow, wave compilation, and Flutter bridge (`assets/circuitry_architecture.svg` and `assets/circuitry_architecture.png`).
-    - Reference the asset across root `README.md`, `packages/circuitry/README.md`, and `packages/circuitry_flutter/README.md`.
-    - Include Mermaid diagram in `docs/architecture.md`.
-    - Record decisions in `docs/decisions.md` and sync `docs/architecture.md`.
-    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, running both examples, and full test suites.
-  - Sub-steps:
-    - [x] Create `packages/circuitry/example/main.dart` and verify execution.
-    - [x] Create `packages/circuitry_flutter/example/lib/main.dart` and `packages/circuitry_flutter/example/pubspec.yaml`.
-    - [x] Generate visual diagram asset `assets/circuitry_architecture.svg` and `assets/circuitry_architecture.png`.
-    - [x] Update READMEs to embed the visual diagram asset.
-    - [x] Add Mermaid diagram to `docs/architecture.md`.
-    - [x] Record decision in `docs/decisions.md`.
-    - [x] Run full verification gate (`dart format`, `flutter analyze`, test suites, publish dry-runs).
-- [x] Taggable CircuitProvider with O(1) Ambient Registry Map Merging (Issue #1)
-  - Requirements:
-    - Pure Dart `packages/circuitry` remains completely untouched (circuits remain independent).
-    - Add `Enum? tag` parameter to `CircuitProvider` and `CircuitProvider.value` constructors in `packages/circuitry_flutter`.
-    - Propagate immutable ambient `taggedCircuits` (`Map<Enum, Circuit>`) registry map inside `_CircuitScope`, merged in O(1) from parent scope.
-    - Support O(1) context retrieval via `CircuitProvider.of(context, {Enum? tag})` and `CircuitProvider.maybeOf(context, {Enum? tag})`.
-    - Nearest ancestor retrieval when `tag == null`.
-    - Tagged ancestor retrieval in O(1) when `tag != null`, throwing descriptive `StateError` if not found.
-    - Lexical shadowing when nested providers register the same tag (nearer provider takes precedence).
-    - Reactive rebuild propagation to dependent widgets when an ancestor tagged circuit changes.
-    - Extensive unit/widget testing across nested scopes, intermediate untagged providers, `CircuitProvider.value`, missing tags, isolated contexts, sibling branches, and building states.
-    - Synchronize project documentation (`docs/decisions.md`, `docs/architecture.md`, `packages/circuitry_flutter/README.md`, `README.md`).
-    - Verify with `dart format`, `flutter analyze --fatal-infos --fatal-warnings`, and test suites.
-  - Sub-steps:
-    - [x] Record architectural decision in `docs/decisions.md`.
-    - [x] Add `Enum? tag` parameter to `CircuitProvider` and `CircuitProvider.value`.
-    - [x] Update `_CircuitScope` to hold and propagate `Map<Enum, Circuit> taggedCircuits`.
-    - [x] Implement shallow copy map merging in `_CircuitValueProvider` and `_CircuitWireStatefulState`.
-    - [x] Update `CircuitProvider.of` and `CircuitProvider.maybeOf` with optional `Enum? tag`.
-    - [x] Add comprehensive widget test harness in `circuit_provider_test.dart` (14 new tests, 35 total tests).
-    - [x] Update `docs/architecture.md`, `packages/circuitry_flutter/README.md`, and `README.md`.
-    - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`, test suites).
-- [x] Optimize CI Workflows for Reduced GitHub Compute
-  - Requirements:
-    - Retain automated format, analyze, and test execution upon merge/push to `main`.
-    - Eliminate automatic CI trigger on every pull request commit push.
-    - Add `pull_request_review` trigger with state check for approved PRs targeting `main`.
-    - Add `workflow_dispatch` trigger for manual CI execution on PR branches before merge.
-    - Ensure `actions/checkout` checks out the PR head commit when triggered by review approval.
-    - Synchronize project documentation (`docs/decisions.md`, `docs/plan.md`).
-  - Sub-steps:
-    - [x] Update `.github/workflows/ci.yml`.
-    - [x] Record architectural decision in `docs/decisions.md`.
-    - [x] Record plan entry in `docs/plan.md`.
-
 ## Next
-- [x] Modularize Circuit and Extract DAG Compiler to CircuitGraph (Issue #7)
-  - Status: done
-  - Release: 0.2.0
-  - Goal: Decompose the monolithic `Circuit` class into modular, single-responsibility units by separating static DAG compilation & validation from the runtime DI container and lifecycle execution.
-  - Requirements:
-    - Extract DAG static validation (duplicate keys, missing dependencies, cycle detection) and topological level computation from `packages/circuitry/lib/src/circuit.dart` into a dedicated `CircuitGraph` in `packages/circuitry/lib/src/graph.dart`.
-    - Provide O(1) wave-level access (`wiresAtLevel`, `asyncWiresAtLevel`) via precomputed wave buckets in `CircuitGraph`.
-    - Unify `WireKey` string formatting with `formatWireKey` and `WireKeyFormatting` extension in `packages/circuitry/lib/src/wire.dart`.
-    - Streamline `Circuit` to focus strictly on runtime instance registry, lazy instantiation with reentrancy protection, parallel async wave resolution, and reverse topological wave disposal.
-    - Keep public API contracts 100% backward-compatible (zero changes for consumers of `circuitry` and `circuitry_flutter`).
-    - Maintain zero Flutter/codegen/reflection dependencies in `packages/circuitry`.
-    - All existing unit and widget tests must pass without regressions.
-  - Approach:
-    - Create `packages/circuitry/lib/src/graph.dart` defining `CircuitGraph` instantiated with `CircuitGraph(wires)` and compiled via `.compile()`, exposing validation methods (`validateDuplicates`, `validateDependencies`, `detectCycles`, `computeTopologicalLevels`) for isolated testing.
-    - Create `packages/circuitry/lib/src/utils.dart` defining `formatWireKey(WireKey key)`.
-    - Create `packages/circuitry/lib/src/extensions.dart` defining `extension WireKeyFormatting on WireKey`, exported in `lib/circuitry.dart`.
-    - Refactor `Circuit` in `packages/circuitry/lib/src/circuit.dart` to instantiate and compile `CircuitGraph`.
-    - Add isolated unit tests in `packages/circuitry/test/graph_test.dart`.
-    - Update `docs/architecture.md`, `docs/decisions.md`, and `README.md` to reflect the new modules.
-  - Alternatives:
-    - Keep everything in a single monolithic file (`circuit.dart`): Rejected because conflating static graph algorithms with runtime container state and lifecycle makes maintenance, reasoning, and future extensions difficult.
-    - Create separate files for each validation check (`duplicate_checker.dart`, `cycle_detector.dart`, etc.): Rejected per mobile conventions rule 23 (avoid over-splitting/scattering one cohesive domain across too many tiny files).
-  - Sub-steps:
-    - [x] Record decision in `docs/decisions.md`.
-    - [x] Implement `formatWireKey` in `packages/circuitry/lib/src/utils.dart`.
-    - [x] Implement `WireKeyFormatting` in `packages/circuitry/lib/src/extensions.dart` and export in `lib/circuitry.dart`.
-    - [x] Implement `CircuitGraph` in `packages/circuitry/lib/src/graph.dart` with instance compilation and isolated validation methods.
-    - [x] Refactor `Circuit` in `packages/circuitry/lib/src/circuit.dart` to use `CircuitGraph`.
-    - [x] Add isolated unit test suite in `packages/circuitry/test/graph_test.dart`.
-    - [x] Update `docs/architecture.md` and `README.md` module layout.
-    - [x] Verify full test suite across pure Dart and Flutter (`dart test` + `flutter test`).
-    - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`).
-  - Acceptance:
-    - All 90 unit & widget tests pass (46 circuit + 9 graph + 35 provider).
-    - Zero warnings or infos under strict analysis.
-    - `circuit.dart` is clean, concise (~150 lines), and focused on container responsibilities.
-    - `CircuitGraph` supports isolated unit testing.
-  - Docs: `docs/architecture.md`, `docs/decisions.md`, `README.md`.
-  - Links: `docs/decisions.md#2026-11-17-modular-dag-compiler-and-container-decomposition`.
-- [ ] Publish v0.1.0 to pub.dev
+
+### Publish v0.1.0 to pub.dev
+
+- **Release:** 0.1.0
+- **Goal:** Publish initial stable releases of `circuitry` and `circuitry_flutter` to pub.dev.
+- **Requirements:**
+  - Verify package validation passes with zero warnings (`dart pub publish --dry-run`).
+  - Tag release commits matching versions in pubspec.yaml.
+- **Approach:** Run dry-run checks in both packages, create git tag `v0.1.0`, and publish.
+- **Acceptance:** Both packages published and verified on pub.dev.
+
+## Done this release
+
+- Modularize Circuit and extract DAG compiler to CircuitGraph (#7).
+- Optimize CI workflows for reduced GitHub compute.
+- Add taggable CircuitProvider with O(1) ambient registry map merging (#1).
+- Add package examples, visual architecture diagrams, and pub.dev metadata.
+- Modularize packages to `src/` layout with Dart 3.14+ primary constructors.

@@ -1,6 +1,6 @@
 # Agent Guidelines for Circuitry
 
-Welcome! Circuitry is a pure Dart 3.13+ zero-codegen, graph-based dependency injection engine backed by a Directed Acyclic Graph (DAG), paired with a Flutter companion package `circuitry_flutter`.
+Welcome! Circuitry is a pure Dart 3.14+ zero-codegen, graph-based dependency injection engine backed by a Directed Acyclic Graph (DAG), paired with a Flutter companion package `circuitry_flutter`.
 
 When working on this repository, follow these conventions:
 
@@ -18,7 +18,7 @@ Always read these four core project documents before proposing or implementing c
 - Never introduce reflection, mirrors, or code generation dependencies.
 
 ## 3. Plan First & Move Docs with Code
-- Start every feature, bug fix, or refactor with an explicit entry in [`docs/plan.md`](docs/plan.md) with requirements, approach, sub-steps, and acceptance criteria.
+- A tracked feature or behavior change gets a short [`docs/plan.md`](docs/plan.md) entry before code; a rename, dependency bump, internal refactor, or one-line fix gets none.
 - Update [`docs/architecture.md`](docs/architecture.md) and [`README.md`](README.md) in the **same atomic commit** whenever module shape, dependencies, commands, or behavior change.
 - Record any new architectural choices or rejected options in [`docs/decisions.md`](docs/decisions.md).
 - A change is considered incomplete while code and documents disagree.

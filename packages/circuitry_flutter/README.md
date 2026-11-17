@@ -126,7 +126,6 @@ class FeatureScreen extends StatelessWidget {
   }
 }
 ```
-```
 
 ---
 

@@ -49,12 +49,12 @@ circuitry/
 │   │   ├── lib/
 │   │   │   ├── circuitry.dart     # Public barrel export
 │   │   │   └── src/               # Core engine implementation (circuit, graph, wire, utils, extensions)
-│   │   └── test/                  # 55 unit tests for DAG, waves, laziness, and disposal
+│   │   └── test/                  # Unit tests for DAG, waves, laziness, and disposal
 │   └── circuitry_flutter/         # Flutter companion package
 │       ├── lib/
 │       │   ├── circuitry_flutter.dart # Public barrel export
 │       │   └── src/               # Flutter bridge implementation (provider, scope, state)
-│       └── test/                  # 35 widget, lifecycle, and integration tests
+│       └── test/                  # Widget, lifecycle, and integration tests
 ├── analysis_options.yaml          # Strict static analysis rules
 ├── pubspec.yaml                   # Root pub workspace
 └── README.md
