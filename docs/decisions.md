@@ -77,6 +77,13 @@
 - **Reason:** Enables instant O(1) direct dependent queries and tree-shakes 100% of introspection and export logic in production builds where `inspect()` is unused.
 - **Alternative:** Storing live mutable telemetry state, Stopwatches, or observers inside `Circuit`, which incurs memory and GC overhead in release builds.
 
+## 2026-11-17: Ambient CircuitRegistry, VM Service Extensions and Universal Extension Host (Issue #11)
+
+- **Status:** agreed
+- **Choice:** Host the DevTools extension packaging (`extension/devtools/config.yaml`), ambient `CircuitRegistry`, and standard Dart VM Service extensions (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`) in pure Dart `packages/circuitry`. In profile and release modes (when assertions are disabled), `debugTag`, `CircuitRegistry`, and all its methods and properties are complete no-ops, with VM service extensions omitted and telemetry calls tree-shaken by the compiler for zero memory and runtime overhead.
+- **Reason:** Provides universal DevTools inspection across all Dart runtimes (CLI tools, server frameworks like Shelf/Serverpod, and Flutter apps via transitive dependency) without adding Flutter SDK dependencies to `circuitry`.
+- **Alternative:** Hosting DevTools extensions and registry solely in `packages/circuitry_flutter`, locking non-Flutter Dart developers out of DevTools inspection.
+
 ### Architecture Sketch
 
 Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler. `packages/circuitry` defines declarative dependency recipes (`Wire<T>`, `AsyncWire<T>`), record tuple keys `(Type, Enum?)`, and accumulator builders (`takes<A>().to(...)`), validated and compiled by `Circuit.build(wires)` into a Directed Acyclic Graph (DAG) with parallel topological wave resolution and reverse-wave disposal. `packages/circuitry_flutter` bridges this compiled container to the Flutter widget hierarchy via `CircuitProvider`, managing asynchronous build lifecycles, didUpdateWidget epoch race prevention, and unmount cleanup. For full architectural details, see [architecture.md](architecture.md).

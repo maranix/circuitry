@@ -148,6 +148,9 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
   ///
   /// Optionally associates this provider's [Circuit] with [tag] for scoped O(1) retrieval
   /// across nested [CircuitProvider] hierarchies via [CircuitProvider.of] or [CircuitProvider.maybeOf].
+  /// In debug mode (`kDebugMode`), [tag] also labels the container in DevTools and the ambient
+  /// [CircuitRegistry]. In profile and release modes, DevTools labeling in [CircuitRegistry] is
+  /// a complete no-op and is stripped by the compiler.
   ///
   /// During initialization, [AsyncWire] singletons are resolved concurrently in
   /// topological waves. While compilation is in flight, [builder] receives a
@@ -174,6 +177,9 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
   ///
   /// Optionally associates [value] with [tag] for scoped O(1) retrieval
   /// across nested [CircuitProvider] hierarchies via [CircuitProvider.of] or [CircuitProvider.maybeOf].
+  /// In debug mode (`kDebugMode`), [tag] also labels the container in DevTools and the ambient
+  /// [CircuitRegistry]. In profile and release modes, DevTools labeling in [CircuitRegistry] is
+  /// a complete no-op and is stripped by the compiler.
   ///
   /// Descendant widgets can immediately access [value] via [CircuitProvider.of] or
   /// [CircuitProvider.maybeOf].
@@ -250,6 +256,10 @@ final class const _CircuitValueProvider({
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode && tag != null) {
+      CircuitRegistry.instance.setDebugTag(value, tag!.name);
+    }
+
     final parentScope = context
         .dependOnInheritedWidgetOfExactType<_CircuitScope>();
     final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};
@@ -330,7 +340,10 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
 
   void _startCompilation() {
     final currentEpoch = ++_compilationEpoch;
-    Circuit.build(widget.wires).then(
+    Circuit.build(
+      widget.wires,
+      debugTag: kDebugMode ? widget.tag?.name : null,
+    ).then(
       (circuit) {
         if (!mounted || currentEpoch != _compilationEpoch) {
           circuit.dispose().ignore();

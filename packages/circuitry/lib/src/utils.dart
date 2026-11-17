@@ -6,3 +6,14 @@ String formatWireKey(WireKey key) {
   final tag = key.$2;
   return tag == null ? typeName : '$typeName#$tag';
 }
+
+/// Whether assertions are enabled in the current runtime environment.
+///
+/// Evaluates to `true` exclusively in debug mode with assertions enabled (`dart --enable-asserts`).
+/// In profile and release modes, assertions are disabled by the runtime/compiler and this getter
+/// evaluates to `false`, allowing callers to tree-shake telemetry logic.
+bool get isDebugMode {
+  var debug = false;
+  assert(debug = true);
+  return debug;
+}

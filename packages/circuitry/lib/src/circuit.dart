@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:circuitry/src/exceptions.dart';
 import 'package:circuitry/src/graph.dart';
 import 'package:circuitry/src/introspection.dart';
+import 'package:circuitry/src/registry.dart';
 import 'package:circuitry/src/utils.dart';
 import 'package:circuitry/src/wire.dart';
 
@@ -36,6 +37,10 @@ final class Circuit._(final CircuitGraph _graph) {
 
   /// Builds a [Circuit] from the provided [wires].
   ///
+  /// Optionally accepts a [debugTag] string to label the container in DevTools
+  /// and the ambient [CircuitRegistry]. In profile and release modes (when assertions
+  /// are disabled), [debugTag] is a complete no-op and is stripped by the compiler.
+  ///
   /// Validates the dependency graph for:
   /// - Duplicate keys -> throws [DuplicateWireException]
   /// - Missing dependencies -> throws [MissingWireException]
@@ -43,11 +48,33 @@ final class Circuit._(final CircuitGraph _graph) {
   ///
   /// Once validated, all [AsyncWire]s are resolved in parallel topological waves
   /// using [Future.wait] with fail-fast error handling.
-  static Future<Circuit> build(List<CircuitWire> wires) async {
+  static Future<Circuit> build(
+    List<CircuitWire> wires, {
+    String? debugTag,
+  }) async {
     final graph = CircuitGraph(wires)..compile();
     final circuit = Circuit._(graph);
-    await circuit._resolveAsyncWaves();
-    return circuit;
+
+    if (isDebugMode) {
+      CircuitRegistry.instance.onCircuitBuilding(circuit, debugTag: debugTag);
+    }
+
+    try {
+      await circuit._resolveAsyncWaves();
+      if (isDebugMode) {
+        CircuitRegistry.instance.onCircuitReady(circuit, debugTag: debugTag);
+      }
+      return circuit;
+    } catch (error) {
+      if (isDebugMode) {
+        CircuitRegistry.instance.onCircuitFailed(
+          circuit,
+          error,
+          debugTag: debugTag,
+        );
+      }
+      rethrow;
+    }
   }
 
   /// Synchronously retrieves the untagged dependency instance of type [T].
@@ -96,6 +123,9 @@ final class Circuit._(final CircuitGraph _graph) {
         try {
           final instance = wire.connect(this);
           _instances[key] = instance;
+          if (isDebugMode) {
+            CircuitRegistry.instance.onWireResolved(this, key, isAsync: false);
+          }
           return instance;
         } finally {
           _creating.remove(key);
@@ -129,6 +159,13 @@ final class Circuit._(final CircuitGraph _graph) {
               }
             } else {
               _instances[wire.key] = instance;
+              if (isDebugMode) {
+                CircuitRegistry.instance.onWireResolved(
+                  this,
+                  wire.key,
+                  isAsync: true,
+                );
+              }
             }
           }),
           eagerError: true,
@@ -163,6 +200,9 @@ final class Circuit._(final CircuitGraph _graph) {
 
   Future<void> _performDispose() async {
     _isDisposed = true;
+    if (isDebugMode) {
+      CircuitRegistry.instance.onCircuitDisposed(this);
+    }
 
     final errors = <Object>[];
     final stackTraces = <StackTrace>[];

@@ -8,17 +8,21 @@ Circuitry is architected as an offline, zero-codegen runtime dependency graph co
 circuitry/
 ├── packages/
 │   ├── circuitry/                 # Pure Dart runtime dependency injection engine
+│   │   ├── extension/             # Dart & Flutter DevTools extension configuration
+│   │   │   └── devtools/
+│   │   │       └── config.yaml
 │   │   ├── lib/
-│   │   │   ├── circuitry.dart     # Library entry point (wires, circuit, exceptions)
+│   │   │   ├── circuitry.dart     # Library entry point (wires, circuit, exceptions, registry)
 │   │   │   └── src/               # Modular source files
 │   │   │       ├── circuit.dart   # Circuit container and runtime lifecycle
 │   │   │       ├── exceptions.dart# CircuitException hierarchy with primary constructors
 │   │   │       ├── extensions.dart# WireKeyFormatting extension
 │   │   │       ├── graph.dart     # CircuitGraph: DAG compiler, static validation, wave precomputation, reverse index
 │   │   │       ├── introspection.dart # CircuitIntrospection, WireDescriptor, Mermaid/JSON export
+│   │   │       ├── registry.dart  # CircuitRegistry, CircuitDescriptor, VM Service extensions
 │   │   │       ├── utils.dart     # Internal formatting and utility functions
 │   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, builders
-│   │   └── test/                  # Unit tests (DAG validation, waves, laziness, disposal)
+│   │   └── test/                  # Unit tests (DAG validation, waves, laziness, disposal, registry)
 │   └── circuitry_flutter/         # Flutter framework bridge
 │       ├── lib/
 │       │   ├── circuitry_flutter.dart # Library entry point and pure Dart re-export
@@ -174,6 +178,12 @@ flowchart TD
 - `circuit.inspect()` returns an immutable `CircuitIntrospection` snapshot capturing `WireDescriptor` states (`isInitialized`, `isAsync`, `topologicalLevel`), wave groupings (`waves`), `maxWaveLevel`, and `topologicalOrder`.
 - Exports valid `flowchart TD` Mermaid markup via `toMermaid({bool showStatus = true, bool groupByWave = true})` with wave subgraphs and initialization styling, plus structured `toJson()` data serialization.
 - Zero runtime or memory overhead when uninspected; 100% tree-shaken by the Dart compiler in production release builds.
+
+### 9. DevTools Integration & Ambient Registry (Issue #11)
+- `CircuitRegistry` in `src/registry.dart` tracks live `Circuit` instances and optional `debugTag` exclusively in debug mode. In profile and release modes (when assertions are disabled), `debugTag`, `CircuitRegistry`, and all its methods and properties are complete no-ops, with VM service extensions omitted and telemetry calls tree-shaken by the compiler for zero memory and runtime overhead.
+- Standard Dart VM Service extensions (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`) registered using `dart:developer` allow external DevTools clients to query container states and DAG graphs over the wire.
+- Real-time container lifecycle events (`circuit_building`, `circuit_ready`, `circuit_failed`, `circuit_disposed`, `wire_resolved`) are streamed to the `'Circuitry'` extension stream via `developer.postEvent`.
+- `packages/circuitry/extension/devtools/config.yaml` declares DevTools extension integration, providing universal inspection across CLI tools, backend microservices, and Flutter applications (via transitive dependency) with zero Flutter dependencies in the engine.
 
 ---
 
