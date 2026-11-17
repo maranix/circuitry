@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:circuitry/src/exceptions.dart';
 import 'package:circuitry/src/utils.dart';
 import 'package:circuitry/src/wire.dart';
@@ -5,13 +7,15 @@ import 'package:circuitry/src/wire.dart';
 /// Represents a Directed Acyclic Graph (DAG) of dependency wire recipes.
 ///
 /// Encapsulates DAG compilation, static validation (duplicate keys, missing dependencies,
-/// cycle detection), and topological depth analysis for wave-based resolution and disposal.
+/// cycle detection), topological depth analysis, and dependency/dependent queries.
 final class CircuitGraph(final List<CircuitWire> wires) {
   Map<WireKey, CircuitWire>? _wireMap;
   Map<WireKey, int>? _levels;
   int? _maxLevel;
   List<List<CircuitWire>>? _wiresByLevel;
   List<List<AsyncWire<Object?>>>? _asyncWiresByLevel;
+  Map<WireKey, Set<WireKey>>? _reverseDependencies;
+  List<WireKey>? _topologicalOrder;
 
   /// Whether this graph has been compiled via [compile].
   bool get isCompiled => _wireMap != null;
@@ -40,6 +44,36 @@ final class CircuitGraph(final List<CircuitWire> wires) {
     return _maxLevel!;
   }
 
+  /// Unmodifiable map associating each wire key with the set of wire keys that directly depend on it.
+  ///
+  /// Throws [StateError] if this graph has not been compiled.
+  Map<WireKey, Set<WireKey>> get reverseDependencies {
+    _checkCompiled();
+    return _reverseDependencies!;
+  }
+
+  /// Returns all registered wire keys sorted in valid topological dependency order
+  /// (from root dependencies at level 0 to leaf dependents at max level).
+  ///
+  /// Ties between wires at the same topological level are deterministically ordered
+  /// by formatted key name.
+  ///
+  /// Throws [StateError] if this graph has not been compiled.
+  List<WireKey> get topologicalOrder {
+    _checkCompiled();
+    if (_topologicalOrder != null) return _topologicalOrder!;
+
+    final keys = _wireMap!.keys.toList();
+    keys.sort((a, b) {
+      final levelA = _levels![a] ?? 0;
+      final levelB = _levels![b] ?? 0;
+      final cmp = levelA.compareTo(levelB);
+      if (cmp != 0) return cmp;
+      return formatWireKey(a).compareTo(formatWireKey(b));
+    });
+    return _topologicalOrder = .unmodifiable(keys);
+  }
+
   /// Compiles and validates the dependency graph.
   ///
   /// Runs in sequence:
@@ -47,6 +81,7 @@ final class CircuitGraph(final List<CircuitWire> wires) {
   /// 2. [validateDependencies] -> throws [MissingWireException]
   /// 3. [detectCycles] -> throws [CircularDependencyException]
   /// 4. [computeTopologicalLevels] -> computes topological depth and wave buckets
+  /// 5. Computes reverse dependency index and caches topological ordering
   ///
   /// Returns `this` for fluent chaining.
   CircuitGraph compile() {
@@ -71,13 +106,105 @@ final class CircuitGraph(final List<CircuitWire> wires) {
       growable: false,
     );
 
-    _wireMap = Map<WireKey, CircuitWire>.unmodifiable(map);
-    _levels = Map<WireKey, int>.unmodifiable(levelsMap);
+    final reverseMap = <WireKey, Set<WireKey>>{
+      for (final key in map.keys) key: <WireKey>{},
+    };
+    for (final wire in map.values) {
+      for (final depKey in wire.dependencies) {
+        reverseMap[depKey]?.add(wire.key);
+      }
+    }
+
+    _wireMap = .unmodifiable(map);
+    _levels = .unmodifiable(levelsMap);
     _maxLevel = computedMaxLevel;
     _wiresByLevel = wiresByLevel;
     _asyncWiresByLevel = asyncWiresByLevel;
+    _reverseDependencies = .unmodifiable(
+      reverseMap.map((k, v) => MapEntry(k, Set<WireKey>.unmodifiable(v))),
+    );
+    _topologicalOrder = null;
 
     return this;
+  }
+
+  /// Returns the set of wire keys that directly depend on [key].
+  ///
+  /// If [transitive] is `true`, recursively resolves all downstream dependents in BFS order.
+  /// Throws [StateError] if this graph has not been compiled.
+  /// Throws [WireNotFoundException] if [key] is not registered in this graph.
+  Set<WireKey> dependentsOf(WireKey key, {bool transitive = false}) {
+    _checkCompiled();
+    final direct = _reverseDependencies![key];
+    if (direct == null) {
+      throw WireNotFoundException(
+        'Wire for key ${formatWireKey(key)} not found in graph.',
+        key: key,
+      );
+    }
+
+    if (!transitive) {
+      return direct;
+    }
+
+    final result = <WireKey>{};
+    final queue = Queue<WireKey>()..addAll(direct);
+
+    while (queue.isNotEmpty) {
+      final current = queue.removeFirst();
+      if (result.add(current)) {
+        final downstream = _reverseDependencies![current];
+        if (downstream != null) {
+          for (final dep in downstream) {
+            if (!result.contains(dep)) {
+              queue.add(dep);
+            }
+          }
+        }
+      }
+    }
+
+    return .unmodifiable(result);
+  }
+
+  /// Returns the set of wire keys that [key] directly depends on.
+  ///
+  /// If [transitive] is `true`, recursively resolves all upstream dependencies in BFS order.
+  /// Throws [StateError] if this graph has not been compiled.
+  /// Throws [WireNotFoundException] if [key] is not registered in this graph.
+  Set<WireKey> dependenciesOf(WireKey key, {bool transitive = false}) {
+    _checkCompiled();
+    final wire = _wireMap![key];
+    if (wire == null) {
+      throw WireNotFoundException(
+        'Wire for key ${formatWireKey(key)} not found in graph.',
+        key: key,
+      );
+    }
+
+    final direct = wire.dependencies;
+    if (!transitive) {
+      return .unmodifiable(direct.toSet());
+    }
+
+    final result = <WireKey>{};
+    final queue = Queue<WireKey>()..addAll(direct);
+
+    while (queue.isNotEmpty) {
+      final current = queue.removeFirst();
+      if (result.add(current)) {
+        final currentWire = _wireMap![current];
+        if (currentWire != null) {
+          for (final dep in currentWire.dependencies) {
+            if (!result.contains(dep)) {
+              queue.add(dep);
+            }
+          }
+        }
+      }
+    }
+
+    return .unmodifiable(result);
   }
 
   /// Validates that no duplicate wire keys are registered.
