@@ -54,18 +54,24 @@ final class Circuit._(final CircuitGraph _graph) {
     final graph = CircuitGraph(wires)..compile();
     final circuit = Circuit._(graph);
 
-    CircuitRegistry.instance.onCircuitBuilding(circuit, debugTag: debugTag);
+    if (isDebugMode) {
+      CircuitRegistry.instance.onCircuitBuilding(circuit, debugTag: debugTag);
+    }
 
     try {
       await circuit._resolveAsyncWaves();
-      CircuitRegistry.instance.onCircuitReady(circuit, debugTag: debugTag);
+      if (isDebugMode) {
+        CircuitRegistry.instance.onCircuitReady(circuit, debugTag: debugTag);
+      }
       return circuit;
     } catch (error) {
-      CircuitRegistry.instance.onCircuitFailed(
-        circuit,
-        error,
-        debugTag: debugTag,
-      );
+      if (isDebugMode) {
+        CircuitRegistry.instance.onCircuitFailed(
+          circuit,
+          error,
+          debugTag: debugTag,
+        );
+      }
       rethrow;
     }
   }
@@ -116,7 +122,9 @@ final class Circuit._(final CircuitGraph _graph) {
         try {
           final instance = wire.connect(this);
           _instances[key] = instance;
-          CircuitRegistry.instance.onWireResolved(this, key, isAsync: false);
+          if (isDebugMode) {
+            CircuitRegistry.instance.onWireResolved(this, key, isAsync: false);
+          }
           return instance;
         } finally {
           _creating.remove(key);
@@ -150,11 +158,13 @@ final class Circuit._(final CircuitGraph _graph) {
               }
             } else {
               _instances[wire.key] = instance;
-              CircuitRegistry.instance.onWireResolved(
-                this,
-                wire.key,
-                isAsync: true,
-              );
+              if (isDebugMode) {
+                CircuitRegistry.instance.onWireResolved(
+                  this,
+                  wire.key,
+                  isAsync: true,
+                );
+              }
             }
           }),
           eagerError: true,
@@ -189,7 +199,9 @@ final class Circuit._(final CircuitGraph _graph) {
 
   Future<void> _performDispose() async {
     _isDisposed = true;
-    CircuitRegistry.instance.onCircuitDisposed(this);
+    if (isDebugMode) {
+      CircuitRegistry.instance.onCircuitDisposed(this);
+    }
 
     final errors = <Object>[];
     final stackTraces = <StackTrace>[];

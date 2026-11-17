@@ -180,7 +180,7 @@ flowchart TD
 - Zero runtime or memory overhead when uninspected; 100% tree-shaken by the Dart compiler in production release builds.
 
 ### 9. DevTools Integration & Ambient Registry (Issue #11)
-- `CircuitRegistry` in `src/registry.dart` tracks live `Circuit` instances and optional tags in debug and profile modes, guarded via `assert` for 100% compile-time stripping in release/AOT builds.
+- `CircuitRegistry` in `src/registry.dart` tracks live `Circuit` instances and optional `debugTag` in debug and profile modes, guarded via `isDebugMode` (and `kDebugMode` in `circuitry_flutter`) for zero-overhead compile-time tree-shaking in release/AOT builds.
 - Standard Dart VM Service extensions (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`) registered using `dart:developer` allow external DevTools clients to query container states and DAG graphs over the wire.
 - Real-time container lifecycle events (`circuit_building`, `circuit_ready`, `circuit_failed`, `circuit_disposed`, `wire_resolved`) are streamed to the `'Circuitry'` extension stream via `developer.postEvent`.
 - `packages/circuitry/extension/devtools/config.yaml` declares DevTools extension integration, providing universal inspection across CLI tools, backend microservices, and Flutter applications (via transitive dependency) with zero Flutter dependencies in the engine.

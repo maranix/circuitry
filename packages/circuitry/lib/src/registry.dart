@@ -69,13 +69,6 @@ final class CircuitRegistry._() {
   /// The global singleton registry instance.
   static final CircuitRegistry instance = CircuitRegistry._();
 
-  /// Whether the current runtime has assertions enabled (debug/profile mode).
-  static bool get isDebugMode {
-    var debug = false;
-    assert(debug = true);
-    return debug;
-  }
-
   final Map<String, Circuit> _circuits = {};
   final Map<Circuit, String> _circuitIds = {};
   final Map<String, String?> _circuitDebugTags = {};

@@ -250,7 +250,7 @@ final class const _CircuitValueProvider({
 
   @override
   Widget build(BuildContext context) {
-    if (tag != null) {
+    if (kDebugMode && tag != null) {
       CircuitRegistry.instance.setDebugTag(value, tag!.name);
     }
 
@@ -334,7 +334,10 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
 
   void _startCompilation() {
     final currentEpoch = ++_compilationEpoch;
-    Circuit.build(widget.wires, debugTag: widget.tag?.name).then(
+    Circuit.build(
+      widget.wires,
+      debugTag: kDebugMode ? widget.tag?.name : null,
+    ).then(
       (circuit) {
         if (!mounted || currentEpoch != _compilationEpoch) {
           circuit.dispose().ignore();

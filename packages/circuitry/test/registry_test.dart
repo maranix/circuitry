@@ -44,6 +44,7 @@ void main() {
     );
 
     test('captures optional debugTag during Circuit.build and supports setDebugTag', () async {
+      expect(isDebugMode, isTrue);
       final circuit = await Circuit.build([
         Wire(() => Config('localhost')),
       ], debugTag: 'global');

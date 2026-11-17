@@ -6,3 +6,10 @@ String formatWireKey(WireKey key) {
   final tag = key.$2;
   return tag == null ? typeName : '$typeName#$tag';
 }
+
+/// Whether assertions are enabled in the current runtime environment (debug/profile mode).
+bool get isDebugMode {
+  var debug = false;
+  assert(debug = true);
+  return debug;
+}
