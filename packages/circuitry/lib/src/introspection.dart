@@ -160,7 +160,63 @@ final class CircuitIntrospectionImpl implements CircuitIntrospection {
 
   @override
   String toMermaid({bool showStatus = true, bool groupByWave = true}) {
-    throw UnimplementedError('toMermaid is implemented in Slice 3');
+    final buffer = StringBuffer()..writeln('flowchart TD');
+
+    if (_circuit.graph.wireMap.isEmpty) {
+      return buffer.toString().trimRight();
+    }
+
+    String sanitize(WireKey key) {
+      final formatted = formatWireKey(key);
+      return 'wire_${formatted.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_')}';
+    }
+
+    if (groupByWave) {
+      for (var i = 0; i <= maxWaveLevel; i++) {
+        final levelWires = waves[i] ?? const [];
+        if (levelWires.isEmpty) continue;
+        buffer.writeln('  subgraph wave_$i ["Wave $i"]');
+        for (final descriptor in levelWires) {
+          final id = sanitize(descriptor.key);
+          final label = formatWireKey(descriptor.key).replaceAll('"', r'\"');
+          buffer.writeln('    $id["$label"]');
+        }
+        buffer.writeln('  end');
+      }
+    } else {
+      for (final descriptor in wires) {
+        final id = sanitize(descriptor.key);
+        final label = formatWireKey(descriptor.key).replaceAll('"', r'\"');
+        buffer.writeln('  $id["$label"]');
+      }
+    }
+
+    for (final descriptor in wires) {
+      final consumerId = sanitize(descriptor.key);
+      for (final depKey in descriptor.dependencies) {
+        final depId = sanitize(depKey);
+        buffer.writeln('  $depId --> $consumerId');
+      }
+    }
+
+    if (showStatus) {
+      buffer.writeln(
+        '  classDef initialized fill:#d4edda,stroke:#28a745,stroke-width:2px;',
+      );
+      buffer.writeln(
+        '  classDef uninitialized fill:#fff3cd,stroke:#ffc107,stroke-width:2px;',
+      );
+
+      for (final descriptor in wires) {
+        final id = sanitize(descriptor.key);
+        final statusClass = descriptor.isInitialized
+            ? 'initialized'
+            : 'uninitialized';
+        buffer.writeln('  class $id $statusClass;');
+      }
+    }
+
+    return buffer.toString().trimRight();
   }
 
   @override
