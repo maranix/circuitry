@@ -219,6 +219,105 @@ void main() {
 
       await circuit.dispose();
     });
+
+    test(
+      'handleForceResolveWire validates parameters and forces wire resolution',
+      () async {
+        final circuit = await Circuit.build([
+          Wire(() => Config('localhost')),
+          Wire(Logger.new),
+          Wire.takes<Config>().takes<Logger>().to(
+            (deps) => ApiService(deps.$1, deps.$2),
+          ),
+        ]);
+
+        final id = CircuitRegistry.instance.getId(circuit)!;
+
+        // Missing parameters
+        final missingIdResponse = await CircuitRegistry.instance
+            .handleForceResolveWire('ext.circuitry.forceResolveWire', {
+              'key': 'Config',
+            });
+        expect(
+          missingIdResponse.errorCode,
+          developer.ServiceExtensionResponse.invalidParams,
+        );
+
+        final missingKeyResponse = await CircuitRegistry.instance
+            .handleForceResolveWire('ext.circuitry.forceResolveWire', {
+              'id': id,
+            });
+        expect(
+          missingKeyResponse.errorCode,
+          developer.ServiceExtensionResponse.invalidParams,
+        );
+
+        // Non-existent circuit
+        final invalidCircuitResponse = await CircuitRegistry.instance
+            .handleForceResolveWire('ext.circuitry.forceResolveWire', {
+              'id': 'circuit_999',
+              'key': 'Config',
+            });
+        expect(
+          invalidCircuitResponse.errorCode,
+          developer.ServiceExtensionResponse.extensionError,
+        );
+
+        // Non-existent wire
+        final invalidWireResponse = await CircuitRegistry.instance
+            .handleForceResolveWire('ext.circuitry.forceResolveWire', {
+              'id': id,
+              'key': 'NonExistentService',
+            });
+        expect(
+          invalidWireResponse.errorCode,
+          developer.ServiceExtensionResponse.extensionError,
+        );
+
+        // Uninitialized before
+        expect(circuit.isInitialized<ApiService>(), isFalse);
+        expect(circuit.isInitialized<Config>(), isFalse);
+        expect(circuit.isInitialized<Logger>(), isFalse);
+
+        // Force resolve ApiService (which resolves Config and Logger too)
+        final successResponse = await CircuitRegistry.instance
+            .handleForceResolveWire('ext.circuitry.forceResolveWire', {
+              'id': id,
+              'key': 'ApiService',
+            });
+        expect(successResponse.errorCode, isNull);
+        final json =
+            jsonDecode(successResponse.result!) as Map<String, dynamic>;
+        expect(json['success'], isTrue);
+        expect(json['key'], 'ApiService');
+        expect(json['initialized'], isTrue);
+
+        expect(circuit.isInitialized<ApiService>(), isTrue);
+        expect(circuit.isInitialized<Config>(), isTrue);
+        expect(circuit.isInitialized<Logger>(), isTrue);
+
+        // Already initialized resolves cleanly
+        final alreadyInitResponse = await CircuitRegistry.instance
+            .handleForceResolveWire('ext.circuitry.forceResolveWire', {
+              'id': id,
+              'key': 'ApiService',
+            });
+        expect(alreadyInitResponse.errorCode, isNull);
+
+        await circuit.dispose();
+
+        // Disposed circuit returns error
+        final disposedResponse = await CircuitRegistry.instance
+            .handleForceResolveWire('ext.circuitry.forceResolveWire', {
+              'id': id,
+              'key': 'ApiService',
+            });
+        expect(
+          disposedResponse.errorCode,
+          developer.ServiceExtensionResponse.extensionError,
+        );
+      },
+    );
   });
 
   group('CircuitDescriptor Value Semantics', () {

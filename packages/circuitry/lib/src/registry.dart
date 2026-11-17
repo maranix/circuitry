@@ -277,6 +277,13 @@ final class CircuitRegistry._() {
         handleGetCircuitGraph,
       );
     } catch (_) {}
+
+    try {
+      developer.registerExtension(
+        'ext.circuitry.forceResolveWire',
+        handleForceResolveWire,
+      );
+    } catch (_) {}
   }
 
   /// Handles VM service invocations for `ext.circuitry.getCircuits`.
@@ -334,5 +341,81 @@ final class CircuitRegistry._() {
     };
 
     return developer.ServiceExtensionResponse.result(jsonEncode(data));
+  }
+
+  /// Handles VM service invocations for `ext.circuitry.forceResolveWire`.
+  ///
+  /// In profile and release modes, returns an error response.
+  Future<developer.ServiceExtensionResponse> handleForceResolveWire(
+    String method,
+    Map<String, String> parameters,
+  ) async {
+    if (!isDebugMode) {
+      return developer.ServiceExtensionResponse.error(
+        developer.ServiceExtensionResponse.extensionError,
+        'Circuitry DevTools inspection is only available in debug mode.',
+      );
+    }
+    final id = parameters['id'] ?? parameters['circuitId'];
+    if (id == null || id.isEmpty) {
+      return developer.ServiceExtensionResponse.error(
+        developer.ServiceExtensionResponse.invalidParams,
+        'Missing required parameter "id" or "circuitId".',
+      );
+    }
+
+    final keyString = parameters['key'] ?? parameters['wireKey'];
+    if (keyString == null || keyString.isEmpty) {
+      return developer.ServiceExtensionResponse.error(
+        developer.ServiceExtensionResponse.invalidParams,
+        'Missing required parameter "key" or "wireKey".',
+      );
+    }
+
+    final circuit = _circuits[id];
+    if (circuit == null) {
+      return developer.ServiceExtensionResponse.error(
+        developer.ServiceExtensionResponse.extensionError,
+        'Circuit with id "$id" not found in registry.',
+      );
+    }
+
+    if (circuit.isDisposed) {
+      return developer.ServiceExtensionResponse.error(
+        developer.ServiceExtensionResponse.extensionError,
+        'Circuit with id "$id" has been disposed.',
+      );
+    }
+
+    WireKey? targetKey;
+    for (final key in circuit.graph.wireMap.keys) {
+      if (formatWireKey(key) == keyString) {
+        targetKey = key;
+        break;
+      }
+    }
+
+    if (targetKey == null) {
+      return developer.ServiceExtensionResponse.error(
+        developer.ServiceExtensionResponse.extensionError,
+        'Wire with key "$keyString" not found in circuit "$id".',
+      );
+    }
+
+    try {
+      circuit.resolveWireKey(targetKey);
+      return developer.ServiceExtensionResponse.result(
+        jsonEncode({
+          'success': true,
+          'key': formatWireKey(targetKey),
+          'initialized': circuit.isKeyInitialized(targetKey),
+        }),
+      );
+    } catch (error) {
+      return developer.ServiceExtensionResponse.error(
+        developer.ServiceExtensionResponse.extensionError,
+        'Failed to resolve wire "$keyString": $error',
+      );
+    }
   }
 }
