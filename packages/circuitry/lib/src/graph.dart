@@ -6,10 +6,7 @@ import 'package:circuitry/src/wire.dart';
 ///
 /// Encapsulates DAG compilation, static validation (duplicate keys, missing dependencies,
 /// cycle detection), and topological depth analysis for wave-based resolution and disposal.
-final class CircuitGraph {
-  /// The list of raw wire recipes provided to this graph.
-  final List<CircuitWire> wires;
-
+final class CircuitGraph(final List<CircuitWire> wires) {
   Map<WireKey, CircuitWire>? _wireMap;
   Map<WireKey, int>? _levels;
   int? _maxLevel;
@@ -43,9 +40,6 @@ final class CircuitGraph {
     return _maxLevel!;
   }
 
-  /// Creates an uncompiled [CircuitGraph] with the given [wires].
-  CircuitGraph(this.wires);
-
   /// Compiles and validates the dependency graph.
   ///
   /// Runs in sequence:
@@ -77,8 +71,8 @@ final class CircuitGraph {
       growable: false,
     );
 
-    _wireMap = Map.unmodifiable(map);
-    _levels = Map.unmodifiable(levelsMap);
+    _wireMap = Map<WireKey, CircuitWire>.unmodifiable(map);
+    _levels = Map<WireKey, int>.unmodifiable(levelsMap);
     _maxLevel = computedMaxLevel;
     _wiresByLevel = wiresByLevel;
     _asyncWiresByLevel = asyncWiresByLevel;
@@ -141,7 +135,7 @@ final class CircuitGraph {
             final cycle = [...recursionStack.sublist(cycleStartIndex), depKey];
             throw CircularDependencyException(
               'Circular dependency detected: ${cycle.map(formatWireKey).join(' -> ')}',
-              cycle: List.unmodifiable(cycle),
+              cycle: .unmodifiable(cycle),
             );
           } else if (state == 0) {
             checkCycle(depKey);

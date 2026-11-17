@@ -7,14 +7,11 @@ import 'package:circuitry/src/wire.dart';
 
 /// A dependency injection container managing lazy synchronous singletons
 /// and asynchronously resolved dependencies backed by a Directed Acyclic Graph (DAG).
-final class Circuit {
-  final CircuitGraph _graph;
+final class Circuit._(final CircuitGraph _graph) {
   final Map<WireKey, Object?> _instances = {};
   final Set<WireKey> _creating = {};
   bool _isDisposed = false;
   Future<void>? _disposeFuture;
-
-  Circuit._(this._graph);
 
   /// Whether this circuit has been shut down via [dispose].
   bool get isDisposed => _isDisposed;
@@ -178,8 +175,8 @@ final class Circuit {
     if (errors.isNotEmpty) {
       throw DisposalException(
         'Circuit disposal encountered ${errors.length} error(s).',
-        errors: List.unmodifiable(errors),
-        stackTraces: List.unmodifiable(stackTraces),
+        errors: .unmodifiable(errors),
+        stackTraces: .unmodifiable(stackTraces),
       );
     }
   }
