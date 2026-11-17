@@ -99,12 +99,8 @@ abstract interface class CircuitIntrospection {
 }
 
 /// Default on-demand implementation of [CircuitIntrospection], inspecting a live [Circuit].
-final class CircuitIntrospectionImpl implements CircuitIntrospection {
-  final Circuit _circuit;
-
-  /// Creates a [CircuitIntrospectionImpl] bound to [_circuit].
-  CircuitIntrospectionImpl(this._circuit);
-
+final class CircuitIntrospectionImpl(final Circuit _circuit)
+    implements CircuitIntrospection {
   @override
   List<WireDescriptor> get wires {
     final result = <WireDescriptor>[];

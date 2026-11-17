@@ -70,7 +70,7 @@
 - **Reason:** Prevents circuit initialization from stalling on slow or hanging concurrent async operations when another wire in the same wave has already failed, while maintaining strict leak-free instance disposal.
 - **Alternative:** Default `eagerError: false` waiting for all futures in the wave to complete before teardown and error propagation.
 
-## 2026-11-17: On-Demand Zero-Overhead Introspection and Compile-Time Reverse Adjacency (Issue #4)
+## 2026-11-17: On-Demand Introspection and Compile-Time Reverse Adjacency (Issue #4)
 
 - **Status:** agreed
 - **Choice:** Precompute `reverseDependencies` in `CircuitGraph.compile()` and expose on-demand immutable snapshots via `circuit.inspect()` (`CircuitIntrospection`) without storing extra diagnostic fields in `Circuit`.

@@ -147,6 +147,7 @@ final class CircuitGraph(final List<CircuitWire> wires) {
       return direct;
     }
 
+    // Transitive dependents requested: traverse downstream dependents using breadth-first search (BFS).
     final result = <WireKey>{};
     final queue = Queue<WireKey>()..addAll(direct);
 
@@ -187,6 +188,7 @@ final class CircuitGraph(final List<CircuitWire> wires) {
       return .unmodifiable(direct.toSet());
     }
 
+    // Transitive dependencies requested: traverse upstream dependencies using breadth-first search (BFS).
     final result = <WireKey>{};
     final queue = Queue<WireKey>()..addAll(direct);
 
