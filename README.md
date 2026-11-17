@@ -32,6 +32,7 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
 4. **Type-Safe Accumulator Chaining**: Chain dependencies with `.takes<A>()` and `.takesTagged<B, K>(tag)` producing strongly-typed accumulators. Direct tear-offs (`.to(UserService.new)`) or destructuring for multi-dependencies.
 5. **Reverse Topological Wave Disposal**: Idempotent teardown in reverse dependency waves (`leaves -> roots`), awaiting asynchronous `onDispose` callbacks concurrently and aggregating errors into `DisposalException`.
 6. **Flutter Lifecycle Integration & Scoped Registries**: `CircuitProvider` manages async build lifecycles, didUpdateWidget monotonic compilation epoch race prevention, unmount teardown, and ambient `Map<Enum, Circuit>` scoping for nested tagged providers with **O(1)** retrieval (`CircuitProvider.of(context, tag: Scope.global)`).
+7. **Zero-Overhead Introspection & Exporters**: `circuit.inspect()` provides on-demand DAG inspection (`dependentsOf`, `dependenciesOf`, `topologicalOrder`), valid Mermaid flowchart generation (`toMermaid()`), and structured JSON serialization (`toJson()`), 100% tree-shaken in release builds when unused.
 
 ---
 
