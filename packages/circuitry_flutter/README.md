@@ -21,6 +21,7 @@ Flutter bridge for [`circuitry`](https://pub.dev/packages/circuitry) — providi
 - **Automatic Unmount Cleanup**: Automatically calls `circuit.dispose()` when the provider is unmounted from the widget tree.
 - **Synchronous Value Injection (`CircuitProvider.value`)**: Injects an already resolved `Circuit` synchronously for test harnesses or sub-trees without managing lifecycle disposal.
 - **Taggable Scopes & O(1) Nested Lookup**: Associate providers with tags (`tag: Scope.global`) to retrieve ancestor containers across nested providers in **O(1)** via `CircuitProvider.of(context, tag: Scope.global)` without widget tree walking.
+- **DevTools Integration & Debug Tags**: Associate providers with `debugTag: 'root'` to label containers and inspect their DAG, topological waves, and live wire states in the DevTools extension.
 - **Explicit Accessors**: Retrieve dependencies via `CircuitProvider.of(context)` and `CircuitProvider.maybeOf(context)` without `BuildContext` extension pollution.
 
 ---
@@ -54,6 +55,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CircuitProvider(
+      debugTag: 'root',
       wires: _defaultWires,
       builder: (context, state) => switch (state) {
         CircuitReady(:final circuit) => const HomeScreen(),
@@ -126,6 +128,16 @@ class FeatureScreen extends StatelessWidget {
   }
 }
 ```
+
+---
+
+## DevTools Extension
+
+When developing Flutter applications with `circuitry_flutter`, the bundled Circuitry DevTools extension is automatically discovered:
+
+1. Launch your Flutter app in debug mode.
+2. Open Dart & Flutter DevTools.
+3. Switch to the **Circuitry** tab to inspect active containers (labeled by `debugTag`), visualize the dependency graph across topological waves, review async resolution durations, and force resolve lazy wires on demand.
 
 ---
 

@@ -16,7 +16,7 @@ void main() {
 
     // Verifies HomeScreen elements
     expect(find.text('Circuitry Flutter Example'), findsOneWidget);
-    expect(find.text('Version: 0.1.0'), findsOneWidget);
+    expect(find.text('Version: 0.2.0'), findsOneWidget);
     expect(
       find.text('Active Database: db://production.cluster'),
       findsOneWidget,

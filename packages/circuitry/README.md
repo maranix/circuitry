@@ -27,6 +27,7 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
 - **Dot-Shorthand Tagging**: Supports tagged dependencies with Dart enum dot-shorthands (e.g. `tag: .prod`, `tag: .fast`), enabling multiple distinct singletons of the same generic Dart type without collisions.
 - **Reverse Topological Wave Disposal**: Idempotent teardown in reverse dependency waves (`leaves -> roots`), running parallel asynchronous `onDispose` callbacks and aggregating errors into `DisposalException`.
 - **On-Demand Introspection & Exporters**: Query direct and transitive dependents (`circuit.inspect().dependentsOf(key)`), inspect topological waves, and generate Mermaid diagrams (`toMermaid()`) or JSON schemas (`toJson()`). Fully tree-shaken in release builds when unused.
+- **DevTools Integration & Universal Extension Host**: Ambient `CircuitRegistry` tracks containers in debug mode and exposes VM Service endpoints (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`, `ext.circuitry.forceResolveWire`). In profile and release modes, registry tracking and `debugTag` are complete no-ops and tree-shaken with zero runtime or memory overhead. Preconfigured DevTools extension provides auto-discovery across CLI, backend, and Flutter apps.
 
 ---
 
@@ -79,11 +80,14 @@ final userWire = Wire.takes<DatabaseService>().to(UserService.new);
 
 ```dart
 void main() async {
-  final circuit = await Circuit.build([
-    configWire,
-    dbWire,
-    userWire,
-  ]);
+  final circuit = await Circuit.build(
+    [
+      configWire,
+      dbWire,
+      userWire,
+    ],
+    debugTag: 'main_circuit',
+  );
 
   // Synchronous O(1) instance lookup
   final userService = circuit.get<UserService>();
@@ -91,10 +95,27 @@ void main() async {
   // Tagged lookup
   final config = circuit.getTagged<DatabaseConfig, Environment>(Environment.prod);
 
+  // On-demand DAG introspection (tree-shaken in release if unused)
+  final introspection = circuit.inspect();
+  print(introspection.toMermaid());
+
   // Reverse topological wave teardown (users -> db -> config)
   await circuit.dispose();
 }
 ```
+
+---
+
+## DevTools Extension
+
+`circuitry` bundles a built-in Dart & Flutter DevTools extension located in `extension/devtools/`.
+
+When running in debug mode with Dart DevTools:
+1. Open Dart DevTools in your browser or IDE.
+2. Select the **Circuitry** tab.
+3. Explore the interactive DAG canvas, horizontal topological wave columns, cubic Bézier dependency edge splines, startup wave waterfall profiler with critical path calculation, and on-demand wire initialization.
+
+In profile and release modes, DevTools VM Service extensions and ambient tracking are completely disabled and tree-shaken with zero runtime overhead.
 
 ---
 

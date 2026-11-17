@@ -57,7 +57,7 @@ class _CircuitryExampleAppState extends State<CircuitryExampleApp> {
     final configWire = Wire(
       () => const AppConfig(
         appName: 'Circuitry Flutter Example',
-        version: '0.1.0',
+        version: '0.2.0',
       ),
     );
 

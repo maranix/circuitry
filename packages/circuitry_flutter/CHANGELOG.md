@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.0
+
+### Features
+- **Taggable Scopes & O(1) Nested Lookup**:
+  - `CircuitProvider` now accepts an optional `tag: Enum` property (e.g. `tag: AppScope.global`).
+  - Merges tagged containers into an ambient `Map<Enum, Circuit>` scope down the widget tree.
+  - Descendants can query ancestor tagged containers in O(1) via `CircuitProvider.of(context, tag: ...)` and `CircuitProvider.maybeOf(context, tag: ...)` without expensive ancestor tree walking.
+  - Automatically reacts to ancestor tagged circuit updates while maintaining local untagged provider shadowing.
+- **DevTools Debug Tag Forwarding**:
+  - `CircuitProvider` accepts an optional `debugTag: String` and forwards it to `Circuit.build(wires, debugTag: debugTag)` for named inspection in Dart and Flutter DevTools.
+- **Dependency Update**:
+  - Bumped core engine dependency to `circuitry: ^0.2.0`.
+- **Refactoring & Modern Dart Idioms**:
+  - Migrated internal widgets and state representations to Dart 3.14+ primary constructors and exhaustive switch expression pattern matching.
+
 ## 0.1.0
 
 Initial release of Circuitry Flutter: the Flutter companion package for Circuitry.

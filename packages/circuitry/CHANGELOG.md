@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.2.0
+
+### Features
+- **Ambient `CircuitRegistry` & DevTools Integration**:
+  - Automatically registers `Circuit` instances in debug mode (`assert(...)`), tracking status, wire resolution counts, and lifecycle events.
+  - Registers standard Dart VM Service extension handlers for DevTools and external tooling:
+    - `ext.circuitry.getCircuits`: Lists all active circuits, descriptors, and metadata.
+    - `ext.circuitry.getCircuitGraph`: Returns full graph schema, waves, wire details, dependencies, and resolution timings.
+    - `ext.circuitry.forceResolveWire`: Triggers on-demand wire resolution across the VM Service protocol.
+  - Streams real-time lifecycle events via `developer.postEvent('circuitry:lifecycle', ...)`.
+  - Added optional `debugTag` identifier to `Circuit.build(wires, debugTag: '...')` for multi-circuit identification in DevTools.
+  - Bundles built-in DevTools extension configuration (`extension/devtools/config.yaml`) and compiled Web assets (`extension/devtools/build/`) for auto-discovery across CLI, backend, and Flutter apps.
+  - Zero-overhead in profile and release builds: assertions are disabled, `CircuitRegistry` methods and properties become no-ops, and telemetry call sites are fully tree-shaken by the compiler.
+- **Core Introspection API & Exporters**:
+  - Precomputes reverse dependency adjacency in `CircuitGraph.compile()` for instant O(1) direct and transitive queries.
+  - Added `circuit.inspect()` returning an immutable `CircuitIntrospection` snapshot with `dependentsOf`, `dependenciesOf`, `transitiveDependentsOf`, `transitiveDependenciesOf`, and topological order queries.
+  - Built-in visual diagram generation via `toMermaid()` producing valid Mermaid flowchart syntax with wave subgraphs and edge arrows.
+  - Built-in structured JSON serialization via `toJson()` for exporting graph schemas.
+  - Zero release overhead: 100% tree-shaken when unused in production code.
+- **Fail-Fast Async Wave Resolution with Immediate Rollback**:
+  - Parallel topological wave execution now uses `Future.wait` with `eagerError: true` to fail immediately upon the first encountered error instead of waiting for long-running concurrent sibling wires.
+  - Enhanced lifecycle rollback safety: automatically tears down already resolved instances in reverse topological order, and disposes late-completing in-flight wires (`if (_isDisposed) await wire.disposeInstance(...)`) to prevent resource leaks and unhandled exceptions.
+- **Modular DAG Compiler & Container Decomposition**:
+  - Separated static graph validation and compilation (`CircuitGraph` in `src/graph.dart`) from runtime instance caching and lifecycle execution (`Circuit` in `src/circuit.dart`).
+  - Extracted helper modules `src/utils.dart` and `src/extensions.dart`.
+  - Migrated engine codebase to modern Dart 3.14+ primary and concise constructors, switch expressions, and contextual dot-shorthands.
+
 ## 0.1.0
 
 Initial release of Circuitry: a pure Dart 3.14+ zero-codegen, Directed Acyclic Graph (DAG) based dependency injection engine.

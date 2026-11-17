@@ -1,17 +1,30 @@
-# circuitry_flutter_example
+# Circuitry Flutter Example
 
-A new Flutter project.
+An end-to-end sample application demonstrating runtime dependency injection using `circuitry_flutter`.
 
-## Getting Started
+## Features Demonstrated
 
-This project is a starting point for a Flutter application.
+- **Synchronous Wires**: `LoggerService` registered with `Wire.new(LoggerService.new)` and accessed by dependent services.
+- **Asynchronous Wires with Lifecycle Hooks**: `AppDatabase` connects asynchronously using `AsyncWire.takes<LoggerService>().to(...)` and registers an `onDispose` teardown callback.
+- **Tagged Configuration**: `AppConfig` providing version and application metadata.
+- **Reactive State Pattern Matching**: `CircuitProvider` displays a loading splash during asynchronous wave compilation (`CircuitBuilding`), transitions to `HomeScreen` when ready (`CircuitReady`), and displays error handling (`CircuitFailure`).
+- **DevTools Extension Ready**: Connects seamlessly to the Circuitry DevTools extension when launched in debug mode.
 
-A few resources to get you started if this is your first Flutter project:
+## Running the Example
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+# From workspace root:
+cd packages/circuitry_flutter/example
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# Run on macOS:
+flutter run -d macos
+
+# Run on Chrome:
+flutter run -d chrome
+```
+
+## Running Example Tests
+
+```bash
+flutter test
+```
