@@ -2,7 +2,7 @@ import 'package:circuitry_devtools_extension/src/controllers/circuitry_devtools_
 import 'package:circuitry_devtools_extension/src/models/circuit_status.dart';
 import 'package:circuitry_devtools_extension/src/models/circuit_summary.dart';
 import 'package:devtools_app_shared/ui.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Sidebar navigator displaying the detected [Circuit] containers running in the app.
 class CircuitNavigator extends StatelessWidget {
@@ -42,7 +42,9 @@ class CircuitNavigator extends StatelessWidget {
                       child: Text(
                         'No circuits detected.\nEnsure debug assertions are enabled.',
                         textAlign: TextAlign.center,
-                        style: theme.subtleTextStyle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   )

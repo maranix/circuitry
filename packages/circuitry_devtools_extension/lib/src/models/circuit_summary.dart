@@ -2,66 +2,61 @@ import 'package:circuitry_devtools_extension/src/models/circuit_status.dart';
 
 /// Immutable model representing an active or recent [Circuit] summary
 /// received from `ext.circuitry.getCircuits`.
-final class CircuitSummary {
-  const CircuitSummary({
-    required this.id,
-    this.debugTag,
-    required this.wireCount,
-    required this.initializedWireCount,
-    required this.maxLevel,
-    required this.isDisposed,
-    this.status = CircuitLifecycleStatus.ready,
-  });
-
+final class const CircuitSummary({
   /// Unique container identifier (e.g. `circuit_0`).
-  final String id;
+  required final String id,
 
   /// Optional debug tag or scope identifier (e.g. `AppScope.global`).
-  final String? debugTag;
+  final String? debugTag,
 
   /// Total number of dependency wires registered in the container.
-  final int wireCount;
+  required final int wireCount,
 
   /// Number of wires that have been instantiated.
-  final int initializedWireCount;
+  required final int initializedWireCount,
 
   /// Maximum topological wave level (depth) in this circuit.
-  final int maxLevel;
+  required final int maxLevel,
 
   /// Whether this circuit has been disposed.
-  final bool isDisposed;
+  required final bool isDisposed,
 
   /// The active lifecycle status of the container.
-  final CircuitLifecycleStatus status;
-
+  final CircuitLifecycleStatus status = CircuitLifecycleStatus.ready,
+}) {
   /// Number of wires registered but not yet initialized.
   int get uninitializedWireCount => wireCount - initializedWireCount;
 
-  /// Parses a [CircuitSummary] from a JSON map.
-  factory CircuitSummary.fromJson(Map<String, Object?> json) {
-    final isDisposed = json['isDisposed'] as bool? ?? false;
-    final statusString = json['status'] as String?;
-    final status = switch (statusString) {
-      'building' => CircuitLifecycleStatus.building,
-      'ready' => CircuitLifecycleStatus.ready,
-      'failed' => CircuitLifecycleStatus.failed,
-      'disposed' => CircuitLifecycleStatus.disposed,
-      _ =>
-        isDisposed
-            ? CircuitLifecycleStatus.disposed
-            : CircuitLifecycleStatus.ready,
-    };
+  /// Parses a [CircuitSummary] from a JSON map using pattern matching.
+  factory fromJson(Map<String, Object?> json) {
+    if (json case {
+      'id': final String id,
+      'isDisposed': final bool isDisposed,
+      'wireCount': final num wireCount,
+      'initializedWireCount': final num initializedWireCount,
+      'maxLevel': final num maxLevel,
+    }) {
+      final debugTag = json['debugTag'] as String?;
+      final statusString = json['status'] as String?;
+      final status = statusString != null
+          ? CircuitLifecycleStatus.fromName(statusString)
+          : CircuitLifecycleStatus.fromState(
+              isDisposed: isDisposed,
+              wireCount: wireCount.toInt(),
+              initializedWireCount: initializedWireCount.toInt(),
+            );
 
-    return CircuitSummary(
-      id: json['id'] as String? ?? '',
-      debugTag: json['debugTag'] as String?,
-      wireCount: (json['wireCount'] as num?)?.toInt() ?? 0,
-      initializedWireCount:
-          (json['initializedWireCount'] as num?)?.toInt() ?? 0,
-      maxLevel: (json['maxLevel'] as num?)?.toInt() ?? 0,
-      isDisposed: isDisposed,
-      status: status,
-    );
+      return CircuitSummary(
+        id: id,
+        debugTag: debugTag,
+        wireCount: wireCount.toInt(),
+        initializedWireCount: initializedWireCount.toInt(),
+        maxLevel: maxLevel.toInt(),
+        isDisposed: isDisposed,
+        status: status,
+      );
+    }
+    throw FormatException('Invalid circuit summary schema: $json');
   }
 
   /// Creates a copy of this summary with updated fields.

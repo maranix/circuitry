@@ -2,7 +2,7 @@ import 'package:circuitry_devtools_extension/src/controllers/circuitry_devtools_
 import 'package:circuitry_devtools_extension/src/models/circuit_graph_data.dart';
 import 'package:circuitry_devtools_extension/src/models/wire_node.dart';
 import 'package:devtools_app_shared/ui.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Center workspace visualizing the Directed Acyclic Graph (DAG) with topological wave columns,
 /// smooth cubic Bézier splines, status styling, and dependency illumination.
@@ -32,12 +32,14 @@ class _DagCanvasState extends State<DagCanvas> {
 
   void _zoomIn() {
     final current = _transformationController.value;
-    _transformationController.value = current.clone()..scale(1.2, 1.2, 1.0);
+    _transformationController.value = current.clone()
+      ..scaleByDouble(1.2, 1.2, 1.0, 1.0);
   }
 
   void _zoomOut() {
     final current = _transformationController.value;
-    _transformationController.value = current.clone()..scale(0.8, 0.8, 1.0);
+    _transformationController.value = current.clone()
+      ..scaleByDouble(0.8, 0.8, 1.0, 1.0);
   }
 
   @override

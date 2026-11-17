@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:circuitry_devtools_extension/src/controllers/circuitry_devtools_controller.dart';
 import 'package:circuitry_devtools_extension/src/models/wire_node.dart';
 import 'package:devtools_app_shared/ui.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Gantt-style timeline waterfall profiler visualizing parallel topological wave execution,
 /// singleton startup durations, and critical path bottlenecks.
@@ -297,13 +297,18 @@ class WaveWaterfallProfiler extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: theme.subtleTextStyle.copyWith(fontSize: 10),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 10,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     value,
-                    style: theme.boldTextStyle,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

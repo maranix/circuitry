@@ -8,11 +8,11 @@ import 'package:circuitry_devtools_extension/src/services/circuitry_service_clie
 
 /// In-memory mock implementation of [CircuitryServiceClient] for unit tests,
 /// widget tests, and offline UI development.
-final class MockCircuitryServiceClient implements CircuitryServiceClient {
-  MockCircuitryServiceClient({
-    List<CircuitSummary>? initialCircuits,
-    Map<String, CircuitGraphData>? initialGraphs,
-  }) : _eventController = StreamController<Map<String, Object?>>.broadcast() {
+final class MockCircuitryServiceClient({
+  List<CircuitSummary>? initialCircuits,
+  Map<String, CircuitGraphData>? initialGraphs,
+}) implements CircuitryServiceClient {
+  this : _eventController = .broadcast() {
     if (initialCircuits != null) {
       _circuits.addAll(initialCircuits);
     } else {
@@ -38,8 +38,7 @@ final class MockCircuitryServiceClient implements CircuitryServiceClient {
   }
 
   @override
-  Future<List<CircuitSummary>> getCircuits() async =>
-      List.unmodifiable(_circuits);
+  Future<List<CircuitSummary>> getCircuits() async => .unmodifiable(_circuits);
 
   @override
   Future<CircuitGraphData> getCircuitGraph(String circuitId) async {

@@ -7,8 +7,8 @@ import 'package:circuitry_devtools_extension/src/widgets/toolbar.dart';
 import 'package:circuitry_devtools_extension/src/widgets/wave_waterfall_profiler.dart';
 import 'package:circuitry_devtools_extension/src/widgets/wire_detail_drawer.dart';
 import 'package:devtools_app_shared/ui.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   group('Circuitry DevTools UI Widgets', () {

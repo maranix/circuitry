@@ -4,48 +4,43 @@ import 'package:circuitry_devtools_extension/src/models/wire_node.dart';
 
 /// Immutable model capturing the complete Directed Acyclic Graph (DAG) structure,
 /// topological wave grouping, and runtime status of an inspected [Circuit].
-final class CircuitGraphData {
-  CircuitGraphData({
-    required this.id,
-    this.debugTag,
-    required this.isDisposed,
-    required this.wireCount,
-    required List<WireNode> wires,
-    required Map<int, List<WireNode>> waves,
-    required this.maxWaveLevel,
-    required List<String> topologicalOrder,
-  }) : wires = List<WireNode>.unmodifiable(wires),
-       waves = Map.unmodifiable(
-         waves.map((k, v) => MapEntry(k, List<WireNode>.unmodifiable(v))),
-       ),
-       topologicalOrder = List<String>.unmodifiable(topologicalOrder),
-       _nodeMap = Map.unmodifiable({for (final w in wires) w.key: w}),
-       _reverseDependencies = _computeReverseDependencies(wires);
-
+final class CircuitGraphData({
   /// Unique circuit identifier.
-  final String id;
+  required final String id,
 
   /// Optional debug tag or scope identifier.
-  final String? debugTag;
+  final String? debugTag,
 
   /// Whether this circuit has been disposed.
-  final bool isDisposed;
+  required final bool isDisposed,
 
   /// Total number of wires registered in this circuit.
-  final int wireCount;
+  required final int wireCount,
 
   /// All wires registered in the circuit.
-  final List<WireNode> wires;
+  required List<WireNode> wires,
 
   /// Wires grouped by their topological resolution wave level.
-  final Map<int, List<WireNode>> waves;
+  required Map<int, List<WireNode>> waves,
 
   /// The highest wave level (depth) in this circuit DAG.
-  final int maxWaveLevel;
+  required final int maxWaveLevel,
 
   /// Full deterministic topological resolution order of wire keys.
-  final List<String> topologicalOrder;
+  required List<String> topologicalOrder,
+}) {
+  this
+    : wires = .unmodifiable(wires),
+      waves = .unmodifiable(
+        waves.map((k, v) => MapEntry(k, List<WireNode>.unmodifiable(v))),
+      ),
+      topologicalOrder = .unmodifiable(topologicalOrder),
+      _nodeMap = .unmodifiable({for (final w in wires) w.key: w}),
+      _reverseDependencies = _computeReverseDependencies(wires);
 
+  final List<WireNode> wires;
+  final Map<int, List<WireNode>> waves;
+  final List<String> topologicalOrder;
   final Map<String, WireNode> _nodeMap;
   final Map<String, Set<String>> _reverseDependencies;
 
@@ -63,7 +58,7 @@ final class CircuitGraphData {
         reverse.putIfAbsent(dep, () => <String>{}).add(wire.key);
       }
     }
-    return Map.unmodifiable(
+    return .unmodifiable(
       reverse.map((k, v) => MapEntry(k, Set<String>.unmodifiable(v))),
     );
   }
@@ -73,10 +68,10 @@ final class CircuitGraphData {
     final node = _nodeMap[key];
     if (node == null) return const <String>{};
 
-    if (!transitive) return Set.unmodifiable(node.dependencies);
+    if (!transitive) return .unmodifiable(node.dependencies);
 
     final visited = <String>{};
-    final queue = Queue<String>()..addAll(node.dependencies);
+    final Queue<String> queue = .new()..addAll(node.dependencies);
 
     while (queue.isNotEmpty) {
       final current = queue.removeFirst();
@@ -87,7 +82,7 @@ final class CircuitGraphData {
         }
       }
     }
-    return Set.unmodifiable(visited);
+    return .unmodifiable(visited);
   }
 
   /// Returns downstream dependents that rely on [key].
@@ -96,7 +91,7 @@ final class CircuitGraphData {
     if (!transitive) return direct;
 
     final visited = <String>{};
-    final queue = Queue<String>()..addAll(direct);
+    final Queue<String> queue = .new()..addAll(direct);
 
     while (queue.isNotEmpty) {
       final current = queue.removeFirst();
@@ -107,7 +102,7 @@ final class CircuitGraphData {
         }
       }
     }
-    return Set.unmodifiable(visited);
+    return .unmodifiable(visited);
   }
 
   /// Computes the critical path of the DAG (chain with the highest cumulative depth/duration).
@@ -151,7 +146,7 @@ final class CircuitGraphData {
       path.add(curr);
       curr = pred[curr];
     }
-    return Set.unmodifiable(path);
+    return .unmodifiable(path);
   }
 
   /// Generates a valid Mermaid flowchart diagram representing this circuit.
@@ -294,41 +289,52 @@ final class CircuitGraphData {
   }
 
   /// Parses a [CircuitGraphData] from a JSON map returned by `ext.circuitry.getCircuitGraph`.
-  factory CircuitGraphData.fromJson(Map<String, Object?> json) {
-    final id = json['id'] as String? ?? '';
-    final debugTag = json['debugTag'] as String?;
-    final isDisposed = json['isDisposed'] as bool? ?? false;
-    final wireCount = (json['wireCount'] as num?)?.toInt() ?? 0;
-    final maxWaveLevel = (json['maxWaveLevel'] as num?)?.toInt() ?? 0;
+  factory fromJson(Map<String, Object?> json) {
+    if (json case {
+      'id': final String id,
+      'isDisposed': final bool isDisposed,
+      'wireCount': final num wireCount,
+      'maxWaveLevel': final num maxWaveLevel,
+      'wires': final List<Object?> rawWires,
+      'topologicalOrder': final List<Object?> rawTopological,
+    }) {
+      final debugTag = json['debugTag'] as String?;
+      final wires = [
+        for (final raw in rawWires)
+          if (raw case final Map<String, Object?> m)
+            WireNode.fromJson(m)
+          else if (raw case final Map<Object?, Object?> m)
+            WireNode.fromJson(m.cast<String, Object?>()),
+      ];
+      final waves = <int, List<WireNode>>{};
+      if (json['waves'] case final Map<Object?, Object?> rawWaves) {
+        for (final MapEntry(:key, :value) in rawWaves.entries) {
+          if (int.tryParse('$key') case final int level) {
+            if (value case final List<Object?> rawWaveList) {
+              waves[level] = [
+                for (final raw in rawWaveList)
+                  if (raw case final Map<String, Object?> m)
+                    WireNode.fromJson(m)
+                  else if (raw case final Map<Object?, Object?> m)
+                    WireNode.fromJson(m.cast<String, Object?>()),
+              ];
+            }
+          }
+        }
+      }
+      final topologicalOrder = [for (final item in rawTopological) '$item'];
 
-    final rawWires = json['wires'] as List<dynamic>? ?? const [];
-    final wires = rawWires
-        .map((w) => WireNode.fromJson((w as Map).cast<String, Object?>()))
-        .toList();
-
-    final waves = <int, List<WireNode>>{};
-    final rawWaves = json['waves'] as Map<String, dynamic>? ?? const {};
-    for (final entry in rawWaves.entries) {
-      final level = int.tryParse(entry.key) ?? 0;
-      final waveList = (entry.value as List<dynamic>? ?? const [])
-          .map((w) => WireNode.fromJson((w as Map).cast<String, Object?>()))
-          .toList();
-      waves[level] = waveList;
+      return CircuitGraphData(
+        id: id,
+        debugTag: debugTag,
+        isDisposed: isDisposed,
+        wireCount: wireCount.toInt(),
+        wires: wires,
+        waves: waves,
+        maxWaveLevel: maxWaveLevel.toInt(),
+        topologicalOrder: topologicalOrder,
+      );
     }
-
-    final rawTopological =
-        json['topologicalOrder'] as List<dynamic>? ?? const [];
-    final topologicalOrder = rawTopological.map((e) => e.toString()).toList();
-
-    return CircuitGraphData(
-      id: id,
-      debugTag: debugTag,
-      isDisposed: isDisposed,
-      wireCount: wireCount,
-      wires: wires,
-      waves: waves,
-      maxWaveLevel: maxWaveLevel,
-      topologicalOrder: topologicalOrder,
-    );
+    throw FormatException('Invalid circuit graph data schema: $json');
   }
 }

@@ -9,10 +9,8 @@ import 'package:flutter/foundation.dart';
 
 /// Central state controller managing circuits, active DAG graph data, selection,
 /// filtering, search, and live action dispatches.
-class CircuitryDevToolsController extends ChangeNotifier {
-  CircuitryDevToolsController(this._client);
-
-  final CircuitryServiceClient _client;
+class CircuitryDevToolsController(final CircuitryServiceClient _client)
+    extends ChangeNotifier {
   StreamSubscription<Map<String, Object?>>? _eventSubscription;
 
   List<CircuitSummary> _circuits = [];
@@ -46,7 +44,7 @@ class CircuitryDevToolsController extends ChangeNotifier {
   bool get isLoadingCircuits => _isLoadingCircuits;
   bool get isLoadingGraph => _isLoadingGraph;
   String? get errorMessage => _errorMessage;
-  Set<String> get forceResolvingWires => Set.unmodifiable(_forceResolvingWires);
+  Set<String> get forceResolvingWires => .unmodifiable(_forceResolvingWires);
 
   CircuitSummary? get selectedCircuit =>
       _circuits.where((c) => c.id == _selectedCircuitId).firstOrNull;
@@ -247,75 +245,75 @@ class CircuitryDevToolsController extends ChangeNotifier {
   }
 
   void _handleLifecycleEvent(Map<String, Object?> event) {
-    final type = event['type'] as String?;
-    final circuitId = event['circuitId'] as String?;
-    if (type == null || circuitId == null) return;
-
-    switch (type) {
-      case 'circuit_building':
-        final debugTag = event['debugTag'] as String?;
-        final index = _circuits.indexWhere((c) => c.id == circuitId);
-        if (index != -1) {
-          _circuits[index] = _circuits[index].copyWith(
-            status: CircuitLifecycleStatus.building,
-          );
-        } else {
-          _circuits.add(
-            CircuitSummary(
-              id: circuitId,
-              debugTag: debugTag,
-              wireCount: 0,
-              initializedWireCount: 0,
-              maxLevel: 0,
-              isDisposed: false,
+    if (event case {
+      'type': final String type,
+      'circuitId': final String circuitId,
+    }) {
+      switch (type) {
+        case 'circuit_building':
+          final debugTag = event['debugTag'] as String?;
+          final index = _circuits.indexWhere((c) => c.id == circuitId);
+          if (index != -1) {
+            _circuits[index] = _circuits[index].copyWith(
               status: CircuitLifecycleStatus.building,
-            ),
-          );
-        }
-        notifyListeners();
-
-      case 'circuit_ready':
-        final index = _circuits.indexWhere((c) => c.id == circuitId);
-        if (index != -1) {
-          _circuits[index] = _circuits[index].copyWith(
-            status: CircuitLifecycleStatus.ready,
-          );
-        }
-        if (_selectedCircuitId == circuitId) {
-          selectCircuit(circuitId);
-        } else {
+            );
+          } else {
+            _circuits.add(
+              CircuitSummary(
+                id: circuitId,
+                debugTag: debugTag,
+                wireCount: 0,
+                initializedWireCount: 0,
+                maxLevel: 0,
+                isDisposed: false,
+                status: CircuitLifecycleStatus.building,
+              ),
+            );
+          }
           notifyListeners();
-        }
 
-      case 'circuit_failed':
-        final index = _circuits.indexWhere((c) => c.id == circuitId);
-        if (index != -1) {
-          _circuits[index] = _circuits[index].copyWith(
-            status: CircuitLifecycleStatus.failed,
-          );
-          notifyListeners();
-        }
-
-      case 'wire_resolved':
-        final key = event['key'] as String?;
-        if (key != null) {
-          _markWireInitializedLocally(circuitId, key);
-          notifyListeners();
-        }
-
-      case 'circuit_disposed':
-        final index = _circuits.indexWhere((c) => c.id == circuitId);
-        if (index != -1) {
-          _circuits[index] = _circuits[index].copyWith(
-            isDisposed: true,
-            status: CircuitLifecycleStatus.disposed,
-          );
+        case 'circuit_ready':
+          final index = _circuits.indexWhere((c) => c.id == circuitId);
+          if (index != -1) {
+            _circuits[index] = _circuits[index].copyWith(
+              status: CircuitLifecycleStatus.ready,
+            );
+          }
           if (_selectedCircuitId == circuitId) {
             selectCircuit(circuitId);
           } else {
             notifyListeners();
           }
-        }
+
+        case 'circuit_failed':
+          final index = _circuits.indexWhere((c) => c.id == circuitId);
+          if (index != -1) {
+            _circuits[index] = _circuits[index].copyWith(
+              status: CircuitLifecycleStatus.failed,
+            );
+            notifyListeners();
+          }
+
+        case 'wire_resolved':
+          if (event['key'] case final String key) {
+            _markWireInitializedLocally(circuitId, key);
+            notifyListeners();
+          }
+
+        case 'circuit_disposed':
+          final index = _circuits.indexWhere((c) => c.id == circuitId);
+          if (index != -1) {
+            _circuits[index] = _circuits[index].copyWith(
+              isDisposed: true,
+              status: CircuitLifecycleStatus.disposed,
+            );
+            if (_selectedCircuitId == circuitId) {
+              selectCircuit(circuitId);
+            } else {
+              notifyListeners();
+            }
+          }
+      }
     }
   }
 

@@ -1,40 +1,32 @@
 /// Immutable representation of a single dependency wire node in the DAG.
-final class WireNode {
-  const WireNode({
-    required this.key,
-    required this.dependencies,
-    required this.isAsync,
-    required this.topologicalLevel,
-    required this.isInitialized,
-    this.isResolving = false,
-    this.hasFailed = false,
-    this.durationMs,
-  });
-
+final class const WireNode({
   /// The unique formatted wire identifier (e.g. `ApiService` or `Database#primary`).
-  final String key;
+  required final String key,
 
   /// Formatted keys of upstream wires that this wire directly depends upon.
-  final List<String> dependencies;
+  required final List<String> dependencies,
 
   /// Whether this wire resolves asynchronously during [Circuit.build].
-  final bool isAsync;
+  required final bool isAsync,
 
   /// The topological wave depth (0 = root dependencies without parents).
-  final int topologicalLevel;
+  required final int topologicalLevel,
 
   /// Whether this wire has been instantiated in the running circuit.
-  final bool isInitialized;
+  required final bool isInitialized,
 
   /// Whether this wire is currently executing its asynchronous factory.
-  final bool isResolving;
+  final bool isResolving = false,
 
   /// Whether this wire failed during compilation or factory execution.
-  final bool hasFailed;
+  final bool hasFailed = false,
 
   /// Recorded or estimated initialization latency in milliseconds.
-  final int? durationMs;
+  final int? durationMs,
 
+  /// Optional error message captured if this wire failed.
+  final String? errorMessage,
+}) {
   /// The underlying Dart type name extracted from [key].
   String get typeName {
     final hashIndex = key.indexOf('#');
@@ -51,28 +43,36 @@ final class WireNode {
   bool get isUnresolvedLazy =>
       !isAsync && !isInitialized && !isResolving && !hasFailed;
 
-  /// Parses a [WireNode] from a JSON wire descriptor.
-  factory WireNode.fromJson(Map<String, Object?> json) {
-    final key = json['key'] as String? ?? '';
-    final rawDeps = json['dependencies'] as List<dynamic>? ?? const [];
-    final dependencies = rawDeps.map((e) => e.toString()).toList();
-    final isAsync = json['isAsync'] as bool? ?? false;
-    final topologicalLevel = (json['topologicalLevel'] as num?)?.toInt() ?? 0;
-    final isInitialized = json['isInitialized'] as bool? ?? false;
-    final isResolving = json['isResolving'] as bool? ?? false;
-    final hasFailed = json['hasFailed'] as bool? ?? false;
-    final durationMs = (json['durationMs'] as num?)?.toInt();
+  /// Parses a [WireNode] from a JSON wire descriptor using pattern matching.
+  factory fromJson(Map<String, Object?> json) {
+    if (json case {
+      'key': final String key,
+      'isAsync': final bool isAsync,
+      'topologicalLevel': final num topologicalLevel,
+      'isInitialized': final bool isInitialized,
+    }) {
+      final dependencies = switch (json['dependencies']) {
+        final List<Object?> deps => deps.whereType<String>().toList(),
+        _ => const <String>[],
+      };
+      final isResolving = json['isResolving'] as bool? ?? false;
+      final hasFailed = json['hasFailed'] as bool? ?? false;
+      final durationMs = (json['durationMs'] as num?)?.toInt();
+      final errorMessage = json['errorMessage'] as String?;
 
-    return WireNode(
-      key: key,
-      dependencies: dependencies,
-      isAsync: isAsync,
-      topologicalLevel: topologicalLevel,
-      isInitialized: isInitialized,
-      isResolving: isResolving,
-      hasFailed: hasFailed,
-      durationMs: durationMs,
-    );
+      return WireNode(
+        key: key,
+        dependencies: dependencies,
+        isAsync: isAsync,
+        topologicalLevel: topologicalLevel.toInt(),
+        isInitialized: isInitialized,
+        isResolving: isResolving,
+        hasFailed: hasFailed,
+        durationMs: durationMs,
+        errorMessage: errorMessage,
+      );
+    }
+    throw FormatException('Invalid wire node schema: $json');
   }
 
   /// Converts this node into a JSON-compatible map.
@@ -85,6 +85,7 @@ final class WireNode {
     'isResolving': isResolving,
     'hasFailed': hasFailed,
     if (durationMs != null) 'durationMs': durationMs,
+    if (errorMessage != null) 'errorMessage': errorMessage,
   };
 
   /// Creates a copy of this wire node with updated fields.
@@ -97,6 +98,7 @@ final class WireNode {
     bool? isResolving,
     bool? hasFailed,
     int? durationMs,
+    String? errorMessage,
   }) => WireNode(
     key: key ?? this.key,
     dependencies: dependencies ?? this.dependencies,
@@ -106,6 +108,7 @@ final class WireNode {
     isResolving: isResolving ?? this.isResolving,
     hasFailed: hasFailed ?? this.hasFailed,
     durationMs: durationMs ?? this.durationMs,
+    errorMessage: errorMessage ?? this.errorMessage,
   );
 
   @override
@@ -118,7 +121,8 @@ final class WireNode {
           isInitialized == other.isInitialized &&
           isResolving == other.isResolving &&
           hasFailed == other.hasFailed &&
-          durationMs == other.durationMs;
+          durationMs == other.durationMs &&
+          errorMessage == other.errorMessage;
 
   @override
   int get hashCode => Object.hash(
@@ -129,5 +133,6 @@ final class WireNode {
     isResolving,
     hasFailed,
     durationMs,
+    errorMessage,
   );
 }

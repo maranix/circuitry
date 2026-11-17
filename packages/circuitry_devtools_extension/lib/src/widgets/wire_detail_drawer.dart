@@ -1,7 +1,7 @@
 import 'package:circuitry_devtools_extension/src/controllers/circuitry_devtools_controller.dart';
 import 'package:circuitry_devtools_extension/src/models/wire_node.dart';
 import 'package:devtools_app_shared/ui.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Right drawer panel inspecting a selected [WireNode], its dependency links,
 /// and live on-demand initialization actions.
@@ -27,7 +27,9 @@ class WireDetailDrawer extends StatelessWidget {
                 child: Text(
                   'Select a wire node in the canvas to inspect its metadata, dependencies, and live controls.',
                   textAlign: TextAlign.center,
-                  style: theme.subtleTextStyle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
@@ -40,7 +42,9 @@ class WireDetailDrawer extends StatelessWidget {
           header: AreaPaneHeader(
             title: Text(
               wire.typeName,
-              style: theme.boldTextStyle,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
             actions: [
@@ -110,7 +114,9 @@ class WireDetailDrawer extends StatelessWidget {
                 const SizedBox(height: densePadding),
                 Text(
                   'Triggers on-demand factory execution via VM Service extension (ext.circuitry.forceResolveWire).',
-                  style: theme.subtleTextStyle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ] else if (wire.isInitialized) ...[
                 Row(
@@ -124,7 +130,9 @@ class WireDetailDrawer extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Active instance resides in heap memory.',
-                        style: theme.subtleTextStyle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ],
@@ -132,7 +140,9 @@ class WireDetailDrawer extends StatelessWidget {
               ] else ...[
                 Text(
                   'Cannot force initialize async wire outside of circuit startup.',
-                  style: theme.subtleTextStyle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
 
@@ -144,7 +154,12 @@ class WireDetailDrawer extends StatelessWidget {
               _buildSectionHeader('Upstream Dependencies', theme),
               const SizedBox(height: 6),
               if (wire.dependencies.isEmpty)
-                Text('None (Root Dependency)', style: theme.subtleTextStyle)
+                Text(
+                  'None (Root Dependency)',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                )
               else
                 Wrap(
                   spacing: 6,

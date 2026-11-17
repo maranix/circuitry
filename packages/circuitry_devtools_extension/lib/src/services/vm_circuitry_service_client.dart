@@ -6,13 +6,12 @@ import 'package:circuitry_devtools_extension/src/services/circuitry_service_clie
 import 'package:vm_service/vm_service.dart';
 
 /// Real VM Service-backed implementation of [CircuitryServiceClient].
-final class VmCircuitryServiceClient implements CircuitryServiceClient {
-  VmCircuitryServiceClient(this._vmService)
-    : _eventController = StreamController<Map<String, Object?>>.broadcast() {
+final class VmCircuitryServiceClient(final VmService _vmService)
+    implements CircuitryServiceClient {
+  this : _eventController = .broadcast() {
     _initSubscription();
   }
 
-  final VmService _vmService;
   final StreamController<Map<String, Object?>> _eventController;
   StreamSubscription<Event>? _eventSubscription;
 
@@ -43,13 +42,16 @@ final class VmCircuitryServiceClient implements CircuitryServiceClient {
     final response = await _vmService.callServiceExtension(
       'ext.circuitry.getCircuits',
     );
-    final json = response.json;
-    if (json == null) return const [];
-
-    final list = json['circuits'] as List<dynamic>? ?? const [];
-    return list
-        .map((c) => CircuitSummary.fromJson((c as Map).cast<String, Object?>()))
-        .toList();
+    if (response.json case {'circuits': final List<Object?> list}) {
+      return [
+        for (final item in list)
+          if (item case final Map<String, Object?> map)
+            CircuitSummary.fromJson(map)
+          else if (item case final Map<Object?, Object?> map)
+            CircuitSummary.fromJson(map.cast<String, Object?>()),
+      ];
+    }
+    return const [];
   }
 
   @override
@@ -58,12 +60,10 @@ final class VmCircuitryServiceClient implements CircuitryServiceClient {
       'ext.circuitry.getCircuitGraph',
       args: {'id': circuitId},
     );
-    final json = response.json;
-    if (json == null) {
-      throw StateError('Empty response for circuit "$circuitId".');
+    if (response.json case final Map<String, Object?> json) {
+      return CircuitGraphData.fromJson(json);
     }
-
-    return CircuitGraphData.fromJson(json.cast<String, Object?>());
+    throw StateError('Empty response for circuit "$circuitId".');
   }
 
   @override
@@ -72,10 +72,10 @@ final class VmCircuitryServiceClient implements CircuitryServiceClient {
       'ext.circuitry.forceResolveWire',
       args: {'id': circuitId, 'key': wireKey},
     );
-    final json = response.json;
-    if (json == null) return false;
-
-    return json['success'] == true;
+    return switch (response.json) {
+      {'success': true} => true,
+      _ => false,
+    };
   }
 
   @override

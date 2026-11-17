@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:circuitry_devtools_extension/src/controllers/circuitry_devtools_controller.dart';
 import 'package:devtools_app_shared/ui.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Top action and search toolbar for filtering, highlighting, and exporting graph data.
 class DevToolsToolbar extends StatefulWidget {
@@ -88,14 +88,43 @@ class _DevToolsToolbarState extends State<DevToolsToolbar> {
             ),
             const SizedBox(width: defaultSpacing),
 
-            // Search Field using DevToolsClearableTextField
+            // Search Field
             SizedBox(
               width: 260,
-              child: DevToolsClearableTextField(
+              height: 28,
+              child: TextField(
                 controller: _searchController,
-                hintText: 'Filter by type or tag (e.g. .prod, Auth)...',
-                prefixIcon: const Icon(Icons.search, size: 16),
                 onChanged: controller.setSearchQuery,
+                style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+                textAlignVertical: TextAlignVertical.center,
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: denseSpacing,
+                    vertical: 4,
+                  ),
+                  hintText: 'Filter by type or tag (e.g. .prod, Auth)...',
+                  hintStyle: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    fontSize: 11,
+                  ),
+                  prefixIcon: const Icon(Icons.search, size: 16),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 14),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            _searchController.clear();
+                            controller.setSearchQuery('');
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4.0),
+                    borderSide: BorderSide(color: colorScheme.outlineVariant),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: defaultSpacing),
