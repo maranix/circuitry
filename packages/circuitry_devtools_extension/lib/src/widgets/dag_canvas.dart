@@ -6,11 +6,10 @@ import 'package:material_ui/material_ui.dart';
 
 /// Center workspace visualizing the Directed Acyclic Graph (DAG) with topological wave columns,
 /// smooth cubic Bézier splines, status styling, and dependency illumination.
-class DagCanvas extends StatefulWidget {
-  const DagCanvas({super.key, required this.controller});
-
-  final CircuitryDevToolsController controller;
-
+class const DagCanvas({
+  super.key,
+  required final CircuitryDevToolsController controller,
+}) extends StatefulWidget {
   @override
   State<DagCanvas> createState() => _DagCanvasState();
 }
@@ -398,29 +397,17 @@ class _DagCanvasState extends State<DagCanvas> {
   }
 }
 
-class _DagEdgesPainter extends CustomPainter {
-  const _DagEdgesPainter({
-    required this.graph,
-    required this.positions,
-    required this.nodeWidth,
-    required this.nodeHeight,
-    required this.selectedKey,
-    required this.dependencies,
-    required this.dependents,
-    required this.criticalPath,
-    required this.isDark,
-  });
-
-  final CircuitGraphData graph;
-  final Map<String, Offset> positions;
-  final double nodeWidth;
-  final double nodeHeight;
-  final String? selectedKey;
-  final Set<String> dependencies;
-  final Set<String> dependents;
-  final Set<String> criticalPath;
-  final bool isDark;
-
+class const _DagEdgesPainter({
+  required final CircuitGraphData graph,
+  required final Map<String, Offset> positions,
+  required final double nodeWidth,
+  required final double nodeHeight,
+  required final String? selectedKey,
+  required final Set<String> dependencies,
+  required final Set<String> dependents,
+  required final Set<String> criticalPath,
+  required final bool isDark,
+}) extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     for (final wire in graph.wires) {

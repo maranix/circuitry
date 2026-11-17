@@ -16,8 +16,8 @@ void main() {
     late CircuitryDevToolsController controller;
 
     setUp(() async {
-      client = MockCircuitryServiceClient();
-      controller = CircuitryDevToolsController(client);
+      client = .new();
+      controller = .new(client);
       await controller.init();
     });
 

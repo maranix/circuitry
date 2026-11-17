@@ -19,19 +19,18 @@ enum CircuitLifecycleStatus {
     required int wireCount,
     required int initializedWireCount,
     bool hasFailed = false,
-  }) {
-    if (isDisposed) return CircuitLifecycleStatus.disposed;
-    if (hasFailed) return CircuitLifecycleStatus.failed;
-    if (wireCount == 0) return CircuitLifecycleStatus.building;
-    return CircuitLifecycleStatus.ready;
-  }
+  }) => switch ((isDisposed, hasFailed, wireCount)) {
+    (true, _, _) => .disposed,
+    (_, true, _) => .failed,
+    (_, _, 0) => .building,
+    _ => .ready,
+  };
 
   /// Parses a status name (case-insensitive) into a [CircuitLifecycleStatus].
-  static CircuitLifecycleStatus fromName(String? name) =>
-      switch (name?.toLowerCase()) {
-        'building' => building,
-        'failed' => failed,
-        'disposed' => disposed,
-        _ => ready,
-      };
+  factory fromName(String? name) => switch (name?.toLowerCase()) {
+    'building' => .building,
+    'failed' => .failed,
+    'disposed' => .disposed,
+    _ => .ready,
+  };
 }

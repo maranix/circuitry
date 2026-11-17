@@ -298,25 +298,28 @@ final class CircuitGraphData({
       'wires': final List<Object?> rawWires,
       'topologicalOrder': final List<Object?> rawTopological,
     }) {
-      final debugTag = json['debugTag'] as String?;
-      final wires = [
+      final debugTag = switch (json['debugTag']) {
+        final String s => s,
+        _ => null,
+      };
+      final wires = <WireNode>[
         for (final raw in rawWires)
           if (raw case final Map<String, Object?> m)
-            WireNode.fromJson(m)
+            .fromJson(m)
           else if (raw case final Map<Object?, Object?> m)
-            WireNode.fromJson(m.cast<String, Object?>()),
+            .fromJson(m.cast<String, Object?>()),
       ];
       final waves = <int, List<WireNode>>{};
       if (json['waves'] case final Map<Object?, Object?> rawWaves) {
         for (final MapEntry(:key, :value) in rawWaves.entries) {
           if (int.tryParse('$key') case final int level) {
             if (value case final List<Object?> rawWaveList) {
-              waves[level] = [
+              waves[level] = <WireNode>[
                 for (final raw in rawWaveList)
                   if (raw case final Map<String, Object?> m)
-                    WireNode.fromJson(m)
+                    .fromJson(m)
                   else if (raw case final Map<Object?, Object?> m)
-                    WireNode.fromJson(m.cast<String, Object?>()),
+                    .fromJson(m.cast<String, Object?>()),
               ];
             }
           }

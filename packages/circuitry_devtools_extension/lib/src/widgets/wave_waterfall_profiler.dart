@@ -7,11 +7,10 @@ import 'package:material_ui/material_ui.dart';
 
 /// Gantt-style timeline waterfall profiler visualizing parallel topological wave execution,
 /// singleton startup durations, and critical path bottlenecks.
-class WaveWaterfallProfiler extends StatelessWidget {
-  const WaveWaterfallProfiler({super.key, required this.controller});
-
-  final CircuitryDevToolsController controller;
-
+class const WaveWaterfallProfiler({
+  super.key,
+  required final CircuitryDevToolsController controller,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final graph = controller.graphData;

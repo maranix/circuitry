@@ -6,11 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Top action and search toolbar for filtering, highlighting, and exporting graph data.
-class DevToolsToolbar extends StatefulWidget {
-  const DevToolsToolbar({super.key, required this.controller});
-
-  final CircuitryDevToolsController controller;
-
+class const DevToolsToolbar({
+  super.key,
+  required final CircuitryDevToolsController controller,
+}) extends StatefulWidget {
   @override
   State<DevToolsToolbar> createState() => _DevToolsToolbarState();
 }

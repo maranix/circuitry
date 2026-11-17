@@ -10,12 +10,12 @@ void main() {
 }
 
 /// Root application widget for the Circuitry DevTools Extension.
-class CircuitryDevToolsApp extends StatelessWidget {
-  const CircuitryDevToolsApp({super.key, this.serviceClient});
+class const CircuitryDevToolsApp({
+  super.key,
 
   /// Optional override client for testing or standalone execution.
-  final CircuitryServiceClient? serviceClient;
-
+  final CircuitryServiceClient? serviceClient,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DevToolsExtension(

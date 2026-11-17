@@ -55,10 +55,22 @@ final class const WireNode({
         final List<Object?> deps => deps.whereType<String>().toList(),
         _ => const <String>[],
       };
-      final isResolving = json['isResolving'] as bool? ?? false;
-      final hasFailed = json['hasFailed'] as bool? ?? false;
-      final durationMs = (json['durationMs'] as num?)?.toInt();
-      final errorMessage = json['errorMessage'] as String?;
+      final isResolving = switch (json['isResolving']) {
+        final bool b => b,
+        _ => false,
+      };
+      final hasFailed = switch (json['hasFailed']) {
+        final bool b => b,
+        _ => false,
+      };
+      final durationMs = switch (json['durationMs']) {
+        final num n => n.toInt(),
+        _ => null,
+      };
+      final errorMessage = switch (json['errorMessage']) {
+        final String s => s,
+        _ => null,
+      };
 
       return WireNode(
         key: key,

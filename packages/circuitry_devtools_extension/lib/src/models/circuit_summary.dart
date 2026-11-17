@@ -36,15 +36,18 @@ final class const CircuitSummary({
       'initializedWireCount': final num initializedWireCount,
       'maxLevel': final num maxLevel,
     }) {
-      final debugTag = json['debugTag'] as String?;
-      final statusString = json['status'] as String?;
-      final status = statusString != null
-          ? CircuitLifecycleStatus.fromName(statusString)
-          : CircuitLifecycleStatus.fromState(
-              isDisposed: isDisposed,
-              wireCount: wireCount.toInt(),
-              initializedWireCount: initializedWireCount.toInt(),
-            );
+      final debugTag = switch (json['debugTag']) {
+        final String s => s,
+        _ => null,
+      };
+      final status = switch (json['status']) {
+        final String s => CircuitLifecycleStatus.fromName(s),
+        _ => CircuitLifecycleStatus.fromState(
+          isDisposed: isDisposed,
+          wireCount: wireCount.toInt(),
+          initializedWireCount: initializedWireCount.toInt(),
+        ),
+      };
 
       return CircuitSummary(
         id: id,

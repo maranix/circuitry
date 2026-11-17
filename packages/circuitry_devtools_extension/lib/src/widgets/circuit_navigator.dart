@@ -5,11 +5,10 @@ import 'package:devtools_app_shared/ui.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Sidebar navigator displaying the detected [Circuit] containers running in the app.
-class CircuitNavigator extends StatelessWidget {
-  const CircuitNavigator({super.key, required this.controller});
-
-  final CircuitryDevToolsController controller;
-
+class const CircuitNavigator({
+  super.key,
+  required final CircuitryDevToolsController controller,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -71,17 +70,11 @@ class CircuitNavigator extends StatelessWidget {
   }
 }
 
-class _CircuitCard extends StatelessWidget {
-  const _CircuitCard({
-    required this.circuit,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final CircuitSummary circuit;
-  final bool isSelected;
-  final VoidCallback onTap;
-
+class const _CircuitCard({
+  required final CircuitSummary circuit,
+  required final bool isSelected,
+  required final VoidCallback onTap,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -17,7 +17,7 @@ void main() {
         'status': 'ready',
       };
 
-      final summary = CircuitSummary.fromJson(json);
+      final CircuitSummary summary = .fromJson(json);
       expect(summary.id, 'circuit_0');
       expect(summary.debugTag, 'AppScope.global');
       expect(summary.wireCount, 6);
@@ -80,7 +80,7 @@ void main() {
         'durationMs': 12,
       };
 
-      final node = WireNode.fromJson(json);
+      final WireNode node = .fromJson(json);
       expect(node.key, 'AnalyticsService#prod');
       expect(node.dependencies, ['Logger']);
       expect(node.isAsync, isFalse);

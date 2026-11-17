@@ -43,12 +43,12 @@ final class VmCircuitryServiceClient(final VmService _vmService)
       'ext.circuitry.getCircuits',
     );
     if (response.json case {'circuits': final List<Object?> list}) {
-      return [
+      return <CircuitSummary>[
         for (final item in list)
           if (item case final Map<String, Object?> map)
-            CircuitSummary.fromJson(map)
+            .fromJson(map)
           else if (item case final Map<Object?, Object?> map)
-            CircuitSummary.fromJson(map.cast<String, Object?>()),
+            .fromJson(map.cast<String, Object?>()),
       ];
     }
     return const [];
@@ -61,7 +61,7 @@ final class VmCircuitryServiceClient(final VmService _vmService)
       args: {'id': circuitId},
     );
     if (response.json case final Map<String, Object?> json) {
-      return CircuitGraphData.fromJson(json);
+      return .fromJson(json);
     }
     throw StateError('Empty response for circuit "$circuitId".');
   }

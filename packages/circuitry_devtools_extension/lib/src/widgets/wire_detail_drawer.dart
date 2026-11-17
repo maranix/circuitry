@@ -5,11 +5,10 @@ import 'package:material_ui/material_ui.dart';
 
 /// Right drawer panel inspecting a selected [WireNode], its dependency links,
 /// and live on-demand initialization actions.
-class WireDetailDrawer extends StatelessWidget {
-  const WireDetailDrawer({super.key, required this.controller});
-
-  final CircuitryDevToolsController controller;
-
+class const WireDetailDrawer({
+  super.key,
+  required final CircuitryDevToolsController controller,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(

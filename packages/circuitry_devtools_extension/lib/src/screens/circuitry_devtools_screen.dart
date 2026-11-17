@@ -10,11 +10,10 @@ import 'package:material_ui/material_ui.dart';
 
 /// Root DevTools extension screen hosting the Circuit Navigator, Interactive DAG Canvas,
 /// Startup Wave Waterfall, and Wire Detail Drawer.
-class CircuitryDevToolsScreen extends StatefulWidget {
-  const CircuitryDevToolsScreen({super.key, required this.serviceClient});
-
-  final CircuitryServiceClient serviceClient;
-
+class const CircuitryDevToolsScreen({
+  super.key,
+  required final CircuitryServiceClient serviceClient,
+}) extends StatefulWidget {
   @override
   State<CircuitryDevToolsScreen> createState() =>
       _CircuitryDevToolsScreenState();
@@ -26,7 +25,7 @@ class _CircuitryDevToolsScreenState extends State<CircuitryDevToolsScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = CircuitryDevToolsController(widget.serviceClient);
+    _controller = .new(widget.serviceClient);
     _controller.init();
   }
 
