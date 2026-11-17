@@ -1,0 +1,5 @@
+name: circuitry
+issueTracker: https://github.com/maranix/circuitry/issues
+version: 0.1.0
+materialIconCodePoint: '0xe88a'
+requiresConnection: true

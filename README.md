@@ -33,6 +33,7 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
 5. **Reverse Topological Wave Disposal**: Idempotent teardown in reverse dependency waves (`leaves -> roots`), awaiting asynchronous `onDispose` callbacks concurrently and aggregating errors into `DisposalException`.
 6. **Flutter Lifecycle Integration & Scoped Registries**: `CircuitProvider` manages async build lifecycles, didUpdateWidget monotonic compilation epoch race prevention, unmount teardown, and ambient `Map<Enum, Circuit>` scoping for nested tagged providers with **O(1)** retrieval (`CircuitProvider.of(context, tag: Scope.global)`).
 7. **On-Demand Introspection & Exporters**: `circuit.inspect()` provides on-demand DAG inspection (`dependentsOf`, `dependenciesOf`, `topologicalOrder`), valid Mermaid flowchart generation (`toMermaid()`), and structured JSON serialization (`toJson()`), fully tree-shaken in release builds when unused.
+8. **DevTools Integration & Universal Extension Host**: Ambient `CircuitRegistry` tracks containers in debug mode, exposing VM Service endpoints (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`) and streaming lifecycle events via `developer.postEvent`. Preconfigured `extension/devtools/config.yaml` provides universal DevTools extension discovery across CLI, server, and Flutter runtimes.
 
 ---
 
@@ -47,10 +48,11 @@ circuitry/
 │   └── plan.md                    # Active roadmap and checklist
 ├── packages/
 │   ├── circuitry/                 # Pure Dart dependency injection engine
+│   │   ├── extension/             # Dart & Flutter DevTools extension configuration
 │   │   ├── lib/
 │   │   │   ├── circuitry.dart     # Public barrel export
-│   │   │   └── src/               # Core engine implementation (circuit, graph, wire, utils, extensions)
-│   │   └── test/                  # Unit tests for DAG, waves, laziness, and disposal
+│   │   │   └── src/               # Core engine implementation (circuit, graph, wire, registry, utils, extensions)
+│   │   └── test/                  # Unit tests for DAG, waves, laziness, disposal, and registry
 │   └── circuitry_flutter/         # Flutter companion package
 │       ├── lib/
 │       │   ├── circuitry_flutter.dart # Public barrel export

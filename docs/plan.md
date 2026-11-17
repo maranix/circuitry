@@ -14,6 +14,7 @@
 
 ## Done this release
 
+- Add ambient CircuitRegistry, VM Service extensions, and DevTools packaging to circuitry (#11).
 - Add core introspection API with reverse dependency queries and Mermaid/JSON export (#4).
 - Fail fast on async wave resolution with immediate rollback (#9).
 - Modularize Circuit and extract DAG compiler to CircuitGraph (#7).

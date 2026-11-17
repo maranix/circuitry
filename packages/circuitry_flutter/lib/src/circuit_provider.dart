@@ -250,6 +250,13 @@ final class const _CircuitValueProvider({
 
   @override
   Widget build(BuildContext context) {
+    assert(() {
+      if (tag != null) {
+        CircuitRegistry.instance.setTag(value, tag!.name);
+      }
+      return true;
+    }());
+
     final parentScope = context
         .dependOnInheritedWidgetOfExactType<_CircuitScope>();
     final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};
@@ -330,7 +337,7 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
 
   void _startCompilation() {
     final currentEpoch = ++_compilationEpoch;
-    Circuit.build(widget.wires).then(
+    Circuit.build(widget.wires, tag: widget.tag?.name).then(
       (circuit) {
         if (!mounted || currentEpoch != _compilationEpoch) {
           circuit.dispose().ignore();

@@ -51,6 +51,8 @@ export 'src/extensions.dart';
 
 export 'src/introspection.dart' hide CircuitIntrospectionImpl;
 
+export 'src/registry.dart';
+
 export 'src/wire.dart'
     hide
         AsyncWireBuilder,
