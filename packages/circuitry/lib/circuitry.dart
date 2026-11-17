@@ -47,6 +47,8 @@ export 'src/circuit.dart';
 
 export 'src/exceptions.dart';
 
+export 'src/extensions.dart';
+
 export 'src/wire.dart'
     hide
         AsyncWireBuilder,

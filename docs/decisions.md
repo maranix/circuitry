@@ -1,5 +1,27 @@
 # Decisions
 
+## 2026-11-17: Modular DAG Compiler and Container Decomposition (Issue #7)
+
+- **Status:** agreed
+- **Request:** Resolve [Issue #7: Decompose monolithic Circuit class into CircuitGraph and runtime container](https://github.com/maranix/circuitry/issues/7). Make `packages/circuitry/lib/src/circuit.dart` modular, maintainable, and easy to reason about by decoupling static DAG compilation and validation from runtime instance management and lifecycle execution.
+- **Scope:** `packages/circuitry/lib/src/`, architectural documentation, and project plans.
+- **Choices:**
+  - **Decoupled `CircuitGraph` Compiler (`packages/circuitry/lib/src/graph.dart`):**
+    - Instantiated as an internal graph instance (`final graph = CircuitGraph(wires); graph.compile();`).
+    - Exposes public validation methods on the graph instance (`validateDuplicates()`, `validateDependencies()`, `detectCycles()`, `computeTopologicalLevels()`) for isolated testing and maintenance.
+    - Precomputes wave buckets (`wiresByLevel`, `asyncWiresByLevel`) during `compile()` for O(1) wave execution access during build and disposal.
+    - Strictly internal to `packages/circuitry/lib/src/` (not exported in `lib/circuitry.dart`).
+  - **Focused `Circuit` Container (`packages/circuitry/lib/src/circuit.dart`):**
+    - Streamlined from 297 lines to 157 lines of focused container and lifecycle logic.
+    - Symmetrical wave lifecycles: forward async waves ($0 \rightarrow \text{maxLevel}$) during `build` and reverse disposal waves ($\text{maxLevel} \rightarrow 0$) during `dispose`.
+    - Encapsulates instance memoization (`_instances`) and reentrancy protection (`_creating`) for lazy synchronous retrieval (`get`, `getTagged`).
+  - **Separated Utilities and Extensions (`src/utils.dart` & `src/extensions.dart`):**
+    - Centralizes `formatWireKey(WireKey key)` in dedicated `packages/circuitry/lib/src/utils.dart`.
+    - Extracts `WireKeyFormatting on WireKey` extension into dedicated `packages/circuitry/lib/src/extensions.dart`, exported in `lib/circuitry.dart`.
+  - **Zero Breaking Changes:**
+    - All public API contracts (`Circuit.build`, `circuit.get`, `circuit.getTagged`, `circuit.dispose`, `circuit.isInitialized`) remain identical and backward-compatible.
+    - `CircuitGraph` is internal to `packages/circuitry/lib/src/` to avoid polluting the public barrel export.
+
 ## 2026-11-16: Compute-Optimized CI Workflows
 
 - **Status:** agreed

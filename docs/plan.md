@@ -150,4 +150,43 @@
     - [x] Record plan entry in `docs/plan.md`.
 
 ## Next
+- [x] Modularize Circuit and Extract DAG Compiler to CircuitGraph (Issue #7)
+  - Status: done
+  - Release: 0.2.0
+  - Goal: Decompose the monolithic `Circuit` class into modular, single-responsibility units by separating static DAG compilation & validation from the runtime DI container and lifecycle execution.
+  - Requirements:
+    - Extract DAG static validation (duplicate keys, missing dependencies, cycle detection) and topological level computation from `packages/circuitry/lib/src/circuit.dart` into a dedicated `CircuitGraph` in `packages/circuitry/lib/src/graph.dart`.
+    - Provide O(1) wave-level access (`wiresAtLevel`, `asyncWiresAtLevel`) via precomputed wave buckets in `CircuitGraph`.
+    - Unify `WireKey` string formatting with `formatWireKey` and `WireKeyFormatting` extension in `packages/circuitry/lib/src/wire.dart`.
+    - Streamline `Circuit` to focus strictly on runtime instance registry, lazy instantiation with reentrancy protection, parallel async wave resolution, and reverse topological wave disposal.
+    - Keep public API contracts 100% backward-compatible (zero changes for consumers of `circuitry` and `circuitry_flutter`).
+    - Maintain zero Flutter/codegen/reflection dependencies in `packages/circuitry`.
+    - All existing unit and widget tests must pass without regressions.
+  - Approach:
+    - Create `packages/circuitry/lib/src/graph.dart` defining `CircuitGraph` instantiated with `CircuitGraph(wires)` and compiled via `.compile()`, exposing validation methods (`validateDuplicates`, `validateDependencies`, `detectCycles`, `computeTopologicalLevels`) for isolated testing.
+    - Create `packages/circuitry/lib/src/utils.dart` defining `formatWireKey(WireKey key)`.
+    - Create `packages/circuitry/lib/src/extensions.dart` defining `extension WireKeyFormatting on WireKey`, exported in `lib/circuitry.dart`.
+    - Refactor `Circuit` in `packages/circuitry/lib/src/circuit.dart` to instantiate and compile `CircuitGraph`.
+    - Add isolated unit tests in `packages/circuitry/test/graph_test.dart`.
+    - Update `docs/architecture.md`, `docs/decisions.md`, and `README.md` to reflect the new modules.
+  - Alternatives:
+    - Keep everything in a single monolithic file (`circuit.dart`): Rejected because conflating static graph algorithms with runtime container state and lifecycle makes maintenance, reasoning, and future extensions difficult.
+    - Create separate files for each validation check (`duplicate_checker.dart`, `cycle_detector.dart`, etc.): Rejected per mobile conventions rule 23 (avoid over-splitting/scattering one cohesive domain across too many tiny files).
+  - Sub-steps:
+    - [x] Record decision in `docs/decisions.md`.
+    - [x] Implement `formatWireKey` in `packages/circuitry/lib/src/utils.dart`.
+    - [x] Implement `WireKeyFormatting` in `packages/circuitry/lib/src/extensions.dart` and export in `lib/circuitry.dart`.
+    - [x] Implement `CircuitGraph` in `packages/circuitry/lib/src/graph.dart` with instance compilation and isolated validation methods.
+    - [x] Refactor `Circuit` in `packages/circuitry/lib/src/circuit.dart` to use `CircuitGraph`.
+    - [x] Add isolated unit test suite in `packages/circuitry/test/graph_test.dart`.
+    - [x] Update `docs/architecture.md` and `README.md` module layout.
+    - [x] Verify full test suite across pure Dart and Flutter (`dart test` + `flutter test`).
+    - [x] Run full verification gate (`dart format`, `flutter analyze --fatal-infos --fatal-warnings`).
+  - Acceptance:
+    - All 90 unit & widget tests pass (46 circuit + 9 graph + 35 provider).
+    - Zero warnings or infos under strict analysis.
+    - `circuit.dart` is clean, concise (~150 lines), and focused on container responsibilities.
+    - `CircuitGraph` supports isolated unit testing.
+  - Docs: `docs/architecture.md`, `docs/decisions.md`, `README.md`.
+  - Links: `docs/decisions.md#2026-11-17-modular-dag-compiler-and-container-decomposition`.
 - [ ] Publish v0.1.0 to pub.dev

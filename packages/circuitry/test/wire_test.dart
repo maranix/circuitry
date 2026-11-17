@@ -302,4 +302,16 @@ void main() {
       },
     );
   });
+
+  group('WireKey Formatting Extension', () {
+    test('formats untagged key as Type', () {
+      const WireKey key = (DatabaseService, null);
+      expect(key.format(), equals('DatabaseService'));
+    });
+
+    test('formats tagged key as Type#tag', () {
+      const WireKey key = (DatabaseService, Environment.prod);
+      expect(key.format(), equals('DatabaseService#Environment.prod'));
+    });
+  });
 }
