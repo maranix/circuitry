@@ -1,80 +1,95 @@
 import 'package:circuitry/src/exceptions.dart';
+import 'package:circuitry/src/utils.dart';
 import 'package:circuitry/src/wire.dart';
 
-/// Represents a compiled and validated Directed Acyclic Graph (DAG) of dependency wire recipes.
+/// Represents a Directed Acyclic Graph (DAG) of dependency wire recipes.
 ///
-/// Encapsulates DAG static validation (duplicate keys, missing dependencies, cycle detection)
-/// and topological depth analysis for wave-based resolution and reverse disposal.
+/// Encapsulates DAG compilation, static validation (duplicate keys, missing dependencies,
+/// cycle detection), and topological depth analysis for wave-based resolution and disposal.
 final class CircuitGraph {
+  /// The list of raw wire recipes provided to this graph.
+  final List<CircuitWire> wires;
+
+  Map<WireKey, CircuitWire>? _wireMap;
+  Map<WireKey, int>? _levels;
+  int? _maxLevel;
+  List<List<CircuitWire>>? _wiresByLevel;
+  List<List<AsyncWire<Object?>>>? _asyncWiresByLevel;
+
+  /// Whether this graph has been compiled via [compile].
+  bool get isCompiled => _wireMap != null;
+
   /// Unmodifiable map of wire keys to their registered [CircuitWire] recipes.
-  final Map<WireKey, CircuitWire> wires;
+  ///
+  /// Throws [StateError] if this graph has not been compiled.
+  Map<WireKey, CircuitWire> get wireMap {
+    _checkCompiled();
+    return _wireMap!;
+  }
 
   /// Unmodifiable map associating each wire key with its topological level (0 = roots).
-  final Map<WireKey, int> levels;
+  ///
+  /// Throws [StateError] if this graph has not been compiled.
+  Map<WireKey, int> get levels {
+    _checkCompiled();
+    return _levels!;
+  }
 
   /// The maximum topological level present in the compiled graph.
-  final int maxLevel;
-
-  final List<List<CircuitWire>> _wiresByLevel;
-  final List<List<AsyncWire<Object?>>> _asyncWiresByLevel;
-
-  const CircuitGraph._({
-    required this.wires,
-    required this.levels,
-    required this.maxLevel,
-    required this._wiresByLevel,
-    required this._asyncWiresByLevel,
-  });
-
-  /// Compiles and validates a dependency graph from [wires].
   ///
-  /// Validates the graph for:
-  /// - Duplicate wire keys -> throws [DuplicateWireException]
-  /// - Missing dependencies -> throws [MissingWireException]
-  /// - Circular dependencies -> throws [CircularDependencyException]
-  ///
-  /// Computes topological levels and precomputes wave buckets for parallel execution.
-  factory CircuitGraph.compile(List<CircuitWire> wires) {
-    _validateNoDuplicates(wires);
+  /// Throws [StateError] if this graph has not been compiled.
+  int get maxLevel {
+    _checkCompiled();
+    return _maxLevel!;
+  }
 
-    final wireMap = <WireKey, CircuitWire>{
+  /// Creates an uncompiled [CircuitGraph] with the given [wires].
+  CircuitGraph(this.wires);
+
+  /// Compiles and validates the dependency graph.
+  ///
+  /// Runs in sequence:
+  /// 1. [validateDuplicates] -> throws [DuplicateWireException]
+  /// 2. [validateDependencies] -> throws [MissingWireException]
+  /// 3. [detectCycles] -> throws [CircularDependencyException]
+  /// 4. [computeTopologicalLevels] -> computes topological depth and wave buckets
+  ///
+  /// Returns `this` for fluent chaining.
+  CircuitGraph compile() {
+    validateDuplicates();
+    final map = <WireKey, CircuitWire>{
       for (final wire in wires) wire.key: wire,
     };
+    validateDependencies(map);
+    detectCycles(map);
 
-    _validateDependencies(wireMap);
-    _detectCycles(wireMap);
-
-    final (levels, maxLevel) = _computeTopologicalLevels(wireMap);
+    final (levelsMap, computedMaxLevel) = computeTopologicalLevels(map);
 
     final wiresByLevel = List.generate(
-      maxLevel + 1,
-      (level) => wireMap.values.where((w) => levels[w.key] == level).toList(),
+      computedMaxLevel + 1,
+      (level) => map.values.where((w) => levelsMap[w.key] == level).toList(),
       growable: false,
     );
 
     final asyncWiresByLevel = List.generate(
-      maxLevel + 1,
+      computedMaxLevel + 1,
       (level) => wiresByLevel[level].whereType<AsyncWire<Object?>>().toList(),
       growable: false,
     );
 
-    return CircuitGraph._(
-      wires: Map.unmodifiable(wireMap),
-      levels: Map.unmodifiable(levels),
-      maxLevel: maxLevel,
-      wiresByLevel: wiresByLevel,
-      asyncWiresByLevel: asyncWiresByLevel,
-    );
+    _wireMap = Map.unmodifiable(map);
+    _levels = Map.unmodifiable(levelsMap);
+    _maxLevel = computedMaxLevel;
+    _wiresByLevel = wiresByLevel;
+    _asyncWiresByLevel = asyncWiresByLevel;
+
+    return this;
   }
 
-  /// Returns all wires scheduled at the specified topological [level].
-  List<CircuitWire> wiresAtLevel(int level) => _wiresByLevel[level];
-
-  /// Returns all [AsyncWire]s scheduled at the specified topological [level].
-  List<AsyncWire<Object?>> asyncWiresAtLevel(int level) =>
-      _asyncWiresByLevel[level];
-
-  static void _validateNoDuplicates(List<CircuitWire> wires) {
+  /// Validates that no duplicate wire keys are registered.
+  ///
+  /// Throws [DuplicateWireException] if multiple wires share the same [WireKey].
+  void validateDuplicates() {
     final seen = <WireKey>{};
     for (final wire in wires) {
       if (!seen.add(wire.key)) {
@@ -86,10 +101,14 @@ final class CircuitGraph {
     }
   }
 
-  static void _validateDependencies(Map<WireKey, CircuitWire> wireMap) {
-    for (final wire in wireMap.values) {
+  /// Validates that all declared dependencies exist in the graph.
+  ///
+  /// Throws [MissingWireException] if any dependency key is missing.
+  void validateDependencies([Map<WireKey, CircuitWire>? lookupMap]) {
+    final map = lookupMap ?? _lookupMap();
+    for (final wire in map.values) {
       for (final depKey in wire.dependencies) {
-        if (!wireMap.containsKey(depKey)) {
+        if (!map.containsKey(depKey)) {
           throw MissingWireException(
             'Missing wire for dependency ${formatWireKey(depKey)} required by ${formatWireKey(wire.key)}.',
             missingKey: depKey,
@@ -100,7 +119,11 @@ final class CircuitGraph {
     }
   }
 
-  static void _detectCycles(Map<WireKey, CircuitWire> wireMap) {
+  /// Detects circular dependencies within the graph using depth-first search (DFS).
+  ///
+  /// Throws [CircularDependencyException] if a cycle is found.
+  void detectCycles([Map<WireKey, CircuitWire>? lookupMap]) {
+    final map = lookupMap ?? _lookupMap();
     final visitState =
         <WireKey, int>{}; // 0 = unvisited, 1 = visiting, 2 = visited
     final recursionStack = <WireKey>[];
@@ -109,18 +132,20 @@ final class CircuitGraph {
       visitState[current] = 1;
       recursionStack.add(current);
 
-      final currentWire = wireMap[current]!;
-      for (final depKey in currentWire.dependencies) {
-        final state = visitState[depKey] ?? 0;
-        if (state == 1) {
-          final cycleStartIndex = recursionStack.indexOf(depKey);
-          final cycle = [...recursionStack.sublist(cycleStartIndex), depKey];
-          throw CircularDependencyException(
-            'Circular dependency detected: ${cycle.map(formatWireKey).join(' -> ')}',
-            cycle: List.unmodifiable(cycle),
-          );
-        } else if (state == 0) {
-          checkCycle(depKey);
+      final currentWire = map[current];
+      if (currentWire != null) {
+        for (final depKey in currentWire.dependencies) {
+          final state = visitState[depKey] ?? 0;
+          if (state == 1) {
+            final cycleStartIndex = recursionStack.indexOf(depKey);
+            final cycle = [...recursionStack.sublist(cycleStartIndex), depKey];
+            throw CircularDependencyException(
+              'Circular dependency detected: ${cycle.map(formatWireKey).join(' -> ')}',
+              cycle: List.unmodifiable(cycle),
+            );
+          } else if (state == 0) {
+            checkCycle(depKey);
+          }
         }
       }
 
@@ -128,24 +153,28 @@ final class CircuitGraph {
       visitState[current] = 2;
     }
 
-    for (final key in wireMap.keys) {
+    for (final key in map.keys) {
       if ((visitState[key] ?? 0) == 0) {
         checkCycle(key);
       }
     }
   }
 
-  static (Map<WireKey, int> levels, int maxLevel) _computeTopologicalLevels(
-    Map<WireKey, CircuitWire> wireMap,
-  ) {
+  /// Computes topological levels for each wire key in the graph.
+  ///
+  /// Returns a record tuple `(Map<WireKey, int> levels, int maxLevel)`.
+  (Map<WireKey, int> levels, int maxLevel) computeTopologicalLevels([
+    Map<WireKey, CircuitWire>? lookupMap,
+  ]) {
+    final map = lookupMap ?? _lookupMap();
     final levels = <WireKey, int>{};
 
     int computeLevel(WireKey key) {
       if (levels.containsKey(key)) {
         return levels[key]!;
       }
-      final wire = wireMap[key]!;
-      if (wire.dependencies.isEmpty) {
+      final wire = map[key];
+      if (wire == null || wire.dependencies.isEmpty) {
         levels[key] = 0;
         return 0;
       }
@@ -162,7 +191,7 @@ final class CircuitGraph {
     }
 
     var maxLevel = 0;
-    for (final key in wireMap.keys) {
+    for (final key in map.keys) {
       final lvl = computeLevel(key);
       if (lvl > maxLevel) {
         maxLevel = lvl;
@@ -170,5 +199,32 @@ final class CircuitGraph {
     }
 
     return (levels, maxLevel);
+  }
+
+  /// Returns all wires scheduled at the specified topological [level].
+  ///
+  /// Throws [StateError] if this graph has not been compiled.
+  List<CircuitWire> wiresAtLevel(int level) {
+    _checkCompiled();
+    return _wiresByLevel![level];
+  }
+
+  /// Returns all [AsyncWire]s scheduled at the specified topological [level].
+  ///
+  /// Throws [StateError] if this graph has not been compiled.
+  List<AsyncWire<Object?>> asyncWiresAtLevel(int level) {
+    _checkCompiled();
+    return _asyncWiresByLevel![level];
+  }
+
+  Map<WireKey, CircuitWire> _lookupMap() =>
+      _wireMap ?? {for (final wire in wires) wire.key: wire};
+
+  void _checkCompiled() {
+    if (!isCompiled) {
+      throw StateError(
+        'CircuitGraph has not been compiled. Call compile() before accessing graph properties.',
+      );
+    }
   }
 }

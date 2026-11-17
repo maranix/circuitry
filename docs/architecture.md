@@ -13,7 +13,9 @@ circuitry/
 │   │   │   └── src/               # Modular source files
 │   │   │       ├── circuit.dart   # Circuit container and runtime lifecycle
 │   │   │       ├── exceptions.dart# CircuitException hierarchy with primary constructors
+│   │   │       ├── extensions.dart# WireKeyFormatting extension
 │   │   │       ├── graph.dart     # CircuitGraph: DAG compiler, static validation, wave precomputation
+│   │   │       ├── utils.dart     # Internal formatting and utility functions
 │   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, builders
 │   │   └── test/                  # Unit tests (DAG validation, waves, laziness, disposal)
 │   └── circuitry_flutter/         # Flutter framework bridge
@@ -154,11 +156,12 @@ flowchart TD
   - Multi-dependency accumulator unpacks nested record tuples (`(deps) => OrderService(deps.$1, deps.$2)`).
 
 ### 6. DAG Static Validation & Parallel Topological Wave Resolution
-- `Circuit.build(wires)` delegates to `CircuitGraph.compile(wires)` to execute full DAG validation before instantiation:
+- `Circuit.build(wires)` instantiates `CircuitGraph(wires)..compile()` to execute full DAG validation before instantiation:
   - Duplicate keys throw `DuplicateWireException`
   - Missing dependencies throw `MissingWireException`
   - Cycles throw `CircularDependencyException` with cycle paths
-- Precomputes topological levels and wave buckets (`wiresByLevel`, `asyncWiresByLevel`) in `CircuitGraph` for O(1) wave access.
+- `CircuitGraph` exposes validation methods (`validateDuplicates()`, `validateDependencies()`, `detectCycles()`, `computeTopologicalLevels()`) for isolated testing and maintenance.
+- Precomputes topological levels and wave buckets (`wiresByLevel`, `asyncWiresByLevel`) in `CircuitGraph` during `compile()` for O(1) wave access.
 - Resolves `AsyncWire`s in parallel topological waves using `Future.wait`. Automatically tears down partially initialized instances in reverse topological order if any wave throws.
 
 ### 7. Reverse Topological Wave Disposal

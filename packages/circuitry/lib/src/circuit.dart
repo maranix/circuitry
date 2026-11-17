@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:circuitry/src/exceptions.dart';
 import 'package:circuitry/src/graph.dart';
+import 'package:circuitry/src/utils.dart';
 import 'package:circuitry/src/wire.dart';
 
 /// A dependency injection container managing lazy synchronous singletons
@@ -39,7 +40,7 @@ final class Circuit {
   /// Once validated, all [AsyncWire]s are resolved in parallel topological waves
   /// using [Future.wait].
   static Future<Circuit> build(List<CircuitWire> wires) async {
-    final graph = CircuitGraph.compile(wires);
+    final graph = CircuitGraph(wires)..compile();
     final circuit = Circuit._(graph);
     await circuit._resolveAsyncWaves();
     return circuit;
@@ -70,7 +71,7 @@ final class Circuit {
       return _instances[key];
     }
 
-    final wire = _graph.wires[key];
+    final wire = _graph.wireMap[key];
     if (wire == null) {
       throw WireNotFoundException(
         'Wire for key ${formatWireKey(key)} not found in circuit.',
