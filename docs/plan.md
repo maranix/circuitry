@@ -12,7 +12,7 @@
 - **Approach:** Precompute reverse index during `CircuitGraph.compile()`, encapsulate inspection models in `src/introspection.dart`, and expose `circuit.inspect()`.
 - **Sub-steps:**
   - [x] 1. Reverse adjacency indexing and direct/transitive dependency queries in `CircuitGraph`.
-  - [ ] 2. Introspection models (`WireDescriptor`), `CircuitIntrospection` snapshot contract, and `circuit.inspect()`.
+  - [x] 2. Introspection models (`WireDescriptor`), `CircuitIntrospection` snapshot contract, and `circuit.inspect()`.
   - [ ] 3. Diagram exporter (`toMermaid`) and structured JSON serialization (`toJson`).
 - **Acceptance:** Full unit test suite covering reverse dependencies, transitive queries, introspection snapshots, and Mermaid/JSON exports with zero memory overhead and clean analysis.
 
