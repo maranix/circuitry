@@ -7,6 +7,12 @@ import 'package:circuitry/src/graph.dart';
 @pragma('vm:entry-point')
 Object? blackhole;
 
+class _BenchmarkAction implements CircuitAction {
+  final String dep;
+  _BenchmarkAction(this.dep);
+  String call() => dep;
+}
+
 // Helper to generate synthetic DAG of N nodes with multiple topological levels
 List<CircuitWire> _generateDag(int size) {
   final wires = <CircuitWire>[];
@@ -28,10 +34,17 @@ List<CircuitWire> _generateDag(int size) {
     final tag = _IndexTag.values[i % _IndexTag.values.length];
     final depTag = _IndexTag.values[depIndex % _IndexTag.values.length];
 
-    wires.add(
-      Wire.takesTagged<String, _IndexTag>(depTag)
-          .to((dep) => 'node_${i}_from_$dep', tag: tag),
-    );
+    if (i % 5 == 0) {
+      wires.add(
+        TriggerWire.takesTagged<String, _IndexTag>(depTag)
+            .to((dep) => _BenchmarkAction(dep), tag: tag),
+      );
+    } else {
+      wires.add(
+        Wire.takesTagged<String, _IndexTag>(depTag)
+            .to((dep) => 'node_${i}_from_$dep', tag: tag),
+      );
+    }
   }
 
   return wires;

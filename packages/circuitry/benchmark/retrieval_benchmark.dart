@@ -36,6 +36,13 @@ class TaggedService {
   TaggedService(this.label);
 }
 
+class CalculateTotalAction implements CircuitAction {
+  final ConfigService config;
+  CalculateTotalAction(this.config);
+
+  double call(double subtotal, double taxRate) => subtotal * (1 + taxRate);
+}
+
 /// Global volatile blackhole sink to prevent Dead-Code Elimination (DCE).
 /// Writing to this top-level variable prevents the Dart compiler (JIT and AOT)
 /// from optimizing away dependency retrieval loops or treating returned objects as dead.
@@ -53,6 +60,7 @@ void main() async {
     Wire.takes<OrderService>().to(NotificationService.new),
     Wire.tag(() => TaggedService('global-auth'), tag: AppScope.global),
     Wire.tag(() => TaggedService('feature-cart'), tag: AppScope.feature),
+    TriggerWire.takes<ConfigService>().to(CalculateTotalAction.new),
   ]);
 
   // Pre-instantiate all singletons so benchmarks strictly measure cached hot-path retrieval.
@@ -63,6 +71,7 @@ void main() async {
   circuit.get<NotificationService>();
   circuit.getTagged<TaggedService, AppScope>(AppScope.global);
   circuit.getTagged<TaggedService, AppScope>(AppScope.feature);
+  circuit.get<CalculateTotalAction>();
 
   print('================================================================');
   print('          CIRCUITRY HOT-PATH RETRIEVAL BENCHMARK SUITE          ');
@@ -158,6 +167,82 @@ void main() async {
     run: () {
       for (var i = 0; i < benchmarkIterations; i++) {
         blackhole = circuit.getTagged<TaggedService, AppScope>(AppScope.global);
+      }
+    },
+    iterations: benchmarkIterations,
+    rounds: sampleRounds,
+    loopOverheadMicros: loopOverheadMicros,
+  );
+
+  // Benchmark 5: Action Singleton Retrieval (TriggerWire via fast-path)
+  _benchmark(
+    name:
+        'Action Wire: circuit.get<CalculateTotalAction>() [Retained Singleton]',
+    warmup: () {
+      for (var i = 0; i < warmupIterations; i++) {
+        blackhole = circuit.get<CalculateTotalAction>();
+      }
+    },
+    run: () {
+      for (var i = 0; i < benchmarkIterations; i++) {
+        blackhole = circuit.get<CalculateTotalAction>();
+      }
+    },
+    iterations: benchmarkIterations,
+    rounds: sampleRounds,
+    loopOverheadMicros: loopOverheadMicros,
+  );
+
+  // Benchmark 6: Direct Callable Action Invocation (retained instance)
+  final action = circuit.get<CalculateTotalAction>();
+  _benchmark(
+    name:
+        'Callable Action: action(100.0, 0.08) [Retained Instance Direct Call]',
+    warmup: () {
+      for (var i = 0; i < warmupIterations; i++) {
+        blackhole = action(100.0, 0.08);
+      }
+    },
+    run: () {
+      for (var i = 0; i < benchmarkIterations; i++) {
+        blackhole = action(100.0, 0.08);
+      }
+    },
+    iterations: benchmarkIterations,
+    rounds: sampleRounds,
+    loopOverheadMicros: loopOverheadMicros,
+  );
+
+  // Benchmark 7: End-to-End Container Lookup + Callable Action Execution
+  _benchmark(
+    name: 'End-to-End: circuit.get<CalculateTotalAction>()(100.0, 0.08) [Read + Call]',
+    warmup: () {
+      for (var i = 0; i < warmupIterations; i++) {
+        blackhole = circuit.get<CalculateTotalAction>()(100.0, 0.08);
+      }
+    },
+    run: () {
+      for (var i = 0; i < benchmarkIterations; i++) {
+        blackhole = circuit.get<CalculateTotalAction>()(100.0, 0.08);
+      }
+    },
+    iterations: benchmarkIterations,
+    rounds: sampleRounds,
+    loopOverheadMicros: loopOverheadMicros,
+  );
+
+  // Benchmark 8: Transient Allocation Baseline (recreating action instance on every invocation)
+  final config = circuit.get<ConfigService>();
+  _benchmark(
+    name: 'Transient Baseline: CalculateTotalAction(config)(100.0, 0.08) [Transient Churn]',
+    warmup: () {
+      for (var i = 0; i < warmupIterations; i++) {
+        blackhole = CalculateTotalAction(config)(100.0, 0.08);
+      }
+    },
+    run: () {
+      for (var i = 0; i < benchmarkIterations; i++) {
+        blackhole = CalculateTotalAction(config)(100.0, 0.08);
       }
     },
     iterations: benchmarkIterations,
