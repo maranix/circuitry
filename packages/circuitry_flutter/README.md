@@ -1,9 +1,16 @@
-# Circuitry Flutter
+<p align="center">
+  <img src="https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_logo_horizontal.png" alt="Circuitry Flutter" width="720" />
+</p>
 
-[![pub package](https://img.shields.io/pub/v/circuitry_flutter.svg)](https://pub.dev/packages/circuitry_flutter)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <strong>Flutter bridge for Circuitry — providing InheritedWidget scoping, reactive CircuitState pattern matching, and automatic unmount disposal.</strong>
+</p>
 
-Flutter bridge for [`circuitry`](https://pub.dev/packages/circuitry) — providing `InheritedWidget` scoping, reactive `CircuitState` pattern matching, compilation epoch race prevention, and automatic unmount disposal.
+<p align="center">
+  <a href="https://pub.dev/packages/circuitry_flutter"><img src="https://img.shields.io/pub/v/circuitry_flutter.svg" alt="Pub Package" /></a>
+  <a href="https://github.com/maranix/circuitry/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen.svg" alt="Build Status" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+</p>
 
 ---
 

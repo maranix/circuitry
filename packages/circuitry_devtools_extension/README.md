@@ -1,9 +1,18 @@
-# Circuitry DevTools Extension
+<p align="center">
+  <img src="https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_logo_horizontal.png" alt="Circuitry DevTools Extension" width="720" />
+</p>
 
-[![pub package](https://img.shields.io/pub/v/circuitry_devtools_extension.svg)](https://pub.dev/packages/circuitry_devtools_extension)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <strong>Dedicated Flutter DevTools companion extension for inspecting, profiling, and debugging Circuitry dependency graphs at runtime.</strong>
+</p>
 
-A dedicated Flutter DevTools companion extension for inspecting, profiling, and debugging Circuitry dependency injection graphs at runtime.
+<p align="center">
+  <a href="https://pub.dev/packages/circuitry_devtools_extension"><img src="https://img.shields.io/pub/v/circuitry_devtools_extension.svg" alt="Pub Package" /></a>
+  <a href="https://github.com/maranix/circuitry/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen.svg" alt="Build Status" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+</p>
+
+---
 
 This package is distributed as an optional, opt-in developer tool. Installing it in `dev_dependencies` ensures that your production runtime bundles stay completely free of DevTools web assets.
 

@@ -1,11 +1,16 @@
-# Circuitry
+<p align="center">
+  <img src="https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_logo_horizontal.png" alt="Circuitry" width="720" />
+</p>
 
-[![pub package](https://img.shields.io/pub/v/circuitry.svg)](https://pub.dev/packages/circuitry)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <strong>Pure Dart 3.14+ zero-codegen, graph-based dependency injection engine backed by a Directed Acyclic Graph (DAG).</strong>
+</p>
 
-A pure Dart 3.14+ zero-codegen, graph-based dependency injection engine backed by a Directed Acyclic Graph (DAG).
-
-Circuitry provides compile-time-checked runtime dependency wiring with parallel topological wave resolution for asynchronous singletons, reverse topological wave disposal, and type-safe dependency chaining without code generation or reflection.
+<p align="center">
+  <a href="https://pub.dev/packages/circuitry"><img src="https://img.shields.io/pub/v/circuitry.svg" alt="Pub Package" /></a>
+  <a href="https://github.com/maranix/circuitry/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen.svg" alt="Build Status" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+</p>
 
 ---
 
