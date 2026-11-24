@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_logo_horizontal.png" alt="Circuitry Flutter" width="720" />
+  <img src="https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_icon_transparent.png" alt="Circuitry Logo" width="140" />
 </p>
 
-<p align="center">
-  <strong>Flutter bridge for Circuitry — providing InheritedWidget scoping, reactive CircuitState pattern matching, and automatic unmount disposal.</strong>
-</p>
+# Circuitry Flutter
+
+> **Flutter bridge for Circuitry — providing `InheritedWidget` scoping, reactive `CircuitState` pattern matching, and automatic unmount disposal.**
 
 <p align="center">
   <a href="https://pub.dev/packages/circuitry_flutter"><img src="https://img.shields.io/pub/v/circuitry_flutter.svg" alt="Pub Package" /></a>

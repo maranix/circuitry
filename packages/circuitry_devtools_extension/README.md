@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_logo_horizontal.png" alt="Circuitry DevTools Extension" width="720" />
+  <img src="https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_icon_transparent.png" alt="Circuitry Logo" width="140" />
 </p>
 
-<p align="center">
-  <strong>Dedicated Flutter DevTools companion extension for inspecting, profiling, and debugging Circuitry dependency graphs at runtime.</strong>
-</p>
+# Circuitry DevTools Extension
+
+> **Dedicated Flutter DevTools companion extension for inspecting, profiling, and debugging Circuitry dependency graphs at runtime.**
 
 <p align="center">
   <a href="https://pub.dev/packages/circuitry_devtools_extension"><img src="https://img.shields.io/pub/v/circuitry_devtools_extension.svg" alt="Pub Package" /></a>

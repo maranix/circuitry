@@ -46,18 +46,6 @@
   
   
 
-  <!-- Background Tech Grid Accent (Subtle PCB lines) -->
-  <g stroke="#334155" stroke-width="1.2" opacity="0.25">
-    <line x1="256" y1="40" x2="256" y2="472" stroke-dasharray="4 8" />
-    <line x1="40" y1="256" x2="472" y2="256" stroke-dasharray="4 8" />
-    <circle cx="256" cy="256" r="190" fill="none" stroke-dasharray="3 6" />
-    <circle cx="256" cy="256" r="110" fill="none" stroke-dasharray="3 6" />
-  </g>
-
-  <!-- Ambient Light Behind Emblem -->
-  <circle cx="220" cy="256" r="130" fill="#0284c7" opacity="0.22" filter="url(#bloomH)" />
-  <circle cx="300" cy="180" r="80" fill="#a855f7" opacity="0.16" filter="url(#bloomH)" />
-
   <!-- MAIN EMBLEM -->
   <g filter="url(#shadowH)">
     
