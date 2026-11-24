@@ -7,15 +7,15 @@ import 'package:analyzer/error/error.dart';
 import 'package:circuitry_analyzer_plugin/src/utils/wire_analysis_utils.dart';
 
 /// Warns when a declared dependency is missing from a statically declared circuit wire list.
-final class CircuitryMissingWireRule extends AnalysisRule {
+final class CircuitryMissingWireRule() extends AnalysisRule {
   static const LintCode code = LintCode(
     'circuitry_missing_wire',
     "Missing dependency wire for key '{0}' required by '{1}'.",
     correctionMessage: "Add a wire providing '{0}' to the circuit.",
-    severity: DiagnosticSeverity.WARNING,
+    severity: .WARNING,
   );
 
-  CircuitryMissingWireRule()
+  this
     : super(
         name: 'circuitry_missing_wire',
         description: 'Warns when declared dependencies are missing from a static wire list.',
@@ -35,11 +35,8 @@ final class CircuitryMissingWireRule extends AnalysisRule {
   }
 }
 
-class _CircuitryMissingWireVisitor extends SimpleAstVisitor<void> {
-  final AnalysisRule rule;
-
-  _CircuitryMissingWireVisitor(this.rule);
-
+class _CircuitryMissingWireVisitor(final AnalysisRule rule)
+    extends SimpleAstVisitor<void> {
   @override
   void visitMethodInvocation(MethodInvocation node) {
     final wiresList = extractCircuitWiresList(node);

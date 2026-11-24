@@ -7,15 +7,15 @@ import 'package:analyzer/error/error.dart';
 import 'package:circuitry_analyzer_plugin/src/utils/wire_analysis_utils.dart';
 
 /// Warns when a class implementing `CircuitAction` is wired using `Wire` or `AsyncWire` instead of `TriggerWire`.
-final class CircuitryPreferTriggerWireRule extends AnalysisRule {
+final class CircuitryPreferTriggerWireRule() extends AnalysisRule {
   static const LintCode code = LintCode(
     'circuitry_prefer_trigger_wire',
     "The type '{0}' implements 'CircuitAction' and should be registered using 'TriggerWire'.",
     correctionMessage: "Use 'TriggerWire' or 'TriggerWire.takes' instead.",
-    severity: DiagnosticSeverity.WARNING,
+    severity: .WARNING,
   );
 
-  CircuitryPreferTriggerWireRule()
+  this
     : super(
         name: 'circuitry_prefer_trigger_wire',
         description: 'Warns when classes implementing CircuitAction are registered without TriggerWire.',
@@ -35,11 +35,8 @@ final class CircuitryPreferTriggerWireRule extends AnalysisRule {
   }
 }
 
-class _CircuitryPreferTriggerWireVisitor extends SimpleAstVisitor<void> {
-  final AnalysisRule rule;
-
-  _CircuitryPreferTriggerWireVisitor(this.rule);
-
+class _CircuitryPreferTriggerWireVisitor(final AnalysisRule rule)
+    extends SimpleAstVisitor<void> {
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     _checkWire(node);

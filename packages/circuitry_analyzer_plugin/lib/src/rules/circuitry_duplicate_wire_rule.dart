@@ -7,16 +7,16 @@ import 'package:analyzer/error/error.dart';
 import 'package:circuitry_analyzer_plugin/src/utils/wire_analysis_utils.dart';
 
 /// Warns when duplicate wire keys `(Type, Enum?)` are declared within the same circuit.
-final class CircuitryDuplicateWireRule extends AnalysisRule {
+final class CircuitryDuplicateWireRule() extends AnalysisRule {
   static const LintCode code = LintCode(
     'circuitry_duplicate_wire',
     "Duplicate wire registered for key '{0}'.",
     correctionMessage:
         'Remove the duplicate wire or differentiate it with a unique tag.',
-    severity: DiagnosticSeverity.WARNING,
+    severity: .WARNING,
   );
 
-  CircuitryDuplicateWireRule()
+  this
     : super(
         name: 'circuitry_duplicate_wire',
         description:
@@ -37,11 +37,8 @@ final class CircuitryDuplicateWireRule extends AnalysisRule {
   }
 }
 
-class _CircuitryDuplicateWireVisitor extends SimpleAstVisitor<void> {
-  final AnalysisRule rule;
-
-  _CircuitryDuplicateWireVisitor(this.rule);
-
+class _CircuitryDuplicateWireVisitor(final AnalysisRule rule)
+    extends SimpleAstVisitor<void> {
   @override
   void visitMethodInvocation(MethodInvocation node) {
     final wiresList = extractCircuitWiresList(node);

@@ -7,15 +7,15 @@ import 'package:analyzer/error/error.dart';
 import 'package:circuitry_analyzer_plugin/src/utils/wire_analysis_utils.dart';
 
 /// Warns when a synchronous `Wire` factory closure returns a `Future`.
-final class CircuitryAvoidAsyncInWireRule extends AnalysisRule {
+final class CircuitryAvoidAsyncInWireRule() extends AnalysisRule {
   static const LintCode code = LintCode(
     'circuitry_avoid_async_in_wire',
     "Synchronous 'Wire' factory returns a 'Future<{0}>'. Use 'AsyncWire' instead.",
     correctionMessage: "Replace 'Wire' with 'AsyncWire'.",
-    severity: DiagnosticSeverity.WARNING,
+    severity: .WARNING,
   );
 
-  CircuitryAvoidAsyncInWireRule()
+  this
     : super(
         name: 'circuitry_avoid_async_in_wire',
         description: 'Warns when a synchronous Wire factory returns a Future.',
@@ -35,11 +35,8 @@ final class CircuitryAvoidAsyncInWireRule extends AnalysisRule {
   }
 }
 
-class _CircuitryAvoidAsyncInWireVisitor extends SimpleAstVisitor<void> {
-  final AnalysisRule rule;
-
-  _CircuitryAvoidAsyncInWireVisitor(this.rule);
-
+class _CircuitryAvoidAsyncInWireVisitor(final AnalysisRule rule)
+    extends SimpleAstVisitor<void> {
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     _checkWire(node);
