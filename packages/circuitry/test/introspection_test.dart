@@ -8,6 +8,8 @@ final class DatabaseService;
 final class UserService;
 final class OrderService;
 
+final class _SampleAction implements CircuitAction {}
+
 void main() {
   group('WireDescriptor Specs', () {
     test('primary constructor initializes fields correctly', () {
@@ -22,6 +24,7 @@ void main() {
       expect(descriptor.key, equals((ConfigService, null)));
       expect(descriptor.dependencies, isEmpty);
       expect(descriptor.isAsync, isFalse);
+      expect(descriptor.isAction, isFalse);
       expect(descriptor.topologicalLevel, equals(0));
       expect(descriptor.isInitialized, isTrue);
     });
@@ -31,6 +34,7 @@ void main() {
         key: (DatabaseService, Environment.dev),
         dependencies: [(ConfigService, null)],
         isAsync: true,
+        isAction: false,
         topologicalLevel: 1,
         isInitialized: false,
       );
@@ -39,6 +43,7 @@ void main() {
       expect(json['key'], equals('DatabaseService#Environment.dev'));
       expect(json['dependencies'], equals(['ConfigService']));
       expect(json['isAsync'], isTrue);
+      expect(json['isAction'], isFalse);
       expect(json['topologicalLevel'], equals(1));
       expect(json['isInitialized'], isFalse);
     });
@@ -275,5 +280,27 @@ void main() {
       expect(json['maxWaveLevel'], equals(0));
       expect(json['topologicalOrder'], isEmpty);
     });
+
+    test(
+      'inspect() identifies TriggerWire actions with isAction: true',
+      () async {
+        final circuit = await Circuit.build([
+          Wire(ConfigService.new),
+          TriggerWire.takes<ConfigService>().to((_) => _SampleAction()),
+        ]);
+
+        final descriptors = circuit.inspect().wires;
+        final actionDesc = descriptors.firstWhere(
+          (w) => w.key == (_SampleAction, null),
+        );
+        final configDesc = descriptors.firstWhere(
+          (w) => w.key == (ConfigService, null),
+        );
+
+        expect(actionDesc.isAction, isTrue);
+        expect(actionDesc.isAsync, isFalse);
+        expect(configDesc.isAction, isFalse);
+      },
+    );
   });
 }

@@ -4,6 +4,7 @@
 
 ## Done this release
 
+- Update `circuitry_devtools_extension` for actions and `TriggerWire`: add `isAction` to `WireDescriptor` and `WireNode`, add `'Actions Only'` toolbar filter toggle, distinctive teal play icon and action badge styling in DAG canvas, action trigger timeline metric, and contextual action trigger controls in the wire detail drawer.
 - Introduce `CircuitAction` blueprint marker interface and dedicated `TriggerWire<T extends CircuitAction>` with `TriggerWireBuilder`, enforcing compile-time blueprint conformance for action singletons evaluated lazily on first access and retained for zero-churn invocations.
 - Add Flutter companion enhancements: introduce `CircuitProvider.listener` for safe side effects on state transitions, and add `CircuitBuilder<T>` (with `.tagged()` constructor and `circuitTag` support) for localized leaf dependency reads.
 - Overhaul DevTools extension performance: offload JSON deserialization and diagram/SVG exporters to background isolates (`compute()`), pre-compute and cache DAG layout geometry with zero-allocation Bézier splines, batch edge draw calls, scope fine-grained pane rebuilding with `RepaintBoundary`, and debounce search inputs.

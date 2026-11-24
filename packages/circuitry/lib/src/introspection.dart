@@ -14,6 +14,9 @@ final class const WireDescriptor({
   /// Whether this wire resolves asynchronously.
   required final bool isAsync,
 
+  /// Whether this wire represents an actionable domain trigger ([TriggerWire]).
+  final bool isAction = false,
+
   /// The topological wave level of this wire (0 for root dependencies).
   required final int topologicalLevel,
 
@@ -25,6 +28,7 @@ final class const WireDescriptor({
     'key': formatWireKey(key),
     'dependencies': dependencies.map(formatWireKey).toList(),
     'isAsync': isAsync,
+    'isAction': isAction,
     'topologicalLevel': topologicalLevel,
     'isInitialized': isInitialized,
   };
@@ -34,12 +38,14 @@ final class const WireDescriptor({
     WireKey? key,
     List<WireKey>? dependencies,
     bool? isAsync,
+    bool? isAction,
     int? topologicalLevel,
     bool? isInitialized,
   }) => WireDescriptor(
     key: key ?? this.key,
     dependencies: dependencies ?? this.dependencies,
     isAsync: isAsync ?? this.isAsync,
+    isAction: isAction ?? this.isAction,
     topologicalLevel: topologicalLevel ?? this.topologicalLevel,
     isInitialized: isInitialized ?? this.isInitialized,
   );
@@ -51,12 +57,13 @@ final class const WireDescriptor({
           runtimeType == other.runtimeType &&
           key == other.key &&
           isAsync == other.isAsync &&
+          isAction == other.isAction &&
           topologicalLevel == other.topologicalLevel &&
           isInitialized == other.isInitialized;
 
   @override
   int get hashCode =>
-      Object.hash(key, isAsync, topologicalLevel, isInitialized);
+      Object.hash(key, isAsync, isAction, topologicalLevel, isInitialized);
 
   @override
   String toString() =>
@@ -110,6 +117,7 @@ final class CircuitIntrospectionImpl(final Circuit _circuit)
           key: wire.key,
           dependencies: wire.dependencies,
           isAsync: wire is AsyncWire,
+          isAction: wire is TriggerWire,
           topologicalLevel: _circuit.graph.levels[wire.key] ?? 0,
           isInitialized: _circuit.isKeyInitialized(wire.key),
         ),

@@ -93,6 +93,16 @@ class const WaveWaterfallProfiler({
                   Colors.amber.shade800,
                   theme,
                 ),
+                if (graph.wires.any((w) => w.isAction)) ...[
+                  const SizedBox(width: 12),
+                  _buildMetricCard(
+                    'Action Triggers',
+                    '${graph.wires.where((w) => w.isAction).length}',
+                    Icons.play_circle_outline,
+                    Colors.teal.shade700,
+                    theme,
+                  ),
+                ],
                 const SizedBox(width: 12),
                 _buildMetricCard(
                   'Critical Path Nodes',
@@ -179,7 +189,9 @@ class const WaveWaterfallProfiler({
 
     final barColor = isCritical
         ? Colors.amber.shade700
-        : (wire.isAsync ? Colors.blue.shade600 : Colors.indigo.shade300);
+        : (wire.isAction
+              ? Colors.teal.shade600
+              : (wire.isAsync ? Colors.blue.shade600 : Colors.indigo.shade300));
 
     return Padding(
       padding: const .symmetric(vertical: 3),

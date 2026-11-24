@@ -161,6 +161,14 @@ class _DevToolsToolbarState extends State<DevToolsToolbar> {
             ),
             const SizedBox(width: denseSpacing),
             DevToolsToggleButton(
+              isSelected: controller.showActionsOnly,
+              onPressed: controller.toggleActionsOnly,
+              message: 'Filter to show action triggers only',
+              icon: Icons.play_circle_outline,
+              label: 'Actions Only',
+            ),
+            const SizedBox(width: denseSpacing),
+            DevToolsToggleButton(
               isSelected: controller.highlightCriticalPath,
               onPressed: controller.toggleCriticalPath,
               message: 'Highlight longest initialization sequence',

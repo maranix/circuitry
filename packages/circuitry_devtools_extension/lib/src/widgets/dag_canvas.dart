@@ -184,6 +184,9 @@ class _DagCanvasState extends State<DagCanvas> {
     if (controller.showAsyncOnly && !wire.isAsync) {
       matchesFilter = false;
     }
+    if (controller.showActionsOnly && !wire.isAction) {
+      matchesFilter = false;
+    }
 
     final isDimmed =
         !matchesSearch ||
@@ -280,7 +283,9 @@ class _DagCanvasState extends State<DagCanvas> {
                           borderRadius: const .all(.circular(3)),
                         ),
                         child: Text(
-                          wire.isAsync ? 'async' : 'lazy',
+                          wire.isAction
+                              ? 'action'
+                              : (wire.isAsync ? 'async' : 'lazy'),
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: accentColor,
                             fontSize: 9,
@@ -352,6 +357,14 @@ class _DagCanvasState extends State<DagCanvas> {
         isDark ? const Color(0xFF1E3B24) : Colors.green.shade50,
       );
     }
+    if (wire.isAction) {
+      return (
+        Colors.teal.shade600,
+        isDark
+            ? const Color(0xFF1E333B)
+            : Colors.teal.shade50.withValues(alpha: 0.5),
+      );
+    }
     // Unresolved Lazy
     return (
       Colors.indigo.shade400,
@@ -365,6 +378,7 @@ class _DagCanvasState extends State<DagCanvas> {
     if (wire.hasFailed) return Icons.error_outline;
     if (wire.isResolving) return Icons.hourglass_top;
     if (wire.isInitialized) return Icons.check_circle_outline;
+    if (wire.isAction) return Icons.play_circle_outline;
     return wire.isAsync ? Icons.cloud_queue : Icons.nightlight_outlined;
   }
 }

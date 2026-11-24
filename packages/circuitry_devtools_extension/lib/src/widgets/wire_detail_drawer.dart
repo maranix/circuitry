@@ -64,9 +64,11 @@ class const WireDetailDrawer({
               _buildInfoRow('Tag', wire.tag ?? 'None (untagged)', theme),
               _buildInfoRow(
                 'Wire Mode',
-                wire.isAsync
-                    ? 'AsyncWire<T> (Topological)'
-                    : 'Wire<T> (Lazy Synchronous)',
+                wire.isAction
+                    ? 'TriggerWire<T> (Action Singleton)'
+                    : (wire.isAsync
+                          ? 'AsyncWire<T> (Topological)'
+                          : 'Wire<T> (Lazy Synchronous)'),
                 theme,
               ),
               _buildInfoRow(
@@ -77,12 +79,16 @@ class const WireDetailDrawer({
               _buildInfoRow(
                 'Status',
                 wire.isInitialized
-                    ? '🟢 Initialized (Active Singleton)'
+                    ? (wire.isAction
+                          ? '🟢 Initialized (Active Action Singleton)'
+                          : '🟢 Initialized (Active Singleton)')
                     : (wire.hasFailed
                           ? '🔴 Failed during compilation'
                           : (wire.isResolving
                                 ? '🟡 Resolving async factory...'
-                                : '🟣 Unresolved (Sleeping Lazy)')),
+                                : (wire.isAction
+                                      ? '🟣 Unresolved (Sleeping Action)'
+                                      : '🟣 Unresolved (Sleeping Lazy)'))),
                 theme,
               ),
               if (wire.durationMs != null)
@@ -101,10 +107,16 @@ class const WireDetailDrawer({
               const SizedBox(height: denseSpacing),
               if (wire.isUnresolvedLazy) ...[
                 DevToolsButton(
-                  icon: isResolving ? null : Icons.bolt,
+                  icon: isResolving
+                      ? null
+                      : (wire.isAction
+                            ? Icons.play_circle_outline
+                            : Icons.bolt),
                   label: isResolving
                       ? 'Resolving...'
-                      : 'Force Initialize Singleton',
+                      : (wire.isAction
+                            ? 'Force Initialize Action'
+                            : 'Force Initialize Singleton'),
                   elevated: true,
                   onPressed: isResolving
                       ? null

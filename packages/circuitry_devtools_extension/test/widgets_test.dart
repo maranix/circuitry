@@ -97,6 +97,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(controller.showAsyncOnly, isTrue);
 
+      await tester.ensureVisible(find.text('Actions Only'));
+      await tester.tap(find.text('Actions Only'));
+      await tester.pumpAndSettle();
+      expect(controller.showActionsOnly, isTrue);
+
       await tester.ensureVisible(find.text('Critical Path'));
       await tester.tap(find.text('Critical Path'));
       await tester.pumpAndSettle();
@@ -187,6 +192,46 @@ void main() {
       },
     );
 
+    testWidgets(
+      'WireDetailDrawer inspects action trigger and shows action metadata and button',
+      (tester) async {
+        tester.view.physicalSize = const Size(1280, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        controller.selectWireByKey('SendEmailAction');
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: testTheme,
+            home: Scaffold(body: WireDetailDrawer(controller: controller)),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.widgetWithText(AreaPaneHeader, 'SendEmailAction'),
+          findsOneWidget,
+        );
+        expect(find.text('TriggerWire<T> (Action Singleton)'), findsOneWidget);
+        expect(find.text('🟣 Unresolved (Sleeping Action)'), findsOneWidget);
+        expect(find.text('Force Initialize Action'), findsOneWidget);
+
+        // Tap Force Initialize Action
+        await tester.tap(find.text('Force Initialize Action'));
+        await tester.pumpAndSettle();
+
+        expect(controller.selectedWire?.isInitialized, isTrue);
+        expect(
+          find.text('🟢 Initialized (Active Action Singleton)'),
+          findsOneWidget,
+        );
+      },
+    );
+
     testWidgets('WaveWaterfallProfiler renders timeline metrics and bars', (
       tester,
     ) async {
@@ -208,6 +253,7 @@ void main() {
       expect(find.text('Total Startup Latency'), findsOneWidget);
       expect(find.text('Topological Waves'), findsOneWidget);
       expect(find.text('Async Singletons'), findsOneWidget);
+      expect(find.text('Action Triggers'), findsOneWidget);
       expect(find.textContaining('Wave 0'), findsOneWidget);
     });
 

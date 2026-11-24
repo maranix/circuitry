@@ -115,9 +115,9 @@ final class MockCircuitryServiceClient({
       const CircuitSummary(
         id: 'circuit_0',
         debugTag: 'AppScope.global',
-        wireCount: 6,
+        wireCount: 7,
         initializedWireCount: 4,
-        maxLevel: 3,
+        maxLevel: 4,
         isDisposed: false,
         status: CircuitLifecycleStatus.ready,
       ),
@@ -170,6 +170,14 @@ final class MockCircuitryServiceClient({
         topologicalLevel: 3,
         isInitialized: false,
       ),
+      const WireNode(
+        key: 'SendEmailAction',
+        dependencies: ['UserFacade'],
+        isAsync: false,
+        isAction: true,
+        topologicalLevel: 4,
+        isInitialized: false,
+      ),
     ];
 
     final waves0 = <int, List<WireNode>>{
@@ -177,16 +185,17 @@ final class MockCircuitryServiceClient({
       1: [wires0[1], wires0[4]],
       2: [wires0[3]],
       3: [wires0[5]],
+      4: [wires0[6]],
     };
 
     _graphs['circuit_0'] = CircuitGraphData(
       id: 'circuit_0',
       debugTag: 'AppScope.global',
       isDisposed: false,
-      wireCount: 6,
+      wireCount: 7,
       wires: wires0,
       waves: waves0,
-      maxWaveLevel: 3,
+      maxWaveLevel: 4,
       topologicalOrder: [
         'AppConfig',
         'LoggerService',
@@ -194,6 +203,7 @@ final class MockCircuitryServiceClient({
         'AnalyticsService',
         'AuthRepository',
         'UserFacade',
+        'SendEmailAction',
       ],
     );
 

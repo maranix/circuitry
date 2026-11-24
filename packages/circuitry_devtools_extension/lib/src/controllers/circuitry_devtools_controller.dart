@@ -21,6 +21,7 @@ class CircuitryDevToolsController(final CircuitryServiceClient _client)
   String _searchQuery = '';
   bool _showUnresolvedOnly = false;
   bool _showAsyncOnly = false;
+  bool _showActionsOnly = false;
   bool _highlightCriticalPath = false;
   bool _isWaterfallView = false;
 
@@ -38,6 +39,7 @@ class CircuitryDevToolsController(final CircuitryServiceClient _client)
   String get searchQuery => _searchQuery;
   bool get showUnresolvedOnly => _showUnresolvedOnly;
   bool get showAsyncOnly => _showAsyncOnly;
+  bool get showActionsOnly => _showActionsOnly;
   bool get highlightCriticalPath => _highlightCriticalPath;
   bool get isWaterfallView => _isWaterfallView;
 
@@ -154,6 +156,12 @@ class CircuitryDevToolsController(final CircuitryServiceClient _client)
   /// Toggles visibility filter for asynchronous wires.
   void toggleAsyncOnly() {
     _showAsyncOnly = !_showAsyncOnly;
+    notifyListeners();
+  }
+
+  /// Toggles visibility filter for action trigger wires.
+  void toggleActionsOnly() {
+    _showActionsOnly = !_showActionsOnly;
     notifyListeners();
   }
 
