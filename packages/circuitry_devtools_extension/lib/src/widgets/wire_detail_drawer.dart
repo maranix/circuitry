@@ -64,9 +64,11 @@ class const WireDetailDrawer({
               _buildInfoRow('Tag', wire.tag ?? 'None (untagged)', theme),
               _buildInfoRow(
                 'Wire Mode',
-                wire.isAsync
-                    ? 'AsyncWire<T> (Topological)'
-                    : 'Wire<T> (Lazy Synchronous)',
+                wire.isAction
+                    ? 'TriggerWire<T> (Action Singleton)'
+                    : (wire.isAsync
+                          ? 'AsyncWire<T> (Topological)'
+                          : 'Wire<T> (Lazy Synchronous)'),
                 theme,
               ),
               _buildInfoRow(
@@ -77,12 +79,16 @@ class const WireDetailDrawer({
               _buildInfoRow(
                 'Status',
                 wire.isInitialized
-                    ? '🟢 Initialized (Active Singleton)'
+                    ? (wire.isAction
+                          ? '🟢 Initialized (Active Action Singleton)'
+                          : '🟢 Initialized (Active Singleton)')
                     : (wire.hasFailed
                           ? '🔴 Failed during compilation'
                           : (wire.isResolving
                                 ? '🟡 Resolving async factory...'
-                                : '🟣 Unresolved (Sleeping Lazy)')),
+                                : (wire.isAction
+                                      ? '🟣 Unresolved (Sleeping Action)'
+                                      : '🟣 Unresolved (Sleeping Lazy)'))),
                 theme,
               ),
               if (wire.durationMs != null)
@@ -101,10 +107,16 @@ class const WireDetailDrawer({
               const SizedBox(height: denseSpacing),
               if (wire.isUnresolvedLazy) ...[
                 DevToolsButton(
-                  icon: isResolving ? null : Icons.bolt,
+                  icon: isResolving
+                      ? null
+                      : (wire.isAction
+                            ? Icons.play_circle_outline
+                            : Icons.bolt),
                   label: isResolving
                       ? 'Resolving...'
-                      : 'Force Initialize Singleton',
+                      : (wire.isAction
+                            ? 'Force Initialize Action'
+                            : 'Force Initialize Singleton'),
                   elevated: true,
                   onPressed: isResolving
                       ? null
@@ -160,22 +172,7 @@ class const WireDetailDrawer({
                   ),
                 )
               else
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final dep in wire.dependencies)
-                      ActionChip(
-                        avatar: const Icon(Icons.arrow_upward, size: 12),
-                        label: Text(dep),
-                        labelStyle: theme.textTheme.labelSmall?.copyWith(
-                          fontSize: 11,
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => controller.selectWireByKey(dep),
-                      ),
-                  ],
-                ),
+                _buildWireChips(wire.dependencies, Icons.arrow_upward, theme),
 
               const PaddedDivider(
                 padding: EdgeInsets.symmetric(vertical: denseSpacing),
@@ -204,13 +201,21 @@ class const WireDetailDrawer({
       );
     }
 
+    return _buildWireChips(dependents, Icons.arrow_downward, theme);
+  }
+
+  Widget _buildWireChips(
+    Iterable<String> wireKeys,
+    IconData icon,
+    ThemeData theme,
+  ) {
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       children: [
-        for (final dep in dependents)
+        for (final dep in wireKeys)
           ActionChip(
-            avatar: const Icon(Icons.arrow_downward, size: 12),
+            avatar: Icon(icon, size: 12),
             label: Text(dep),
             labelStyle: theme.textTheme.labelSmall?.copyWith(fontSize: 11),
             visualDensity: VisualDensity.compact,

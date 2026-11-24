@@ -88,6 +88,27 @@ final class AppCoordinator(
   }
 }
 
+final class CounterAction implements CircuitAction {
+  int count = 0;
+  int call() => ++count;
+}
+
+final class AsyncSumAction implements CircuitAction {
+  Future<int> call(int a, int b) async => a + b;
+}
+
+final class GreetUserAction implements CircuitAction {
+  final UserService user;
+  final void Function(String event)? onLog;
+  GreetUserAction(this.user, [this.onLog]);
+
+  String call({String? title}) => '${title != null ? '$title ' : ''}User';
+
+  void dispose() {
+    onLog?.call('dispose:GreetUserAction');
+  }
+}
+
 void main() {
   group('Circuit DAG Validation', () {
     test(
@@ -902,6 +923,150 @@ void main() {
 
       await circuit.dispose();
       expect(circuit.isDisposed, isTrue);
+    });
+  });
+
+  group('TriggerWire and CircuitAction Execution Specs', () {
+    test('lazily instantiates action upon first get<T>()', () async {
+      var factoryCalls = 0;
+      final circuit = await Circuit.build([
+        TriggerWire(() {
+          factoryCalls++;
+          return CounterAction();
+        }),
+      ]);
+
+      expect(
+        factoryCalls,
+        equals(0),
+        reason: 'Must not evaluate factory during build',
+      );
+
+      final action = circuit.get<CounterAction>();
+      expect(factoryCalls, equals(1));
+      expect(action(), equals(1));
+      expect(action(), equals(2));
+    });
+
+    test(
+      'retains action singleton instance across subsequent get calls',
+      () async {
+        var factoryCalls = 0;
+        final circuit = await Circuit.build([
+          TriggerWire(() {
+            factoryCalls++;
+            return CounterAction();
+          }),
+        ]);
+
+        final first = circuit.get<CounterAction>();
+        final second = circuit.get<CounterAction>();
+        expect(identical(first, second), isTrue);
+        expect(factoryCalls, equals(1));
+      },
+    );
+
+    test('supports asynchronous action invocation', () async {
+      final circuit = await Circuit.build([TriggerWire(AsyncSumAction.new)]);
+
+      final sumAction = circuit.get<AsyncSumAction>();
+      final result = await sumAction(15, 27);
+      expect(result, equals(42));
+    });
+
+    test(
+      'resolves actions with dependencies and supports named/optional args',
+      () async {
+        final circuit = await Circuit.build([
+          Wire(() => DatabaseService('test.db')),
+          Wire.takes<DatabaseService>().to((db) => UserService(db)),
+          TriggerWire.takes<UserService>().to((user) => GreetUserAction(user)),
+        ]);
+
+        final greet = circuit.get<GreetUserAction>();
+        expect(greet(title: 'Admin'), equals('Admin User'));
+        expect(greet(), equals('User'));
+      },
+    );
+
+    test('supports tagged actions via getTagged', () async {
+      final circuit = await Circuit.build([
+        TriggerWire.tag(CounterAction.new, tag: Environment.dev),
+        TriggerWire.tag(CounterAction.new, tag: Environment.prod),
+      ]);
+
+      final devCounter = circuit.getTagged<CounterAction, Environment>(
+        Environment.dev,
+      );
+      final prodCounter = circuit.getTagged<CounterAction, Environment>(
+        Environment.prod,
+      );
+
+      expect(devCounter, isNot(same(prodCounter)));
+      expect(devCounter(), equals(1));
+      expect(prodCounter(), equals(1));
+      expect(prodCounter(), equals(2));
+      expect(devCounter(), equals(2));
+    });
+
+    test('disposes active action in reverse topological wave order', () async {
+      final log = <String>[];
+      final circuit = await Circuit.build([
+        Wire(
+          () => DatabaseService('app.db', log.add),
+          onDispose: (db) => db.dispose(),
+        ),
+        Wire.takes<DatabaseService>().to(
+          (db) => UserService(db, log.add),
+          onDispose: (u) => u.dispose(),
+        ),
+        TriggerWire.takes<UserService>().to(
+          (user) => GreetUserAction(user, log.add),
+          onDispose: (action) => action.dispose(),
+        ),
+      ]);
+
+      // Access action so it is initialized
+      circuit.get<GreetUserAction>();
+
+      await circuit.dispose();
+
+      expect(
+        log,
+        equals([
+          'dispose:GreetUserAction',
+          'dispose:UserService',
+          'dispose:DatabaseService(app.db)',
+        ]),
+      );
+    });
+
+    test(
+      'uninstantiated action onDispose is not called during circuit disposal',
+      () async {
+        final log = <String>[];
+        final circuit = await Circuit.build([
+          TriggerWire(
+            CounterAction.new,
+            onDispose: (_) => log.add('disposed:CounterAction'),
+          ),
+        ]);
+
+        await circuit.dispose();
+        expect(log, isEmpty);
+      },
+    );
+
+    test('detects circular dependency involving TriggerWire', () async {
+      expect(
+        () => Circuit.build([
+          Wire.takes<GreetUserAction>().to(
+            (action) => UserService(DatabaseService('db')),
+          ),
+          TriggerWire.takes<UserService>().to((user) => GreetUserAction(user)),
+        ]),
+        throwsA(isA<CircularDependencyException>()),
+      );
     });
   });
 }

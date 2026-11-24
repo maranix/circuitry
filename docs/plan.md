@@ -2,18 +2,13 @@
 
 ## Next
 
-### Publish v0.2.0 to pub.dev
-
-- **Release:** 0.2.0
-- **Goal:** Publish v0.2.0 stable releases of `circuitry`, `circuitry_flutter`, and `circuitry_devtools_extension` to pub.dev.
-- **Requirements:**
-  - Verify package validation passes with zero warnings (`dart pub publish --dry-run`).
-  - Tag release commits matching versions in pubspec.yaml (`v0.2.0`).
-- **Approach:** Run dry-run checks in all three packages, create git tag `v0.2.0`, and publish.
-- **Acceptance:** All packages published and verified on pub.dev.
-
 ## Done this release
 
+- Update `circuitry_devtools_extension` for actions and `TriggerWire`: add `isAction` to `WireDescriptor` and `WireNode`, add `'Actions Only'` toolbar filter toggle, distinctive teal play icon and action badge styling in DAG canvas, action trigger timeline metric, and contextual action trigger controls in the wire detail drawer.
+- Introduce `CircuitAction` blueprint marker interface and dedicated `TriggerWire<T extends CircuitAction>` with `TriggerWireBuilder`, enforcing compile-time blueprint conformance for action singletons evaluated lazily on first access and retained for zero-churn invocations.
+- Add Flutter companion enhancements: introduce `CircuitProvider.listener` for safe side effects on state transitions, and add `CircuitBuilder<T>` (with `.tagged()` constructor and `circuitTag` support) for localized leaf dependency reads.
+- Overhaul DevTools extension performance: offload JSON deserialization and diagram/SVG exporters to background isolates (`compute()`), pre-compute and cache DAG layout geometry with zero-allocation Bézier splines, batch edge draw calls, scope fine-grained pane rebuilding with `RepaintBoundary`, and debounce search inputs.
+- Optimize hot-path dependency retrieval with type-indexed fast-path and single-hash lookups, yielding 267%–332% higher throughput (>32M–34M ops/sec) and sub-32ns latency with reproducible benchmark suite in `benchmark/`.
 - Decouple DevTools extension into standalone opt-in companion package `circuitry_devtools_extension` with explicit registration, reducing `circuitry` package archive size to ~28 KB.
 - Add DevTools extension UI with interactive DAG canvas, wave waterfall, and wire inspector (#5).
 - Add ambient CircuitRegistry, VM Service extensions, and DevTools packaging to circuitry (#11).

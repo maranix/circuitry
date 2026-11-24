@@ -143,29 +143,8 @@ final class CircuitGraph(final List<CircuitWire> wires) {
       );
     }
 
-    if (!transitive) {
-      return direct;
-    }
-
-    // Transitive dependents requested: traverse downstream dependents using breadth-first search (BFS).
-    final result = <WireKey>{};
-    final queue = Queue<WireKey>()..addAll(direct);
-
-    while (queue.isNotEmpty) {
-      final current = queue.removeFirst();
-      if (result.add(current)) {
-        final downstream = _reverseDependencies![current];
-        if (downstream != null) {
-          for (final dep in downstream) {
-            if (!result.contains(dep)) {
-              queue.add(dep);
-            }
-          }
-        }
-      }
-    }
-
-    return .unmodifiable(result);
+    if (!transitive) return direct;
+    return _traverseTransitive(direct, (k) => _reverseDependencies![k]);
   }
 
   /// Returns the set of wire keys that [key] directly depends on.
@@ -184,22 +163,25 @@ final class CircuitGraph(final List<CircuitWire> wires) {
     }
 
     final direct = wire.dependencies;
-    if (!transitive) {
-      return .unmodifiable(direct.toSet());
-    }
+    if (!transitive) return .unmodifiable(direct.toSet());
+    return _traverseTransitive(direct, (k) => _wireMap![k]?.dependencies);
+  }
 
-    // Transitive dependencies requested: traverse upstream dependencies using breadth-first search (BFS).
+  Set<WireKey> _traverseTransitive(
+    Iterable<WireKey> roots,
+    Iterable<WireKey>? Function(WireKey key) getNeighbors,
+  ) {
     final result = <WireKey>{};
-    final queue = Queue<WireKey>()..addAll(direct);
+    final queue = Queue<WireKey>()..addAll(roots);
 
     while (queue.isNotEmpty) {
       final current = queue.removeFirst();
       if (result.add(current)) {
-        final currentWire = _wireMap![current];
-        if (currentWire != null) {
-          for (final dep in currentWire.dependencies) {
-            if (!result.contains(dep)) {
-              queue.add(dep);
+        final neighbors = getNeighbors(current);
+        if (neighbors != null) {
+          for (final neighbor in neighbors) {
+            if (!result.contains(neighbor)) {
+              queue.add(neighbor);
             }
           }
         }
@@ -293,8 +275,9 @@ final class CircuitGraph(final List<CircuitWire> wires) {
     final levels = <WireKey, int>{};
 
     int computeLevel(WireKey key) {
-      if (levels.containsKey(key)) {
-        return levels[key]!;
+      final existing = levels[key];
+      if (existing != null) {
+        return existing;
       }
       final wire = map[key];
       if (wire == null || wire.dependencies.isEmpty) {

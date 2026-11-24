@@ -37,46 +37,60 @@ class _CircuitryDevToolsScreenState extends State<CircuitryDevToolsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _controller,
-      builder: (context, _) {
-        return Scaffold(
-          body: Column(
-            children: [
-              // Top Action & Search Toolbar
-              DevToolsToolbar(controller: _controller),
+    return Scaffold(
+      body: Column(
+        children: [
+          // Top Action & Search Toolbar
+          RepaintBoundary(
+            child: ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) => DevToolsToolbar(controller: _controller),
+            ),
+          ),
 
-              // Error Banner (if any)
-              if (_controller.errorMessage != null)
-                MaterialBanner(
-                  content: Text(_controller.errorMessage!),
-                  leading: const Icon(
-                    Icons.warning_amber,
-                    color: Colors.orange,
+          // Error Banner (if any)
+          ListenableBuilder(
+            listenable: _controller,
+            builder: (context, _) {
+              final errorMessage = _controller.errorMessage;
+              if (errorMessage == null) return const SizedBox.shrink();
+              return MaterialBanner(
+                content: Text(errorMessage),
+                leading: const Icon(Icons.warning_amber, color: Colors.orange),
+                backgroundColor: Colors.amber.withValues(alpha: 0.15),
+                actions: [
+                  TextButton(
+                    child: const Text('Dismiss'),
+                    onPressed: () => _controller.loadCircuits(),
                   ),
-                  backgroundColor: Colors.amber.withValues(alpha: 0.15),
-                  actions: [
-                    TextButton(
-                      child: const Text('Dismiss'),
-                      onPressed: () => _controller.loadCircuits(),
+                ],
+              );
+            },
+          ),
+
+          // Workspace Tri-Pane Resizable Layout using devtools_app_shared SplitPane
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(densePadding),
+              child: SplitPane(
+                axis: Axis.horizontal,
+                initialFractions: const [0.20, 0.55, 0.25],
+                minSizes: const [180.0, 320.0, 220.0],
+                children: [
+                  // Left Sidebar: Circuit Navigator
+                  RepaintBoundary(
+                    child: ListenableBuilder(
+                      listenable: _controller,
+                      builder: (context, _) =>
+                          CircuitNavigator(controller: _controller),
                     ),
-                  ],
-                ),
+                  ),
 
-              // Workspace Tri-Pane Resizable Layout using devtools_app_shared SplitPane
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(densePadding),
-                  child: SplitPane(
-                    axis: Axis.horizontal,
-                    initialFractions: const [0.20, 0.55, 0.25],
-                    minSizes: const [180.0, 320.0, 220.0],
-                    children: [
-                      // Left Sidebar: Circuit Navigator
-                      CircuitNavigator(controller: _controller),
-
-                      // Center Workspace: DAG Canvas or Waterfall Profiler
-                      DevToolsAreaPane(
+                  // Center Workspace: DAG Canvas or Waterfall Profiler
+                  RepaintBoundary(
+                    child: ListenableBuilder(
+                      listenable: _controller,
+                      builder: (context, _) => DevToolsAreaPane(
                         header: AreaPaneHeader(
                           title: Text(
                             _controller.isWaterfallView
@@ -94,17 +108,19 @@ class _CircuitryDevToolsScreenState extends State<CircuitryDevToolsScreen> {
                                     )
                                   : DagCanvas(controller: _controller)),
                       ),
-
-                      // Right Drawer: Wire Detail & Live Actions
-                      WireDetailDrawer(controller: _controller),
-                    ],
+                    ),
                   ),
-                ),
+
+                  // Right Drawer: Wire Detail & Live Actions
+                  RepaintBoundary(
+                    child: WireDetailDrawer(controller: _controller),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

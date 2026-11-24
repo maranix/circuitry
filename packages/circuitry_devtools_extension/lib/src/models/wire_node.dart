@@ -9,6 +9,9 @@ final class const WireNode({
   /// Whether this wire resolves asynchronously during [Circuit.build].
   required final bool isAsync,
 
+  /// Whether this wire represents an actionable domain trigger ([TriggerWire]).
+  final bool isAction = false,
+
   /// The topological wave depth (0 = root dependencies without parents).
   required final int topologicalLevel,
 
@@ -43,6 +46,10 @@ final class const WireNode({
   bool get isUnresolvedLazy =>
       !isAsync && !isInitialized && !isResolving && !hasFailed;
 
+  /// Effective initialization duration in milliseconds, falling back to heuristic
+  /// defaults (80ms for async, 5ms for synchronous) if duration was not recorded.
+  int get effectiveDurationMs => durationMs ?? (isAsync ? 80 : 5);
+
   /// Parses a [WireNode] from a JSON wire descriptor using pattern matching.
   factory fromJson(Map<String, Object?> json) {
     if (json case {
@@ -54,6 +61,10 @@ final class const WireNode({
       final dependencies = switch (json['dependencies']) {
         final List<Object?> deps => deps.whereType<String>().toList(),
         _ => const <String>[],
+      };
+      final isAction = switch (json['isAction']) {
+        final bool b => b,
+        _ => false,
       };
       final isResolving = switch (json['isResolving']) {
         final bool b => b,
@@ -76,6 +87,7 @@ final class const WireNode({
         key: key,
         dependencies: dependencies,
         isAsync: isAsync,
+        isAction: isAction,
         topologicalLevel: topologicalLevel.toInt(),
         isInitialized: isInitialized,
         isResolving: isResolving,
@@ -92,6 +104,7 @@ final class const WireNode({
     'key': key,
     'dependencies': dependencies,
     'isAsync': isAsync,
+    'isAction': isAction,
     'topologicalLevel': topologicalLevel,
     'isInitialized': isInitialized,
     'isResolving': isResolving,
@@ -105,6 +118,7 @@ final class const WireNode({
     String? key,
     List<String>? dependencies,
     bool? isAsync,
+    bool? isAction,
     int? topologicalLevel,
     bool? isInitialized,
     bool? isResolving,
@@ -115,6 +129,7 @@ final class const WireNode({
     key: key ?? this.key,
     dependencies: dependencies ?? this.dependencies,
     isAsync: isAsync ?? this.isAsync,
+    isAction: isAction ?? this.isAction,
     topologicalLevel: topologicalLevel ?? this.topologicalLevel,
     isInitialized: isInitialized ?? this.isInitialized,
     isResolving: isResolving ?? this.isResolving,
@@ -129,6 +144,7 @@ final class const WireNode({
       other is WireNode &&
           key == other.key &&
           isAsync == other.isAsync &&
+          isAction == other.isAction &&
           topologicalLevel == other.topologicalLevel &&
           isInitialized == other.isInitialized &&
           isResolving == other.isResolving &&
@@ -140,6 +156,7 @@ final class const WireNode({
   int get hashCode => Object.hash(
     key,
     isAsync,
+    isAction,
     topologicalLevel,
     isInitialized,
     isResolving,

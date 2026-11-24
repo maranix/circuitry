@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:circuitry_devtools_extension/src/controllers/circuitry_devtools_controller.dart';
+import 'package:circuitry_devtools_extension/src/models/circuit_graph_data.dart';
 import 'package:devtools_app_shared/ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -16,6 +19,7 @@ class const DevToolsToolbar({
 
 class _DevToolsToolbarState extends State<DevToolsToolbar> {
   late final TextEditingController _searchController;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -23,6 +27,19 @@ class _DevToolsToolbarState extends State<DevToolsToolbar> {
     _searchController = TextEditingController(
       text: widget.controller.searchQuery,
     );
+  }
+
+  void _onSearchChanged(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 150), () {
+      widget.controller.setSearchQuery(query);
+    });
+  }
+
+  void _clearSearch() {
+    _debounceTimer?.cancel();
+    _searchController.clear();
+    widget.controller.setSearchQuery('');
   }
 
   @override
@@ -35,6 +52,7 @@ class _DevToolsToolbarState extends State<DevToolsToolbar> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -93,7 +111,7 @@ class _DevToolsToolbarState extends State<DevToolsToolbar> {
               height: 28,
               child: TextField(
                 controller: _searchController,
-                onChanged: controller.setSearchQuery,
+                onChanged: _onSearchChanged,
                 style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
                 textAlignVertical: TextAlignVertical.center,
                 decoration: InputDecoration(
@@ -113,10 +131,7 @@ class _DevToolsToolbarState extends State<DevToolsToolbar> {
                           icon: const Icon(Icons.clear, size: 14),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          onPressed: () {
-                            _searchController.clear();
-                            controller.setSearchQuery('');
-                          },
+                          onPressed: _clearSearch,
                         )
                       : null,
                   border: OutlineInputBorder(
@@ -143,6 +158,14 @@ class _DevToolsToolbarState extends State<DevToolsToolbar> {
               message: 'Filter to show asynchronous wires only',
               icon: Icons.bolt,
               label: 'Async Only',
+            ),
+            const SizedBox(width: denseSpacing),
+            DevToolsToggleButton(
+              isSelected: controller.showActionsOnly,
+              onPressed: controller.toggleActionsOnly,
+              message: 'Filter to show action triggers only',
+              icon: Icons.play_circle_outline,
+              label: 'Actions Only',
             ),
             const SizedBox(width: denseSpacing),
             DevToolsToggleButton(
@@ -202,49 +225,39 @@ class _DevToolsToolbarState extends State<DevToolsToolbar> {
     final graph = widget.controller.graphData;
     if (graph == null) return;
 
-    switch (action) {
-      case 'mermaid':
-        final mermaid = graph.toMermaid();
-        await Clipboard.setData(ClipboardData(text: mermaid));
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Mermaid diagram copied to clipboard.'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      case 'json':
-        final jsonMap = {
-          'id': graph.id,
-          'debugTag': graph.debugTag,
-          'isDisposed': graph.isDisposed,
-          'wireCount': graph.wireCount,
-          'maxWaveLevel': graph.maxWaveLevel,
-          'topologicalOrder': graph.topologicalOrder,
-          'wires': graph.wires.map((w) => w.toJson()).toList(),
-        };
-        final jsonString = const JsonEncoder.withIndent('  ').convert(jsonMap);
-        await Clipboard.setData(ClipboardData(text: jsonString));
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('JSON schema copied to clipboard.'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      case 'svg':
-        final svg = graph.toSvg();
-        await Clipboard.setData(ClipboardData(text: svg));
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('SVG markup copied to clipboard.'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
+    final json = graph.toJson();
+    final (content, message) = switch (action) {
+      'mermaid' => (
+        await compute(_exportMermaidIsolate, json),
+        'Mermaid diagram copied to clipboard.',
+      ),
+      'json' => (
+        await compute(_exportJsonIsolate, json),
+        'JSON schema copied to clipboard.',
+      ),
+      'svg' => (
+        await compute(_exportSvgIsolate, json),
+        'SVG markup copied to clipboard.',
+      ),
+      _ => (null, null),
+    };
+
+    if (content == null || !context.mounted) return;
+
+    await Clipboard.setData(ClipboardData(text: content));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message!), duration: const Duration(seconds: 2)),
+      );
     }
   }
 }
+
+String _exportMermaidIsolate(Map<String, Object?> json) =>
+    CircuitGraphData.fromJson(json).toMermaid();
+
+String _exportJsonIsolate(Map<String, Object?> json) =>
+    const JsonEncoder.withIndent('  ').convert(json);
+
+String _exportSvgIsolate(Map<String, Object?> json) =>
+    CircuitGraphData.fromJson(json).toSvg();

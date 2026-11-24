@@ -25,7 +25,7 @@ void main() {
       expect(controller.selectedCircuitId, 'circuit_0');
       expect(controller.graphData, isNotNull);
       expect(controller.graphData!.id, 'circuit_0');
-      expect(controller.graphData!.wires.length, 6);
+      expect(controller.graphData!.wires.length, 7);
       expect(controller.selectedWire, isNull);
     });
 
@@ -58,13 +58,20 @@ void main() {
         ]),
       );
 
-      // Dependents of UserFacade: none (leaf)
-      expect(controller.highlightedDependents, isEmpty);
+      // Dependents of UserFacade: SendEmailAction
+      expect(controller.highlightedDependents, equals({'SendEmailAction'}));
 
       // Deselect by toggling same node
       controller.selectWire(controller.selectedWire);
       expect(controller.selectedWire, isNull);
       expect(controller.highlightedDependencies, isEmpty);
+      expect(controller.highlightedDependents, isEmpty);
+
+      // Select SendEmailAction (leaf action trigger)
+      controller.selectWireByKey('SendEmailAction');
+      expect(controller.selectedWire?.isAction, isTrue);
+      expect(controller.highlightedDependents, isEmpty);
+      expect(controller.highlightedDependencies, contains('UserFacade'));
     });
 
     test('manages search query and filter toggles', () async {
@@ -80,6 +87,10 @@ void main() {
       expect(controller.showAsyncOnly, isFalse);
       controller.toggleAsyncOnly();
       expect(controller.showAsyncOnly, isTrue);
+
+      expect(controller.showActionsOnly, isFalse);
+      controller.toggleActionsOnly();
+      expect(controller.showActionsOnly, isTrue);
 
       expect(controller.highlightCriticalPath, isFalse);
       controller.toggleCriticalPath();

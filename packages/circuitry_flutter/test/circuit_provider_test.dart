@@ -1701,4 +1701,142 @@ void main() {
       },
     );
   });
+
+  group('CircuitProvider listener Callback', () {
+    testWidgets(
+      'listener is invoked with CircuitReady when async compilation completes',
+      (tester) async {
+        final stateTransitions = <CircuitState>[];
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: CircuitProvider(
+              wires: [
+                Wire<_RepositoryA>(() => const _RepositoryA('repo_a')),
+                AsyncWire<String>(() async {
+                  await Future<void>.delayed(const Duration(milliseconds: 10));
+                  return 'resolved_async';
+                }),
+              ],
+              listener: (context, state) {
+                stateTransitions.add(state);
+              },
+              builder: (context, state) => switch (state) {
+                CircuitReady() => const Text('Ready'),
+                CircuitBuilding() => const Text('Building'),
+                CircuitFailure() => const Text('Failed'),
+              },
+            ),
+          ),
+        );
+
+        expect(find.text('Building'), findsOneWidget);
+        expect(stateTransitions, isEmpty);
+
+        await tester.pump(const Duration(milliseconds: 20));
+        expect(find.text('Ready'), findsOneWidget);
+        expect(stateTransitions.length, equals(1));
+        expect(stateTransitions.first, isA<CircuitReady>());
+      },
+    );
+
+    testWidgets(
+      'listener is invoked with CircuitFailure when compilation throws',
+      (tester) async {
+        final stateTransitions = <CircuitState>[];
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: CircuitProvider(
+              wires: [
+                AsyncWire<String>(() async {
+                  throw const FormatException('Simulated startup failure');
+                }),
+              ],
+              listener: (context, state) {
+                stateTransitions.add(state);
+              },
+              builder: (context, state) => switch (state) {
+                CircuitReady() => const Text('Ready'),
+                CircuitBuilding() => const Text('Building'),
+                CircuitFailure() => const Text('Failed'),
+              },
+            ),
+          ),
+        );
+
+        await tester.pump();
+        expect(find.text('Failed'), findsOneWidget);
+        expect(stateTransitions.length, equals(1));
+        expect(
+          stateTransitions.first,
+          isA<CircuitFailure>().having(
+            (s) => s.error,
+            'error',
+            isA<FormatException>(),
+          ),
+        );
+      },
+    );
+
+    testWidgets(
+      'listener is invoked with CircuitBuilding then CircuitReady on wire updates',
+      (tester) async {
+        final stateTransitions = <CircuitState>[];
+        late void Function(void Function()) updateTree;
+
+        var wires = <CircuitWire>[
+          Wire<_RepositoryA>(() => const _RepositoryA('initial')),
+        ];
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              updateTree = setState;
+              return Directionality(
+                textDirection: TextDirection.ltr,
+                child: CircuitProvider(
+                  wires: wires,
+                  listener: (context, state) {
+                    stateTransitions.add(state);
+                  },
+                  builder: (context, state) => switch (state) {
+                    CircuitReady() => const Text('Ready'),
+                    CircuitBuilding() => const Text('Building'),
+                    CircuitFailure() => const Text('Failed'),
+                  },
+                ),
+              );
+            },
+          ),
+        );
+
+        await tester.pump();
+        expect(stateTransitions.length, equals(1));
+        expect(stateTransitions.first, isA<CircuitReady>());
+
+        // Update wires to trigger didUpdateWidget
+        final completer = Completer<String>();
+        updateTree(() {
+          wires = [
+            Wire<_RepositoryA>(() => const _RepositoryA('updated')),
+            AsyncWire<String>(() => completer.future),
+          ];
+        });
+        await tester.pump();
+
+        // Should receive CircuitBuilding when didUpdateWidget begins
+        expect(stateTransitions.length, equals(2));
+        expect(stateTransitions[1], isA<CircuitBuilding>());
+
+        completer.complete('async_val');
+        await tester.pump();
+        // Should then receive CircuitReady
+        expect(stateTransitions.length, equals(3));
+        expect(stateTransitions[2], isA<CircuitReady>());
+      },
+    );
+  });
 }

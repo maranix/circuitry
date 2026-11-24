@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+
+### Changes
+- **Dependency Update**:
+  - Bumped core engine dependency to `circuitry: ^0.5.0` to take advantage of type-indexed fast-path retrieval throughput improvements.
+
 ## 0.2.0
 
 ### Features

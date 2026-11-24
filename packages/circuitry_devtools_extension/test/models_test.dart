@@ -66,6 +66,17 @@ void main() {
         isInitialized: false,
       );
       expect(nodeLazy.isUnresolvedLazy, isTrue);
+
+      const nodeAction = WireNode(
+        key: 'SendEmailAction',
+        dependencies: ['UserFacade'],
+        isAsync: false,
+        isAction: true,
+        topologicalLevel: 4,
+        isInitialized: false,
+      );
+      expect(nodeAction.isAction, isTrue);
+      expect(nodeAction.isUnresolvedLazy, isTrue);
     });
 
     test('parses from and converts to JSON', () {
@@ -73,6 +84,7 @@ void main() {
         'key': 'Database#secondary',
         'dependencies': ['Logger'],
         'isAsync': false,
+        'isAction': true,
         'topologicalLevel': 1,
         'isInitialized': true,
         'isResolving': false,
@@ -84,12 +96,14 @@ void main() {
       expect(node.key, 'Database#secondary');
       expect(node.dependencies, ['Logger']);
       expect(node.isAsync, isFalse);
+      expect(node.isAction, isTrue);
       expect(node.topologicalLevel, 1);
       expect(node.isInitialized, isTrue);
       expect(node.durationMs, 12);
 
       final outJson = node.toJson();
       expect(outJson['key'], 'Database#secondary');
+      expect(outJson['isAction'], isTrue);
       expect(outJson['durationMs'], 12);
     });
   });
@@ -190,6 +204,21 @@ void main() {
       expect(svg, contains('A'));
       expect(svg, contains('B'));
       expect(svg, endsWith('</svg>\n'));
+    });
+
+    test('serializes to JSON and roundtrips via fromJson', () {
+      final json = graph.toJson();
+      expect(json['id'], 'circuit_0');
+      expect(json['wireCount'], 4);
+      expect(json['maxWaveLevel'], 2);
+
+      final reconstructed = CircuitGraphData.fromJson(json);
+      expect(reconstructed.id, graph.id);
+      expect(reconstructed.debugTag, graph.debugTag);
+      expect(reconstructed.wireCount, graph.wireCount);
+      expect(reconstructed.wires.length, graph.wires.length);
+      expect(reconstructed.waves.length, graph.waves.length);
+      expect(reconstructed.topologicalOrder, graph.topologicalOrder);
     });
   });
 }

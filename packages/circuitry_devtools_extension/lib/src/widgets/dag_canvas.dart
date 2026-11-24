@@ -24,6 +24,24 @@ class _DagCanvasState extends State<DagCanvas> {
   static const double verticalSpacing = 28.0;
   static const double padding = 32.0;
 
+  CircuitGraphData? _lastGraph;
+  _DagCanvasLayout? _cachedLayout;
+
+  _DagCanvasLayout _getOrCreateLayout(CircuitGraphData graph) {
+    if (_lastGraph == graph && _cachedLayout != null) {
+      return _cachedLayout!;
+    }
+    _lastGraph = graph;
+    return _cachedLayout = _DagCanvasLayout.calculate(
+      graph: graph,
+      columnWidth: columnWidth,
+      nodeWidth: nodeWidth,
+      nodeHeight: nodeHeight,
+      verticalSpacing: verticalSpacing,
+      padding: padding,
+    );
+  }
+
   void _resetZoom() {
     _transformationController.value = Matrix4.identity();
   }
@@ -57,66 +75,51 @@ class _DagCanvasState extends State<DagCanvas> {
       );
     }
 
-    // Compute layout positions for nodes
-    final positions = <String, Offset>{};
-    var maxRowCount = 0;
-
-    for (var level = 0; level <= graph.maxWaveLevel; level++) {
-      final waveWires = graph.waves[level] ?? const [];
-      if (waveWires.length > maxRowCount) {
-        maxRowCount = waveWires.length;
-      }
-      final x = padding + level * columnWidth;
-      for (var row = 0; row < waveWires.length; row++) {
-        final y = padding + row * (nodeHeight + verticalSpacing);
-        positions[waveWires[row].key] = Offset(x, y);
-      }
-    }
-
-    final canvasWidth = padding * 2 + (graph.maxWaveLevel + 1) * columnWidth;
-    final canvasHeight =
-        padding * 2 + maxRowCount * (nodeHeight + verticalSpacing) + 60.0;
+    final layout = _getOrCreateLayout(graph);
+    final positions = layout.positions;
 
     return Stack(
       children: [
-        InteractiveViewer(
-          transformationController: _transformationController,
-          constrained: false,
-          boundaryMargin: const .all(400.0),
-          minScale: 0.2,
-          maxScale: 2.5,
-          child: SizedBox(
-            width: canvasWidth,
-            height: canvasHeight,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // Smooth Bézier Spline Edges
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _DagEdgesPainter(
-                      graph: graph,
-                      positions: positions,
-                      nodeWidth: nodeWidth,
-                      nodeHeight: nodeHeight,
-                      selectedKey: widget.controller.selectedWire?.key,
-                      dependencies: widget.controller.highlightedDependencies,
-                      dependents: widget.controller.highlightedDependents,
-                      criticalPath: widget.controller.criticalPath,
-                      isDark: theme.brightness == Brightness.dark,
+        RepaintBoundary(
+          child: InteractiveViewer(
+            transformationController: _transformationController,
+            constrained: false,
+            boundaryMargin: const .all(400.0),
+            minScale: 0.2,
+            maxScale: 2.5,
+            child: SizedBox(
+              width: layout.canvasWidth,
+              height: layout.canvasHeight,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Smooth Bézier Spline Edges
+                  Positioned.fill(
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        painter: _DagEdgesPainter(
+                          layout: layout,
+                          selectedKey: widget.controller.selectedWire?.key,
+                          dependencies:
+                              widget.controller.highlightedDependencies,
+                          dependents: widget.controller.highlightedDependents,
+                          criticalPath: widget.controller.criticalPath,
+                          isDark: theme.brightness == Brightness.dark,
+                        ),
+                      ),
                     ),
                   ),
-                ),
 
-                // Nodes
-                for (final wire in graph.wires)
-                  if (positions.containsKey(wire.key))
-                    Positioned(
-                      left: positions[wire.key]!.dx,
-                      top: positions[wire.key]!.dy,
-                      child: _buildNodeCard(wire, theme),
-                    ),
-              ],
+                  // Nodes
+                  for (final wire in graph.wires)
+                    if (positions.containsKey(wire.key))
+                      Positioned(
+                        left: positions[wire.key]!.dx,
+                        top: positions[wire.key]!.dy,
+                        child: _buildNodeCard(wire, theme),
+                      ),
+                ],
+              ),
             ),
           ),
         ),
@@ -167,24 +170,9 @@ class _DagCanvasState extends State<DagCanvas> {
     final isDependent = controller.highlightedDependents.contains(wire.key);
     final isCritical = controller.criticalPath.contains(wire.key);
 
-    // Filter match evaluation
-    var matchesSearch = true;
-    if (controller.searchQuery.isNotEmpty) {
-      final q = controller.searchQuery.toLowerCase();
-      matchesSearch = wire.key.toLowerCase().contains(q);
-    }
-
-    var matchesFilter = true;
-    if (controller.showUnresolvedOnly && !wire.isUnresolvedLazy) {
-      matchesFilter = false;
-    }
-    if (controller.showAsyncOnly && !wire.isAsync) {
-      matchesFilter = false;
-    }
-
+    final isVisible = controller.isWireVisible(wire);
     final isDimmed =
-        !matchesSearch ||
-        !matchesFilter ||
+        !isVisible ||
         (controller.selectedWire != null &&
             !isSelected &&
             !isDependency &&
@@ -277,7 +265,9 @@ class _DagCanvasState extends State<DagCanvas> {
                           borderRadius: const .all(.circular(3)),
                         ),
                         child: Text(
-                          wire.isAsync ? 'async' : 'lazy',
+                          wire.isAction
+                              ? 'action'
+                              : (wire.isAsync ? 'async' : 'lazy'),
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: accentColor,
                             fontSize: 9,
@@ -349,6 +339,14 @@ class _DagCanvasState extends State<DagCanvas> {
         isDark ? const Color(0xFF1E3B24) : Colors.green.shade50,
       );
     }
+    if (wire.isAction) {
+      return (
+        Colors.teal.shade600,
+        isDark
+            ? const Color(0xFF1E333B)
+            : Colors.teal.shade50.withValues(alpha: 0.5),
+      );
+    }
     // Unresolved Lazy
     return (
       Colors.indigo.shade400,
@@ -362,23 +360,68 @@ class _DagCanvasState extends State<DagCanvas> {
     if (wire.hasFailed) return Icons.error_outline;
     if (wire.isResolving) return Icons.hourglass_top;
     if (wire.isInitialized) return Icons.check_circle_outline;
+    if (wire.isAction) return Icons.play_circle_outline;
     return wire.isAsync ? Icons.cloud_queue : Icons.nightlight_outlined;
   }
 }
 
-class const _DagEdgesPainter({
-  required final CircuitGraphData graph,
-  required final Map<String, Offset> positions,
-  required final double nodeWidth,
-  required final double nodeHeight,
-  required final String? selectedKey,
-  required final Set<String> dependencies,
-  required final Set<String> dependents,
-  required final Set<String> criticalPath,
-  required final bool isDark,
-}) extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
+class _CachedEdge {
+  final String sourceKey;
+  final String targetKey;
+  final Path path;
+
+  const _CachedEdge({
+    required this.sourceKey,
+    required this.targetKey,
+    required this.path,
+  });
+}
+
+class _DagCanvasLayout {
+  final Map<String, Offset> positions;
+  final double canvasWidth;
+  final double canvasHeight;
+  final List<_CachedEdge> edges;
+  final Path allEdgesCombinedPath;
+
+  const _DagCanvasLayout({
+    required this.positions,
+    required this.canvasWidth,
+    required this.canvasHeight,
+    required this.edges,
+    required this.allEdgesCombinedPath,
+  });
+
+  factory _DagCanvasLayout.calculate({
+    required CircuitGraphData graph,
+    required double columnWidth,
+    required double nodeWidth,
+    required double nodeHeight,
+    required double verticalSpacing,
+    required double padding,
+  }) {
+    final positions = <String, Offset>{};
+    var maxRowCount = 0;
+
+    for (var level = 0; level <= graph.maxWaveLevel; level++) {
+      final waveWires = graph.waves[level] ?? const [];
+      if (waveWires.length > maxRowCount) {
+        maxRowCount = waveWires.length;
+      }
+      final x = padding + level * columnWidth;
+      for (var row = 0; row < waveWires.length; row++) {
+        final y = padding + row * (nodeHeight + verticalSpacing);
+        positions[waveWires[row].key] = Offset(x, y);
+      }
+    }
+
+    final canvasWidth = padding * 2 + (graph.maxWaveLevel + 1) * columnWidth;
+    final canvasHeight =
+        padding * 2 + maxRowCount * (nodeHeight + verticalSpacing) + 60.0;
+
+    final edges = <_CachedEdge>[];
+    final combinedPath = Path();
+
     for (final wire in graph.wires) {
       final targetPos = positions[wire.key];
       if (targetPos == null) continue;
@@ -387,62 +430,121 @@ class const _DagEdgesPainter({
         final sourcePos = positions[depKey];
         if (sourcePos == null) continue;
 
-        // Spline coordinates: from source right center to target left center
         final sx = sourcePos.dx + nodeWidth;
         final sy = sourcePos.dy + nodeHeight / 2;
         final tx = targetPos.dx;
         final ty = targetPos.dy + nodeHeight / 2;
         final mx = (sx + tx) / 2;
 
-        final path = Path()
+        final edgePath = Path()
           ..moveTo(sx, sy)
           ..cubicTo(mx, sy, mx, ty, tx, ty);
 
-        // Highlight logic
-        final isSelectedEdge =
-            (selectedKey == wire.key && dependencies.contains(depKey)) ||
-            (selectedKey == depKey && dependents.contains(wire.key));
-        final isCriticalEdge =
-            criticalPath.contains(depKey) && criticalPath.contains(wire.key);
+        combinedPath.moveTo(sx, sy);
+        combinedPath.cubicTo(mx, sy, mx, ty, tx, ty);
 
-        final Color strokeColor;
-        final double strokeWidth;
-
-        if (isSelectedEdge) {
-          strokeColor = selectedKey == wire.key
-              ? Colors.lightBlue
-              : Colors.purpleAccent;
-          strokeWidth = 2.4;
-        } else if (isCriticalEdge) {
-          strokeColor = Colors.amber;
-          strokeWidth = 2.0;
-        } else if (selectedKey != null) {
-          // Dim other edges
-          strokeColor = isDark
-              ? const Color(0xFF404040)
-              : const Color(0xFFD0D0D0);
-          strokeWidth = 1.0;
-        } else {
-          strokeColor = isDark
-              ? const Color(0xFF606060)
-              : const Color(0xFFB0B0B0);
-          strokeWidth = 1.2;
-        }
-
-        final paint = Paint()
-          ..color = strokeColor
-          ..strokeWidth = strokeWidth
-          ..style = PaintingStyle.stroke;
-
-        canvas.drawPath(path, paint);
+        edges.add(
+          _CachedEdge(sourceKey: depKey, targetKey: wire.key, path: edgePath),
+        );
       }
+    }
+
+    return _DagCanvasLayout(
+      positions: positions,
+      canvasWidth: canvasWidth,
+      canvasHeight: canvasHeight,
+      edges: edges,
+      allEdgesCombinedPath: combinedPath,
+    );
+  }
+}
+
+class _DagEdgesPainter extends CustomPainter {
+  final _DagCanvasLayout layout;
+  final String? selectedKey;
+  final Set<String> dependencies;
+  final Set<String> dependents;
+  final Set<String> criticalPath;
+  final bool isDark;
+
+  const _DagEdgesPainter({
+    required this.layout,
+    required this.selectedKey,
+    required this.dependencies,
+    required this.dependents,
+    required this.criticalPath,
+    required this.isDark,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (selectedKey == null) {
+      // FAST PATH: All edges styled identically - draw everything in a single draw call.
+      final defaultPaint = Paint()
+        ..color = isDark ? const Color(0xFF606060) : const Color(0xFFB0B0B0)
+        ..strokeWidth = 1.2
+        ..style = PaintingStyle.stroke;
+      canvas.drawPath(layout.allEdgesCombinedPath, defaultPaint);
+      return;
+    }
+
+    // Partition edges and batch dimmed edges into one single path.
+    final dimmedPath = Path();
+    var hasDimmed = false;
+
+    final selectedDepPaint = Paint()
+      ..color = Colors.lightBlue
+      ..strokeWidth = 2.4
+      ..style = PaintingStyle.stroke;
+
+    final selectedDependentPaint = Paint()
+      ..color = Colors.purpleAccent
+      ..strokeWidth = 2.4
+      ..style = PaintingStyle.stroke;
+
+    final criticalPaint = Paint()
+      ..color = Colors.amber
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+
+    final dimmedPaint = Paint()
+      ..color = isDark ? const Color(0xFF404040) : const Color(0xFFD0D0D0)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    for (final edge in layout.edges) {
+      final isUpstream =
+          selectedKey == edge.targetKey &&
+          dependencies.contains(edge.sourceKey);
+      final isDownstream =
+          selectedKey == edge.sourceKey && dependents.contains(edge.targetKey);
+      final isCritical =
+          criticalPath.contains(edge.sourceKey) &&
+          criticalPath.contains(edge.targetKey);
+
+      if (isUpstream) {
+        canvas.drawPath(edge.path, selectedDepPaint);
+      } else if (isDownstream) {
+        canvas.drawPath(edge.path, selectedDependentPaint);
+      } else if (isCritical) {
+        canvas.drawPath(edge.path, criticalPaint);
+      } else {
+        dimmedPath.addPath(edge.path, Offset.zero);
+        hasDimmed = true;
+      }
+    }
+
+    if (hasDimmed) {
+      canvas.drawPath(dimmedPath, dimmedPaint);
     }
   }
 
   @override
   bool shouldRepaint(covariant _DagEdgesPainter oldDelegate) =>
+      oldDelegate.layout != layout ||
       oldDelegate.selectedKey != selectedKey ||
       oldDelegate.dependencies != dependencies ||
       oldDelegate.dependents != dependents ||
-      oldDelegate.criticalPath != criticalPath;
+      oldDelegate.criticalPath != criticalPath ||
+      oldDelegate.isDark != isDark;
 }

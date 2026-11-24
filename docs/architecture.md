@@ -18,7 +18,7 @@ circuitry/
 │   │   │       ├── introspection.dart # CircuitIntrospection, WireDescriptor, Mermaid/JSON export
 │   │   │       ├── registry.dart  # CircuitRegistry, CircuitDescriptor, VM Service extensions
 │   │   │       ├── utils.dart     # Internal formatting and utility functions
-│   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, builders
+│   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, TriggerWire, CircuitAction, builders
 │   │   └── test/                  # Unit tests (DAG validation, waves, laziness, disposal, registry)
 │   ├── circuitry_devtools_extension/ # Standalone Flutter Web DevTools extension UI & companion package
 │   │   ├── extension/             # Dart & Flutter DevTools extension configuration
@@ -64,6 +64,7 @@ flowchart TD
   subgraph Declaration["1. Declarative Wires"]
     W1["Wire&lt;T&gt;<br/>(Lazy synchronous)"]
     W2["AsyncWire&lt;T&gt;<br/>(Topological async wave)"]
+    W3["TriggerWire&lt;T&gt;<br/>(Action singleton)"]
     K["(Type, Enum?) Record Keys"]
     TC[".takes&lt;A&gt;().to(...) Chaining"]
   end
@@ -117,6 +118,8 @@ flowchart TD
 - Re-exports `package:circuitry/circuitry.dart` so Flutter consumers need only depend on `circuitry_flutter`.
 - Encapsulates `InheritedWidget` scoping within `_CircuitScope`, preventing `BuildContext` extension pollution.
 - Implements `didUpdateWidget` epoch generation tracking to safely cancel and tear down superseded in-flight compilations when wire inputs change.
+- Exposes an optional `listener: (context, state)` callback on `CircuitProvider` to execute one-off side effects (snackbars, navigation, telemetry) on state transitions without violating Flutter layout invariants.
+- Provides `CircuitBuilder<T>` (and `CircuitBuilder<T>.tagged`) to localize dependency extraction to leaf widgets without full-screen rebuilds or `CircuitProvider.of` boilerplate.
 - Propagates tagged ancestor circuits via ambient immutable map merging in `_CircuitScope`, enabling descendants across nested scopes to access tagged ancestor circuits in **O(1)** without tree walking.
 
 ### 3. Nested Scopes & O(1) Ambient Registry Map Merging
@@ -160,16 +163,18 @@ flowchart TD
   BF -->|"CircuitProvider.of(context, tag: .global)<br/>scope.taggedCircuits[tag] -> O(1)"| GCS
 ```
 
-### 4. Record Tuple Keys (`WireKey = (Type, Enum?)`)
+### 4. Record Tuple Keys (`WireKey = (Type, Enum?)`) & Hot-Path Type-Indexed Retrieval
 - Dependency identifiers are Dart 3 record tuples.
 - Untagged dependencies use `(T, null)`.
 - Tagged dependencies constrain tags to enum values (`(T, K)` where `K extends Enum`).
 - Enables Dart dot-shorthands (e.g. `tag: .prod`, `tag: .fast`) and allows multiple distinct registrations of the same generic Dart type without collisions.
+- **Type-Indexed Fast Path**: To eliminate record tuple allocation overhead on hot paths, `Circuit` maintains an internal `Map<Type, Object?> _untaggedInstances` fast-path index alongside `_instances`. Calls to `circuit.get<T>()` query `_untaggedInstances[T]` directly in a single hash lookup with zero record allocations, delivering >30M ops/sec with ~30 ns lookup latency. Tagged queries (`getTagged<T, K>(tag)`) delegate directly to `_getByKey((T, tag))` which performs single-hash lookup assignment on `_instances[key]`.
 
-### 5. Declarative Wire Recipes (`CircuitWire`, `Wire<T>`, `AsyncWire<T>`)
+### 5. Declarative Wire Recipes (`CircuitWire`, `Wire<T>`, `AsyncWire<T>`, `TriggerWire<T extends CircuitAction>`)
 - `Wire<T>`: Synchronous lazy singletons, constructed on first read or when required by an `AsyncWire` during build.
 - `AsyncWire<T>`: Asynchronous singletons resolved in parallel topological waves during `Circuit.build(wires)`.
-- Fluent accumulator chaining (`Wire.takes`, `AsyncWire.takes` backed by internal `WireBuilder` / `AsyncWireBuilder` hidden from public exports) allows type-safe dependency declarations:
+- `TriggerWire<T extends CircuitAction>`: Actionable, callable singletons enforcing that `T` implements the `CircuitAction` blueprint marker interface at compile time. Instantiated lazily on first read, memoized in container storage for O(1) subsequent access without recreation/GC churn, and callable using native Dart `call(...)` syntax.
+- Fluent accumulator chaining (`Wire.takes`, `AsyncWire.takes`, `TriggerWire.takes` backed by internal `WireBuilder` / `AsyncWireBuilder` / `TriggerWireBuilder` hidden from public exports) allows type-safe dependency declarations:
   - 1-dependency accumulator passes directly to 1-arg constructor/tear-off (`.to(UserService.new)`).
   - Multi-dependency accumulator unpacks nested record tuples (`(deps) => OrderService(deps.$1, deps.$2)`).
 
@@ -207,10 +212,15 @@ flowchart TD
 - Decouples UI rendering from the VM Service transport via the `CircuitryServiceClient` interface, with `VmCircuitryServiceClient` communicating over Dart VM Service protocol and `MockCircuitryServiceClient` providing offline testing and preview capabilities.
 - **Circuit Navigator:** Multi-scope sidebar listing detected containers with tag badges (`[tag: AppScope.global]`), lifecycle state badges (`Ready`, `Building`, `Failed`, `Disposed`), and wire initialization counters.
 - **Interactive DAG Canvas:** Arranges dependency nodes horizontally in distinct columns by topological wave level (Wave 0 roots to Wave $N$ consumers). Connects dependencies with smooth cubic Bézier splines via `CustomPainter`, illuminating upstream dependencies (blue) and downstream dependents (purple) upon node selection while dimming unrelated graph elements.
-- **Node Anatomy & Status Styling:** Differentiates resolved singletons (green checkmark), sleeping lazy wires (dashed border), in-flight async wires (amber spinner), and compilation failures (crimson error).
-- **Wire Detail Drawer & Live Actions:** Displays full wire metadata, wave level, interactive dependency links, and a "Force Initialize" action triggering `ext.circuitry.forceResolveWire` to instantiate sleeping lazy singletons in real time.
-- **Startup Wave Waterfall Profiler:** Renders a Gantt timeline of parallel wave execution during `Circuit.build(wires)`, pinpointing startup latency bottlenecks and highlighting the critical path.
-- **Toolbar & Exporters:** Provides search filtering by type or tag, status filters (`Unresolved Only`, `Async Only`, `Critical Path`), view mode switching, and multi-format diagram export (Mermaid flowchart, JSON schema, and SVG markup).
+- **Node Anatomy & Status Styling:** Differentiates resolved singletons (green checkmark), sleeping lazy wires (dashed border), in-flight async wires (amber spinner), action triggers (`TriggerWire`, teal play icon and action badge), and compilation failures (crimson error).
+- **Wire Detail Drawer & Live Actions:** Displays full wire metadata, wave level, interactive dependency links, and a "Force Initialize" action (with contextual action trigger labels) triggering `ext.circuitry.forceResolveWire` to instantiate sleeping lazy singletons or action triggers in real time.
+- **Startup Wave Waterfall Profiler:** Renders a Gantt timeline of parallel wave execution during `Circuit.build(wires)`, pinpointing startup latency bottlenecks, action trigger counts, and highlighting the critical path.
+- **Toolbar & Exporters:** Provides debounced (150ms) search filtering by type or tag, status filters (`Unresolved Only`, `Async Only`, `Actions Only`, `Critical Path`), view mode switching, and multi-format diagram export (Mermaid flowchart, JSON schema, and SVG markup).
+- **High-Performance Rendering Architecture:**
+  - **Background Isolate Offloading:** Offloads incoming DAG JSON graph deserialization and diagram/SVG exporters to background workers/isolates via Flutter foundation `compute()`, ensuring the main UI thread never blocks during payload processing.
+  - **Pre-Computed Geometry & Zero-Allocation Splines:** Caches layout calculations in `_DagCanvasLayout`. Bézier spline paths are pre-constructed once per graph update; interactive pan and zoom gestures inside `InteractiveViewer` allocate zero `Path` or `Paint` objects per frame, sustaining 60/120 FPS.
+  - **Batched Canvas Draw Calls:** Unselected graph edges render in a single `canvas.drawPath` call using a combined path; wire selections batch dimmed edges into a single path, minimizing GPU state switches.
+  - **Fine-Grained Scoped Rebuilding & Paint Isolation:** Scopes controller updates to individual panes and wraps all split panes (`CircuitNavigator`, `DevToolsAreaPane`, `WireDetailDrawer`, and `DevToolsToolbar`) and `InteractiveViewer` in `RepaintBoundary` layers, eliminating full-scaffold redraws during canvas interaction or live typing.
 - Compiled via `dart run devtools_extensions build_and_copy` into `packages/circuitry_devtools_extension/extension/devtools/build/`.
 
 ---

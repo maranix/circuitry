@@ -313,6 +313,43 @@ final class CircuitRegistry._() {
     return developer.ServiceExtensionResponse.result(json);
   }
 
+  (Circuit? circuit, String? id, developer.ServiceExtensionResponse? error)
+  _lookupCircuitForExtension(Map<String, String> parameters) {
+    if (!isDebugMode || !_enabled) {
+      return (
+        null,
+        null,
+        developer.ServiceExtensionResponse.error(
+          developer.ServiceExtensionResponse.extensionError,
+          'Circuitry DevTools extension is not registered or has been deregistered.',
+        ),
+      );
+    }
+    final id = parameters['id'] ?? parameters['circuitId'];
+    if (id == null || id.isEmpty) {
+      return (
+        null,
+        null,
+        developer.ServiceExtensionResponse.error(
+          developer.ServiceExtensionResponse.invalidParams,
+          'Missing required parameter "id" or "circuitId".',
+        ),
+      );
+    }
+    final circuit = _circuits[id];
+    if (circuit == null) {
+      return (
+        null,
+        id,
+        developer.ServiceExtensionResponse.error(
+          developer.ServiceExtensionResponse.extensionError,
+          'Circuit with id "$id" not found in registry.',
+        ),
+      );
+    }
+    return (circuit, id, null);
+  }
+
   /// Handles VM service invocations for `ext.circuitry.getCircuitGraph`.
   ///
   /// In profile and release modes or when disabled, returns an error response.
@@ -320,32 +357,13 @@ final class CircuitRegistry._() {
     String method,
     Map<String, String> parameters,
   ) async {
-    if (!isDebugMode || !_enabled) {
-      return developer.ServiceExtensionResponse.error(
-        developer.ServiceExtensionResponse.extensionError,
-        'Circuitry DevTools extension is not registered or has been deregistered.',
-      );
-    }
-    final id = parameters['id'] ?? parameters['circuitId'];
-    if (id == null || id.isEmpty) {
-      return developer.ServiceExtensionResponse.error(
-        developer.ServiceExtensionResponse.invalidParams,
-        'Missing required parameter "id" or "circuitId".',
-      );
-    }
-
-    final circuit = _circuits[id];
-    if (circuit == null) {
-      return developer.ServiceExtensionResponse.error(
-        developer.ServiceExtensionResponse.extensionError,
-        'Circuit with id "$id" not found in registry.',
-      );
-    }
+    final (circuit, id, error) = _lookupCircuitForExtension(parameters);
+    if (error != null) return error;
 
     final data = <String, Object?>{
-      'id': id,
+      'id': id!,
       'debugTag': ?_circuitDebugTags[id],
-      'isDisposed': circuit.isDisposed,
+      'isDisposed': circuit!.isDisposed,
       'wireCount': circuit.graph.wireMap.length,
       ...circuit.inspect().toJson(),
     };
@@ -360,19 +378,8 @@ final class CircuitRegistry._() {
     String method,
     Map<String, String> parameters,
   ) async {
-    if (!isDebugMode || !_enabled) {
-      return developer.ServiceExtensionResponse.error(
-        developer.ServiceExtensionResponse.extensionError,
-        'Circuitry DevTools extension is not registered or has been deregistered.',
-      );
-    }
-    final id = parameters['id'] ?? parameters['circuitId'];
-    if (id == null || id.isEmpty) {
-      return developer.ServiceExtensionResponse.error(
-        developer.ServiceExtensionResponse.invalidParams,
-        'Missing required parameter "id" or "circuitId".',
-      );
-    }
+    final (circuit, id, error) = _lookupCircuitForExtension(parameters);
+    if (error != null) return error;
 
     final keyString = parameters['key'] ?? parameters['wireKey'];
     if (keyString == null || keyString.isEmpty) {
@@ -382,28 +389,16 @@ final class CircuitRegistry._() {
       );
     }
 
-    final circuit = _circuits[id];
-    if (circuit == null) {
-      return developer.ServiceExtensionResponse.error(
-        developer.ServiceExtensionResponse.extensionError,
-        'Circuit with id "$id" not found in registry.',
-      );
-    }
-
-    if (circuit.isDisposed) {
+    if (circuit!.isDisposed) {
       return developer.ServiceExtensionResponse.error(
         developer.ServiceExtensionResponse.extensionError,
         'Circuit with id "$id" has been disposed.',
       );
     }
 
-    WireKey? targetKey;
-    for (final key in circuit.graph.wireMap.keys) {
-      if (formatWireKey(key) == keyString) {
-        targetKey = key;
-        break;
-      }
-    }
+    final targetKey = circuit.graph.wireMap.keys
+        .where((k) => formatWireKey(k) == keyString)
+        .firstOrNull;
 
     if (targetKey == null) {
       return developer.ServiceExtensionResponse.error(
@@ -421,10 +416,10 @@ final class CircuitRegistry._() {
           'initialized': circuit.isKeyInitialized(targetKey),
         }),
       );
-    } catch (error) {
+    } catch (err) {
       return developer.ServiceExtensionResponse.error(
         developer.ServiceExtensionResponse.extensionError,
-        'Failed to resolve wire "$keyString": $error',
+        'Failed to resolve wire "$keyString": $err',
       );
     }
   }

@@ -13,6 +13,16 @@ typedef CircuitStateWidgetBuilder = Widget Function(
   CircuitState state,
 );
 
+/// Signature for a listener callback that reacts to transitions in [CircuitState].
+///
+/// Used by [CircuitProvider.new] to execute one-off side effects (such as showing
+/// snackbars, logging telemetry, or triggering navigation) when the dependency
+/// graph enters [CircuitReady], [CircuitFailure], or restarts compilation.
+typedef CircuitStateListener = void Function(
+  BuildContext context,
+  CircuitState state,
+);
+
 /// A widget that provides a [Circuit] dependency injection container to its descendants.
 ///
 /// [CircuitProvider] acts as the composition root bridge between Circuitry's
@@ -146,6 +156,9 @@ typedef CircuitStateWidgetBuilder = Widget Function(
 sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
   /// Asynchronously compiles [wires] into a [Circuit] and yields reactive [CircuitState] to [builder].
   ///
+  /// Optionally accepts a [listener] callback invoked whenever [CircuitState] transitions
+  /// (e.g. entering [CircuitReady], [CircuitFailure], or restarting compilation).
+  ///
   /// Optionally associates this provider's [Circuit] with [tag] for scoped O(1) retrieval
   /// across nested [CircuitProvider] hierarchies via [CircuitProvider.of] or [CircuitProvider.maybeOf].
   /// In debug mode (`kDebugMode`), [tag] also labels the container in DevTools and the ambient
@@ -170,6 +183,7 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
     Key? key,
     Enum? tag,
     required List<CircuitWire> wires,
+    CircuitStateListener? listener,
     required CircuitStateWidgetBuilder builder,
   }) = _CircuitWireProvider;
 
@@ -241,6 +255,17 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
   }
 }
 
+Map<Enum, Circuit> _mergeTaggedCircuits(
+  Map<Enum, Circuit> parent,
+  Enum? tag,
+  Circuit? circuit,
+) {
+  if (tag != null && circuit != null) {
+    return Map<Enum, Circuit>.unmodifiable({...parent, tag: circuit});
+  }
+  return parent;
+}
+
 /// Internal [CircuitProvider] implementation that synchronously injects an existing [Circuit].
 ///
 /// Backs the [CircuitProvider.value] factory constructor. It mounts a [_CircuitScope]
@@ -258,14 +283,11 @@ final class const _CircuitValueProvider({
   Widget build(BuildContext context) {
     final parentScope = context
         .dependOnInheritedWidgetOfExactType<_CircuitScope>();
-    final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};
-    final Map<Enum, Circuit> taggedCircuits = switch (tag) {
-      final t? => Map<Enum, Circuit>.unmodifiable({
-        ...effectiveTaggedCircuits,
-        t: value,
-      }),
-      _ => effectiveTaggedCircuits,
-    };
+    final taggedCircuits = _mergeTaggedCircuits(
+      parentScope?.taggedCircuits ?? const {},
+      tag,
+      value,
+    );
 
     return _CircuitScope(
       tag: tag,
@@ -285,13 +307,19 @@ final class const _CircuitWireProvider({
   super.key,
   final Enum? tag,
   required final List<CircuitWire> wires,
+  final CircuitStateListener? listener,
   required final CircuitStateWidgetBuilder builder,
 }) extends CircuitProvider {
   this : super._();
 
   @override
   Widget build(BuildContext context) {
-    return _CircuitWireStateful(tag: tag, wires: wires, builder: builder);
+    return _CircuitWireStateful(
+      tag: tag,
+      wires: wires,
+      listener: listener,
+      builder: builder,
+    );
   }
 }
 
@@ -299,6 +327,7 @@ final class const _CircuitWireProvider({
 final class const _CircuitWireStateful({
   final Enum? tag,
   required final List<CircuitWire> wires,
+  final CircuitStateListener? listener,
   required final CircuitStateWidgetBuilder builder,
 }) extends StatefulWidget {
   @override
@@ -330,6 +359,7 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
       setState(() {
         _state = const .building();
       });
+      widget.listener?.call(context, _state);
       _startCompilation();
     }
   }
@@ -349,12 +379,14 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
         setState(() {
           _state = .ready(circuit);
         });
+        widget.listener?.call(context, _state);
       },
       onError: (Object error, StackTrace stackTrace) {
         if (!mounted || currentEpoch != _compilationEpoch) return;
         setState(() {
           _state = .failure(error, stackTrace);
         });
+        widget.listener?.call(context, _state);
       },
     );
   }
@@ -370,28 +402,22 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
   Widget build(BuildContext context) {
     final parentScope = context
         .dependOnInheritedWidgetOfExactType<_CircuitScope>();
-    final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};
-
-    return switch (_state) {
-      CircuitReady(:final circuit) => _CircuitScope(
-        tag: widget.tag,
-        circuit: circuit,
-        taggedCircuits: switch (widget.tag) {
-          final t? => Map<Enum, Circuit>.unmodifiable({
-            ...effectiveTaggedCircuits,
-            t: circuit,
-          }),
-          _ => effectiveTaggedCircuits,
-        },
-        child: Builder(builder: (context) => widget.builder(context, _state)),
-      ),
-      _ => _CircuitScope(
-        tag: widget.tag,
-        circuit: null,
-        taggedCircuits: effectiveTaggedCircuits,
-        child: Builder(builder: (context) => widget.builder(context, _state)),
-      ),
+    final circuit = switch (_state) {
+      CircuitReady(:final circuit) => circuit,
+      _ => null,
     };
+    final taggedCircuits = _mergeTaggedCircuits(
+      parentScope?.taggedCircuits ?? const {},
+      widget.tag,
+      circuit,
+    );
+
+    return _CircuitScope(
+      tag: widget.tag,
+      circuit: circuit,
+      taggedCircuits: taggedCircuits,
+      child: Builder(builder: (context) => widget.builder(context, _state)),
+    );
   }
 }
 

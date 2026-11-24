@@ -24,6 +24,7 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
   - Detects dependency cycles with exact cycle paths (`CircularDependencyException`)
 - **Parallel Topological Wave Resolution**: Resolves asynchronous singletons (`AsyncWire<T>`) concurrently level-by-level using `Future.wait` with fail-fast semantics (`eagerError: true`). Immediately rolls back and tears down partially created singletons if any wave fails.
 - **Type-Safe Accumulator Chaining**: Declare dependencies using `takes<A>()` and `takesTagged<B, K>(tag)`. Supports direct tear-offs (`.to(UserService.new)`) and destructuring nested tuples for multiple dependencies.
+- **Action Singletons (`TriggerWire<T extends CircuitAction>`)**: Dedicated recipe enforcing compile-time blueprint conformance with `CircuitAction`. Instantiated lazily on first read, memoized in container storage for O(1) subsequent access without recreation/GC churn, and callable using native Dart `call(...)` syntax with arbitrary parameters and return types (sync or async).
 - **Dot-Shorthand Tagging**: Supports tagged dependencies with Dart enum dot-shorthands (e.g. `tag: .prod`, `tag: .fast`), enabling multiple distinct singletons of the same generic Dart type without collisions.
 - **Reverse Topological Wave Disposal**: Idempotent teardown in reverse dependency waves (`leaves -> roots`), running parallel asynchronous `onDispose` callbacks and aggregating errors into `DisposalException`.
 - **On-Demand Introspection & Exporters**: Query direct and transitive dependents (`circuit.inspect().dependentsOf(key)`), inspect topological waves, and generate Mermaid diagrams (`toMermaid()`) or JSON schemas (`toJson()`). Fully tree-shaken in release builds when unused.
@@ -55,6 +56,15 @@ final class DatabaseService(final DatabaseConfig config) {
 }
 
 final class UserService(final DatabaseService db);
+
+final class SendEmailAction implements CircuitAction {
+  final UserService user;
+  SendEmailAction(this.user);
+
+  Future<bool> call(String recipient, {String? subject}) async {
+    return true;
+  }
+}
 ```
 
 ### 2. Declare Wires
@@ -74,6 +84,9 @@ final dbWire = AsyncWire.takesTagged<DatabaseConfig, Environment>(Environment.pr
 
 // Synchronous wire depending on dbWire via tear-off
 final userWire = Wire.takes<DatabaseService>().to(UserService.new);
+
+// Action trigger wire depending on userWire
+final sendEmailTrigger = TriggerWire.takes<UserService>().to(SendEmailAction.new);
 ```
 
 ### 3. Build & Consume Circuit
@@ -85,6 +98,7 @@ void main() async {
       configWire,
       dbWire,
       userWire,
+      sendEmailTrigger,
     ],
     debugTag: 'main_circuit',
   );
@@ -94,6 +108,10 @@ void main() async {
 
   // Tagged lookup
   final config = circuit.getTagged<DatabaseConfig, Environment>(Environment.prod);
+
+  // Retrieve and invoke action directly
+  final sendEmail = circuit.get<SendEmailAction>();
+  await sendEmail('alice@example.com', subject: 'Welcome');
 
   // On-demand DAG introspection (tree-shaken in release if unused)
   final introspection = circuit.inspect();

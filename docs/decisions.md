@@ -91,6 +91,39 @@
 - **Reason:** Keeps `circuitry` (~28 KB) and `circuitry_flutter` (~25 KB) ultra-lightweight runtime dependencies without forcing users to download the ~15 MB compiled web bundle. Only developers who explicitly add the extension to `dev_dependencies` download the DevTools assets, which DevTools discovers automatically from `package_config.json`.
 - **Alternative:** Bundling the precompiled web assets inside `packages/circuitry` (superseded, forced a 15 MB archive on all users) or `packages/circuitry_flutter`.
 
+## 2026-11-24: Type-Indexed Fast-Path and Single-Hash Hot-Path Retrieval
+
+- **Status:** agreed
+- **Choice:** Maintain an internal `Map<Type, Object?> _untaggedInstances` fast-path cache alongside `_instances`, and adopt single-hash lookup assignment (`final cached = _instances[key]; if (cached != null) return cached;`).
+- **Reason:** Eliminates record tuple allocations `(T, null)` on every `circuit.get<T>()` read and avoids double-hash traversals (`containsKey` + `[]`). Benchmarks proved a 267%–332% throughput improvement (from 7.9M ops/sec to 32.1M–34.1M ops/sec) and reduced lookup latency from 126 ns down to 29–31 ns with zero API breaking changes.
+- **Alternative:** Rewriting DAG compilation wave bucketing into a manual bucket loop was rejected after empirical benchmarking revealed it added list allocation overhead and was up to 25% slower on small graphs (10–35 nodes) compared to Dart's optimized iterable filtering.
+
+## 2026-11-24: DevTools Extension Performance Overhaul (Isolates, Cached Geometry, Zero-Allocation Splines, Scoped Rebuilding)
+
+- **Status:** agreed
+- **Choice:** Overhaul `circuitry_devtools_extension` performance by:
+  1. Offloading graph JSON deserialization and multi-format exporters (Mermaid, JSON schema, SVG markup) to background isolates via Flutter foundation `compute()`.
+  2. Pre-computing and caching DAG layout geometry in `_DagCanvasLayout`, eliminating runtime `Path` and `Paint` allocations during pan/zoom gestures at 60/120 FPS.
+  3. Batching edge render calls (single `canvas.drawPath` for unselected graphs, batched dimmed paths for selections).
+  4. Scoping rebuilds with isolated `ListenableBuilder`s and wrapping all split panes (`CircuitNavigator`, `DevToolsAreaPane`, `WireDetailDrawer`, `DevToolsToolbar`) and `InteractiveViewer` in `RepaintBoundary` layers.
+  5. Debouncing search field inputs with a 150ms timer to prevent synchronous layout and filtering thrashing on every keystroke.
+- **Reason:** Direct user testing identified noticeable clunkiness, GC churn, and UI lag caused by monolithic scaffold-level rebuilds, unthrottled search inputs, per-frame spline allocations during gestures, and main-thread serialization of large graphs.
+- **Alternative:** Maintaining monolithic screen rebuilds or calculating Bézier paths on every frame of canvas panning.
+
+## 2026-11-24: Flutter CircuitProvider listener Callback and CircuitBuilder Widget
+
+- **Status:** agreed
+- **Choice:** Add an optional `CircuitStateListener listener` callback to `CircuitProvider` and introduce `CircuitBuilder<T>` in `packages/circuitry_flutter` (with `.tagged()` constructor and `circuitTag` support).
+- **Reason:** Separates one-off side effects (snackbars, navigation, telemetry) from widget tree building to prevent Flutter layout lifecycle violations, while allowing leaf widgets to localize dependency extraction without wide screen-level rebuilds or `CircuitProvider.of` boilerplate. Container-level factories in core pure Dart `circuitry` were rejected under the "Both or None" principle to avoid asymmetric sync-only factory compromises without `getAsync`.
+- **Alternative:** Executing side effects inside `builder` (causes setState/Navigator build errors) or reading dependencies solely at screen root via `CircuitProvider.of(context)`.
+
+## 2026-11-24: CircuitAction Blueprint and TriggerWire Action Singleton Recipes
+
+- **Status:** agreed
+- **Choice:** Introduce the `CircuitAction` blueprint marker interface and the dedicated `TriggerWire<T extends CircuitAction>` recipe class with `TriggerWireBuilder`, enforcing at compile time that wired action types implement `CircuitAction`. Trigger wires are evaluated lazily on first access via `circuit.get<T>()`, memoized as singletons in `_instances`, and participate in DAG compile-time validation, cycle detection, topological levels, and reverse-wave disposal. Container retrieval remains strictly synchronous (`circuit.get<T>()`).
+- **Reason:** Provides a first-class, type-safe blueprint for executable actions and callable domain services without polluting `Wire` or `AsyncWire` with `.action` or `.toAction` APIs. Instantiating the action once on first access and retaining it eliminates garbage collection churn and memory allocation overhead on subsequent invocations. Actions implement native Dart callable signatures (`call(...)`) with arbitrary parameters and return types (sync or async) without boxing into generic input/output tuples or restricting nullability.
+- **Alternative:** Container-level transient factory recreation on every `get()` was rejected due to excessive memory and GC churn, as well as the impossibility of asynchronous factories without introducing `getAsync`. Generic callback registration was rejected because arbitrary functions lack traceability, debugging metadata, and dependency structure. Adding `.action`/`.toAction` to `Wire` was rejected as API bloat.
+
 ### Architecture Sketch
 
-Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler. `packages/circuitry` defines declarative dependency recipes (`Wire<T>`, `AsyncWire<T>`), record tuple keys `(Type, Enum?)`, and accumulator builders (`takes<A>().to(...)`), validated and compiled by `Circuit.build(wires)` into a Directed Acyclic Graph (DAG) with parallel topological wave resolution and reverse-wave disposal. `packages/circuitry_flutter` bridges this compiled container to the Flutter widget hierarchy via `CircuitProvider`, managing asynchronous build lifecycles, didUpdateWidget epoch race prevention, and unmount cleanup. For full architectural details, see [architecture.md](architecture.md).
+Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler. `packages/circuitry` defines declarative dependency recipes (`Wire<T>`, `AsyncWire<T>`, `TriggerWire<T extends CircuitAction>`), record tuple keys `(Type, Enum?)`, and accumulator builders (`takes<A>().to(...)`), validated and compiled by `Circuit.build(wires)` into a Directed Acyclic Graph (DAG) with parallel topological wave resolution and reverse-wave disposal. `packages/circuitry_flutter` bridges this compiled container to the Flutter widget hierarchy via `CircuitProvider`, managing asynchronous build lifecycles, didUpdateWidget epoch race prevention, and unmount cleanup. For full architectural details, see [architecture.md](architecture.md).

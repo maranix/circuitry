@@ -1,6 +1,6 @@
 name: circuitry_devtools_extension
 description: Dedicated Flutter DevTools extension for inspecting Circuitry dependency graphs, topological waves, and runtime container health.
-version: 0.2.0
+version: 0.5.0
 homepage: https://github.com/maranix/circuitry
 repository: https://github.com/maranix/circuitry/tree/main/packages/circuitry_devtools_extension
 issue_tracker: https://github.com/maranix/circuitry/issues?q=is%3Aissue+is%3Aopen+label%3Acircuitry_devtools
@@ -21,7 +21,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  circuitry: ^0.2.0
+  circuitry: ^0.5.0
   devtools_extensions: ^0.5.1
   devtools_app_shared: ^0.5.1
   material_ui: ^1.11.1

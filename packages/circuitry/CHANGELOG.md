@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0
+
+### Performance
+- **Type-Indexed Fast-Path for Untagged Singletons**:
+  - Maintained dedicated `_untaggedInstances` mapped directly by canonical Dart `Type` to eliminate runtime record tuple `(T, null)` allocations on every `circuit.get<T>()`.
+  - Achieved ~78% lower lookup latency (from 126.6 ns down to 24.9–28.3 ns) and 4.5x higher throughput (>35M–40M ops/sec) with zero nursery heap allocations.
+- **Single-Hash Assignment Lookups**:
+  - Replaced double-hash traversals (`containsKey` + `[]`) with single-lookup assignment (`final cached = _instances[key]; if (cached != null) return cached;`) in runtime resolution and topological depth computation.
+- **Reproducible Benchmark Suite**:
+  - Added standalone benchmark suite in `benchmark/` covering monomorphic, polymorphic/interleaved retrieval, and DAG compilation with dead-code elimination protection and loop overhead calibration.
+
 ## 0.2.0
 
 ### Features

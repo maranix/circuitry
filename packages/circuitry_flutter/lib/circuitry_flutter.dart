@@ -45,5 +45,6 @@ library;
 
 export 'package:circuitry/circuitry.dart';
 
+export 'src/circuit_builder.dart';
 export 'src/circuit_provider.dart';
 export 'src/circuit_state.dart';

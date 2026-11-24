@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.5.0
+
+### Performance
+- **Background Isolate Offloading**:
+  - Offloaded `getCircuitGraph` JSON deserialization to a background isolate using Flutter foundation `compute()`, preventing UI frame drops during large graph payload ingestion.
+  - Offloaded export formatting (Mermaid, formatted JSON, SVG markup) to background isolates via `compute()`.
+- **DAG Canvas Rendering Engine Overhaul**:
+  - Pre-computed and cached `_DagCanvasLayout` geometry (node coordinates, spline coordinates, and composite edge paths).
+  - Eliminated runtime allocations of `Path` and `Paint` during interactive pan and zoom gestures (60/120 FPS rendering).
+  - Batched edge draw calls: unselected DAG edges render via a single composite `canvas.drawPath` call; selected DAGs batch dimmed edges into a single path.
+  - Wrapped `CustomPaint` and `InteractiveViewer` in `RepaintBoundary` to prevent canvas repainting during external UI changes.
+- **Fine-Grained UI Partitioning**:
+  - Removed monolithic `ListenableBuilder` wrapping the entire `Scaffold`.
+  - Scoped controllers and wrapped each split pane (`CircuitNavigator`, `DevToolsAreaPane`, `WireDetailDrawer`, and `DevToolsToolbar`) with isolated `RepaintBoundary` layers.
+- **Debounced Search & Filtering**:
+  - Added a 150ms debounce on search queries to eliminate layout recalculation and filtering churn on every keystroke.
+- **Serialization Model Updates**:
+  - Added `CircuitGraphData.toJson()` to support structured cloning and reliable cross-isolate serialization.
+
 ## 0.2.0
 
 Initial public release of Circuitry DevTools Extension as a standalone opt-in companion tool.

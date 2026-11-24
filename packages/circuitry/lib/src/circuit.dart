@@ -11,6 +11,7 @@ import 'package:circuitry/src/wire.dart';
 /// and asynchronously resolved dependencies backed by a Directed Acyclic Graph (DAG).
 final class Circuit._(final CircuitGraph _graph) {
   final Map<WireKey, Object?> _instances = {};
+  final Map<Type, Object?> _untaggedInstances = {};
   final Set<WireKey> _creating = {};
   bool _isDisposed = false;
   Future<void>? _disposeFuture;
@@ -83,6 +84,9 @@ final class Circuit._(final CircuitGraph _graph) {
   /// Throws [WireNotFoundException] if no wire is registered for [T].
   T get<T>() {
     _checkNotDisposed();
+    final cached = _untaggedInstances[T];
+    if (cached != null) return cached as T;
+    if (_untaggedInstances.containsKey(T)) return cached as T;
     return _getByKey((T, null)) as T;
   }
 
@@ -90,27 +94,21 @@ final class Circuit._(final CircuitGraph _graph) {
   ///
   /// Throws [DisposedCircuitException] if this circuit has been disposed.
   /// Throws [WireNotFoundException] if no wire is registered for [T] with [tag].
-  T getTagged<T, K extends Enum>(K tag) {
-    _checkNotDisposed();
-    return _getByKey((T, tag)) as T;
-  }
+  T getTagged<T, K extends Enum>(K tag) => _getByKey((T, tag)) as T;
 
   /// Synchronously resolves and returns the dependency instance registered for [key].
   ///
   /// Instantiates lazy synchronous singletons on-demand if not already created.
   /// Throws [DisposedCircuitException] if this circuit has been disposed.
   /// Throws [WireNotFoundException] if no wire is registered for [key].
-  Object? resolveWireKey(WireKey key) {
-    _checkNotDisposed();
-    return _getByKey(key);
-  }
+  Object? resolveWireKey(WireKey key) => _getByKey(key);
 
   Object? _getByKey(WireKey key) {
     _checkNotDisposed();
 
-    if (_instances.containsKey(key)) {
-      return _instances[key];
-    }
+    final cached = _instances[key];
+    if (cached != null) return cached;
+    if (_instances.containsKey(key)) return cached;
 
     final wire = _graph.wireMap[key];
     if (wire == null) {
@@ -122,28 +120,41 @@ final class Circuit._(final CircuitGraph _graph) {
 
     switch (wire) {
       case Wire<Object?>():
-        if (_creating.contains(key)) {
-          throw CircularDependencyException(
-            'Circular dependency detected while creating ${formatWireKey(key)}.',
-            cycle: [..._creating, key],
-          );
-        }
-
-        _creating.add(key);
-        try {
-          final instance = wire.connect(this);
-          _instances[key] = instance;
-          if (isDebugMode) {
-            CircuitRegistry.instance.onWireResolved(this, key, isAsync: false);
-          }
-          return instance;
-        } finally {
-          _creating.remove(key);
-        }
+        return _resolveSyncWire(key, wire.connect);
+      case TriggerWire<CircuitAction>():
+        return _resolveSyncWire(key, wire.connect);
       case AsyncWire<Object?>():
         throw StateError(
           'Async wire ${formatWireKey(key)} was not resolved during circuit build.',
         );
+    }
+  }
+
+  void _cacheInstance(WireKey key, Object? instance) {
+    _instances[key] = instance;
+    if (key.$2 == null) {
+      _untaggedInstances[key.$1] = instance;
+    }
+  }
+
+  Object? _resolveSyncWire(WireKey key, Object? Function(Circuit) connect) {
+    if (_creating.contains(key)) {
+      throw CircularDependencyException(
+        'Circular dependency detected while creating ${formatWireKey(key)}.',
+        cycle: [..._creating, key],
+      );
+    }
+
+    _creating.add(key);
+    try {
+      final instance = connect(this);
+      _cacheInstance(key, instance);
+      if (isDebugMode) {
+        CircuitRegistry.instance.onWireResolved(this, key, isAsync: false);
+      }
+      return instance;
+    } finally {
+      _creating.remove(key);
     }
   }
 
@@ -168,7 +179,7 @@ final class Circuit._(final CircuitGraph _graph) {
                 // Suppress disposal errors during teardown of late-resolving wire.
               }
             } else {
-              _instances[wire.key] = instance;
+              _cacheInstance(wire.key, instance);
               if (isDebugMode) {
                 CircuitRegistry.instance.onWireResolved(
                   this,
@@ -239,6 +250,7 @@ final class Circuit._(final CircuitGraph _graph) {
         );
       }
     } finally {
+      _untaggedInstances.clear();
       _instances.clear();
     }
 
