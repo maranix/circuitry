@@ -91,6 +91,13 @@
 - **Reason:** Keeps `circuitry` (~28 KB) and `circuitry_flutter` (~25 KB) ultra-lightweight runtime dependencies without forcing users to download the ~15 MB compiled web bundle. Only developers who explicitly add the extension to `dev_dependencies` download the DevTools assets, which DevTools discovers automatically from `package_config.json`.
 - **Alternative:** Bundling the precompiled web assets inside `packages/circuitry` (superseded, forced a 15 MB archive on all users) or `packages/circuitry_flutter`.
 
+## 2026-11-24: Type-Indexed Fast-Path and Single-Hash Hot-Path Retrieval
+
+- **Status:** agreed
+- **Choice:** Maintain an internal `Map<Type, Object?> _untaggedInstances` fast-path cache alongside `_instances`, and adopt single-hash lookup assignment (`final cached = _instances[key]; if (cached != null) return cached;`).
+- **Reason:** Eliminates record tuple allocations `(T, null)` on every `circuit.get<T>()` read and avoids double-hash traversals (`containsKey` + `[]`). Benchmarks proved a 267%–332% throughput improvement (from 7.9M ops/sec to 32.1M–34.1M ops/sec) and reduced lookup latency from 126 ns down to 29–31 ns with zero API breaking changes.
+- **Alternative:** Rewriting DAG compilation wave bucketing into a manual bucket loop was rejected after empirical benchmarking revealed it added list allocation overhead and was up to 25% slower on small graphs (10–35 nodes) compared to Dart's optimized iterable filtering.
+
 ### Architecture Sketch
 
 Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler. `packages/circuitry` defines declarative dependency recipes (`Wire<T>`, `AsyncWire<T>`), record tuple keys `(Type, Enum?)`, and accumulator builders (`takes<A>().to(...)`), validated and compiled by `Circuit.build(wires)` into a Directed Acyclic Graph (DAG) with parallel topological wave resolution and reverse-wave disposal. `packages/circuitry_flutter` bridges this compiled container to the Flutter widget hierarchy via `CircuitProvider`, managing asynchronous build lifecycles, didUpdateWidget epoch race prevention, and unmount cleanup. For full architectural details, see [architecture.md](architecture.md).

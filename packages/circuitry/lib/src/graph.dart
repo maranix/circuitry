@@ -293,8 +293,9 @@ final class CircuitGraph(final List<CircuitWire> wires) {
     final levels = <WireKey, int>{};
 
     int computeLevel(WireKey key) {
-      if (levels.containsKey(key)) {
-        return levels[key]!;
+      final existing = levels[key];
+      if (existing != null) {
+        return existing;
       }
       final wire = map[key];
       if (wire == null || wire.dependencies.isEmpty) {
