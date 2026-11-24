@@ -94,24 +94,14 @@ final class Circuit._(final CircuitGraph _graph) {
   ///
   /// Throws [DisposedCircuitException] if this circuit has been disposed.
   /// Throws [WireNotFoundException] if no wire is registered for [T] with [tag].
-  T getTagged<T, K extends Enum>(K tag) {
-    _checkNotDisposed();
-    final key = (T, tag);
-    final cached = _instances[key];
-    if (cached != null) return cached as T;
-    if (_instances.containsKey(key)) return cached as T;
-    return _getByKey(key) as T;
-  }
+  T getTagged<T, K extends Enum>(K tag) => _getByKey((T, tag)) as T;
 
   /// Synchronously resolves and returns the dependency instance registered for [key].
   ///
   /// Instantiates lazy synchronous singletons on-demand if not already created.
   /// Throws [DisposedCircuitException] if this circuit has been disposed.
   /// Throws [WireNotFoundException] if no wire is registered for [key].
-  Object? resolveWireKey(WireKey key) {
-    _checkNotDisposed();
-    return _getByKey(key);
-  }
+  Object? resolveWireKey(WireKey key) => _getByKey(key);
 
   Object? _getByKey(WireKey key) {
     _checkNotDisposed();
