@@ -115,4 +115,87 @@ void test() {
       ],
     );
   }
+
+  Future<void> test_duplicate_between_sync_and_async_wire() async {
+    await assertDiagnostics(
+      r'''
+import 'package:circuitry/circuitry.dart';
+
+class ServiceA {}
+
+void main() async {
+  await Circuit.build([
+    Wire(() => ServiceA()),
+    AsyncWire(() async => ServiceA()),
+  ]);
+}
+''',
+      [
+        lint(139, 33, messageContainsAll: ["key 'ServiceA'"]),
+      ],
+    );
+  }
+
+  Future<void> test_duplicate_between_builder_and_direct_wire() async {
+    await assertDiagnostics(
+      r'''
+import 'package:circuitry/circuitry.dart';
+
+class ServiceA {}
+class ServiceB {
+  ServiceB(ServiceA a);
+}
+
+void main() async {
+  await Circuit.build([
+    Wire(() => ServiceA()),
+    Wire(() => ServiceB(ServiceA())),
+    Wire.takes<ServiceA>().to((a) => ServiceB(a)),
+  ]);
+}
+''',
+      [
+        lint(220, 45, messageContainsAll: ["key 'ServiceB'"]),
+      ],
+    );
+  }
+
+  Future<void> test_duplicate_multiple_registrations() async {
+    await assertDiagnostics(
+      r'''
+import 'package:circuitry/circuitry.dart';
+
+class ServiceA {}
+
+void main() async {
+  await Circuit.build([
+    Wire(() => ServiceA()),
+    Wire(() => ServiceA()),
+    Wire(() => ServiceA()),
+  ]);
+}
+''',
+      [
+        lint(139, 22, messageContainsAll: ["key 'ServiceA'"]),
+        lint(167, 22, messageContainsAll: ["key 'ServiceA'"]),
+      ],
+    );
+  }
+
+  Future<void> test_same_tag_different_types_no_duplicate() async {
+    await assertNoDiagnostics(r'''
+import 'package:circuitry/circuitry.dart';
+
+enum Environment { dev, prod }
+class ServiceA {}
+class ServiceB {}
+
+void main() async {
+  await Circuit.build([
+    Wire.tag(() => ServiceA(), tag: Environment.dev),
+    Wire.tag(() => ServiceB(), tag: Environment.dev),
+  ]);
+}
+''');
+  }
 }

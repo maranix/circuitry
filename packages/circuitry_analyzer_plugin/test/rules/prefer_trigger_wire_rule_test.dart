@@ -90,4 +90,134 @@ void main() {
 }
 ''');
   }
+
+  Future<void> test_action_registered_via_wire_builder() async {
+    await assertDiagnostics(
+      r'''
+import 'package:circuitry/circuitry.dart';
+
+class Client {}
+class SendEmailAction implements CircuitAction {
+  SendEmailAction(Client c);
+}
+
+void main() {
+  final wire = Wire.takes<Client>().to((c) => SendEmailAction(c));
+}
+''',
+      [
+        lint(
+          170,
+          50,
+          messageContainsAll: [
+            "type 'SendEmailAction' implements 'CircuitAction'",
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> test_action_registered_via_async_wire_builder() async {
+    await assertDiagnostics(
+      r'''
+import 'package:circuitry/circuitry.dart';
+
+class Client {}
+class SendEmailAction implements CircuitAction {
+  SendEmailAction(Client c);
+}
+
+void main() {
+  final wire = AsyncWire.takes<Client>().to((c) async => SendEmailAction(c));
+}
+''',
+      [
+        lint(
+          170,
+          61,
+          messageContainsAll: [
+            "type 'SendEmailAction' implements 'CircuitAction'",
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void>
+  test_action_registered_via_trigger_wire_builder_no_diagnostic() async {
+    await assertNoDiagnostics(r'''
+import 'package:circuitry/circuitry.dart';
+
+class Client {}
+class SendEmailAction implements CircuitAction {
+  SendEmailAction(Client c);
+}
+
+void main() {
+  final wire = TriggerWire.takes<Client>().to((c) => SendEmailAction(c));
+}
+''');
+  }
+
+  Future<void> test_action_subclass_registered_with_wire() async {
+    await assertDiagnostics(
+      r'''
+import 'package:circuitry/circuitry.dart';
+
+abstract class BaseAction implements CircuitAction {}
+class ConcreteAction extends BaseAction {}
+
+void main() {
+  final wire = Wire(() => ConcreteAction());
+}
+''',
+      [
+        lint(
+          171,
+          28,
+          messageContainsAll: [
+            "type 'ConcreteAction' implements 'CircuitAction'",
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> test_action_registered_with_tagged_wire() async {
+    await assertDiagnostics(
+      r'''
+import 'package:circuitry/circuitry.dart';
+
+enum Environment { dev, prod }
+class SendEmailAction implements CircuitAction {}
+
+void main() {
+  final wire = Wire.tag(() => SendEmailAction(), tag: Environment.dev);
+}
+''',
+      [
+        lint(
+          155,
+          55,
+          messageContainsAll: [
+            "type 'SendEmailAction' implements 'CircuitAction'",
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void>
+  test_action_registered_with_tagged_trigger_wire_no_diagnostic() async {
+    await assertNoDiagnostics(r'''
+import 'package:circuitry/circuitry.dart';
+
+enum Environment { dev, prod }
+class SendEmailAction implements CircuitAction {}
+
+void main() {
+  final wire = TriggerWire.tag(() => SendEmailAction(), tag: Environment.dev);
+}
+''');
+  }
 }
