@@ -8,6 +8,9 @@ Circuitry is architected as an offline, zero-codegen runtime dependency graph co
 circuitry/
 ├── packages/
 │   ├── circuitry/                 # Pure Dart runtime dependency injection engine (~28 KB)
+│   │   ├── benchmark/             # Performance benchmark suite (hot-path retrieval & compilation)
+│   │   │   ├── compilation_benchmark.dart
+│   │   │   └── retrieval_benchmark.dart
 │   │   ├── lib/
 │   │   │   ├── circuitry.dart     # Library entry point (wires, circuit, exceptions, registry)
 │   │   │   └── src/               # Modular source files
@@ -40,6 +43,7 @@ circuitry/
 │       ├── lib/
 │       │   ├── circuitry_flutter.dart # Library entry point and pure Dart re-export
 │       │   └── src/               # Flutter bridge implementation
+│       │       ├── circuit_builder.dart  # CircuitBuilder widget for localized leaf reads
 │       │       ├── circuit_provider.dart # CircuitProvider widget declarations and internal _CircuitScope
 │       │       └── circuit_state.dart    # CircuitState sealed hierarchy
 │       └── test/                  # Widget & lifecycle tests
