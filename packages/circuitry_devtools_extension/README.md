@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_icon_transparent.png" alt="Circuitry Logo" width="140" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_logo_horizontal_transparent.png">
+    <img alt="Circuitry DevTools Extension" src="https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_logo_horizontal_light.png" width="600">
+  </picture>
 </p>
 
 # Circuitry DevTools Extension

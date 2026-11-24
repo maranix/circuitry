@@ -1,10 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" width="960" height="280">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 220" width="920" height="220">
   <defs>
-    <radialGradient id="bgHoriz" cx="30%" cy="50%" r="80%">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#030712" />
-    </radialGradient>
-
+    <!-- Outer Circuit Trace: Electric Sky Blue -> Hyper Violet -->
     <linearGradient id="traceOuterHoriz" x1="0%" y1="100%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#0284c7" />
       <stop offset="30%" stop-color="#38bdf8" />
@@ -12,40 +8,30 @@
       <stop offset="100%" stop-color="#c084fc" />
     </linearGradient>
 
+    <!-- Inner Circuit Trace: Mint Emerald -> Neon Cyan -->
     <linearGradient id="traceInnerHoriz" x1="0%" y1="100%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#10b981" />
       <stop offset="40%" stop-color="#2dd4bf" />
       <stop offset="100%" stop-color="#38bdf8" />
     </linearGradient>
 
-    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <!-- Text Gradient -->
+    <linearGradient id="textGradDark" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="70%" stop-color="#f8fafc" />
-      <stop offset="100%" stop-color="#94a3b8" />
+      <stop offset="60%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#cbd5e1" />
     </linearGradient>
 
-    <filter id="bloomHoriz" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="18" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-
+    <!-- Drop Shadow Filter -->
     <filter id="shadowHoriz" x="-15%" y="-15%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.6" />
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.35" />
     </filter>
   </defs>
 
-  <!-- Background -->
-  <rect width="960" height="280" rx="36" fill="url(#bgHoriz)" />
-  <rect width="960" height="280" rx="36" fill="none" stroke="#1e293b" stroke-width="2" />
+  <!-- NO BACKGROUND RECT (100% TRANSPARENT) -->
 
-  <!-- Ambient Light Behind Icon -->
-  <circle cx="150" cy="140" r="100" fill="#0284c7" opacity="0.25" filter="url(#bloomHoriz)" />
-
-  <!-- LOGO ICON (Scaled & Centered at x=150, y=140) -->
-  <g transform="translate(150, 140) scale(0.65)" filter="url(#shadowHoriz)">
+  <!-- LOGO ICON (Centered at x=120, y=110) -->
+  <g transform="translate(120, 110) scale(0.68)" filter="url(#shadowHoriz)">
     <g transform="translate(-256, -256)">
       <!-- Outer C Rail -->
       <path d="M 345 140 
@@ -76,33 +62,33 @@
       <line x1="120" y1="256" x2="175" y2="256" stroke="#c084fc" stroke-width="10" stroke-linecap="round" />
 
       <!-- Nodes -->
-      <circle cx="345" cy="140" r="19" fill="#020617" stroke="#c084fc" stroke-width="6" />
+      <circle cx="345" cy="140" r="19" fill="#0f172a" stroke="#c084fc" stroke-width="6" />
       <circle cx="345" cy="140" r="7" fill="#ffffff" />
 
-      <circle cx="345" cy="372" r="19" fill="#020617" stroke="#0284c7" stroke-width="6" />
+      <circle cx="345" cy="372" r="19" fill="#0f172a" stroke="#0284c7" stroke-width="6" />
       <circle cx="345" cy="372" r="7" fill="#ffffff" />
 
-      <circle cx="315" cy="204" r="13" fill="#020617" stroke="#38bdf8" stroke-width="4.5" />
+      <circle cx="315" cy="204" r="13" fill="#0f172a" stroke="#38bdf8" stroke-width="4.5" />
       <circle cx="315" cy="204" r="4.5" fill="#ffffff" />
 
-      <circle cx="315" cy="308" r="13" fill="#020617" stroke="#10b981" stroke-width="4.5" />
+      <circle cx="315" cy="308" r="13" fill="#0f172a" stroke="#10b981" stroke-width="4.5" />
       <circle cx="315" cy="308" r="4.5" fill="#ffffff" />
 
-      <circle cx="120" cy="256" r="14" fill="#020617" stroke="#818cf8" stroke-width="4.5" />
+      <circle cx="120" cy="256" r="14" fill="#0f172a" stroke="#818cf8" stroke-width="4.5" />
       <circle cx="120" cy="256" r="5" fill="#38bdf8" />
 
-      <circle cx="175" cy="256" r="12" fill="#020617" stroke="#2dd4bf" stroke-width="4" />
+      <circle cx="175" cy="256" r="12" fill="#0f172a" stroke="#2dd4bf" stroke-width="4" />
       <circle cx="175" cy="256" r="4" fill="#ffffff" />
     </g>
   </g>
 
   <!-- TYPOGRAPHY LOCKUP -->
-  <g transform="translate(290, 140)">
+  <g transform="translate(255, 110)">
     <!-- Brand Title: CIRCUITRY -->
-    <text x="0" y="16" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', Inter, 'Segoe UI', sans-serif" font-size="76" font-weight="800" letter-spacing="-1.5" fill="url(#textGrad)">Circuitry</text>
+    <text filter="url(#shadowHoriz)" x="0" y="16" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', Inter, 'Segoe UI', sans-serif" font-size="78" font-weight="800" letter-spacing="-1.5" fill="url(#textGradDark)">Circuitry</text>
     
     <!-- Subtitle / Tagline -->
     <text x="4" y="58" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, sans-serif" font-size="15" font-weight="700" letter-spacing="4" fill="#38bdf8" opacity="0.95">GRAPH DEPENDENCY INJECTION</text>
-    <text x="358" y="58" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, sans-serif" font-size="15" font-weight="500" letter-spacing="1" fill="#64748b">• DART &amp; FLUTTER</text>
+    <text x="358" y="58" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, sans-serif" font-size="15" font-weight="500" letter-spacing="1" fill="#94a3b8">• DART &amp; FLUTTER</text>
   </g>
 </svg>
