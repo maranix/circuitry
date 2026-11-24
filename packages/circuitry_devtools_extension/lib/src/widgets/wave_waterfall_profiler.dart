@@ -39,7 +39,7 @@ class const WaveWaterfallProfiler({
       final waveWires = graph.waves[level] ?? const [];
       var maxWaveDuration = 0;
       for (final wire in waveWires) {
-        final duration = wire.durationMs ?? (wire.isAsync ? 80 : 5);
+        final duration = wire.effectiveDurationMs;
         if (duration > maxWaveDuration) {
           maxWaveDuration = duration;
         }
@@ -179,7 +179,7 @@ class const WaveWaterfallProfiler({
     required bool isCritical,
     required ThemeData theme,
   }) {
-    final duration = wire.durationMs ?? (wire.isAsync ? 80 : 5);
+    final duration = wire.effectiveDurationMs;
     final leftPercent = (waveStart / totalDuration).clamp(0.0, 1.0);
     final maxAllowedWidth = math.max(0.01, 1.0 - leftPercent);
     final widthPercent = (duration / totalDuration).clamp(

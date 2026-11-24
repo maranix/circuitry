@@ -46,6 +46,10 @@ final class const WireNode({
   bool get isUnresolvedLazy =>
       !isAsync && !isInitialized && !isResolving && !hasFailed;
 
+  /// Effective initialization duration in milliseconds, falling back to heuristic
+  /// defaults (80ms for async, 5ms for synchronous) if duration was not recorded.
+  int get effectiveDurationMs => durationMs ?? (isAsync ? 80 : 5);
+
   /// Parses a [WireNode] from a JSON wire descriptor using pattern matching.
   factory fromJson(Map<String, Object?> json) {
     if (json case {

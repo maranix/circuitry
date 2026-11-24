@@ -175,23 +175,25 @@ final class CircuitIntrospectionImpl(final Circuit _circuit)
       return 'wire_${formatted.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_')}';
     }
 
+    void writeNode(WireDescriptor descriptor, {String indent = '  '}) {
+      final id = sanitize(descriptor.key);
+      final label = formatWireKey(descriptor.key).replaceAll('"', r'\"');
+      buffer.writeln('$indent$id["$label"]');
+    }
+
     if (groupByWave) {
       for (var i = 0; i <= maxWaveLevel; i++) {
         final levelWires = waves[i] ?? const [];
         if (levelWires.isEmpty) continue;
         buffer.writeln('  subgraph wave_$i ["Wave $i"]');
         for (final descriptor in levelWires) {
-          final id = sanitize(descriptor.key);
-          final label = formatWireKey(descriptor.key).replaceAll('"', r'\"');
-          buffer.writeln('    $id["$label"]');
+          writeNode(descriptor, indent: '    ');
         }
         buffer.writeln('  end');
       }
     } else {
       for (final descriptor in wires) {
-        final id = sanitize(descriptor.key);
-        final label = formatWireKey(descriptor.key).replaceAll('"', r'\"');
-        buffer.writeln('  $id["$label"]');
+        writeNode(descriptor);
       }
     }
 

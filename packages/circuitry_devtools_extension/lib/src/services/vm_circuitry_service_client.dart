@@ -9,6 +9,14 @@ import 'package:vm_service/vm_service.dart';
 CircuitGraphData _parseGraphData(Map<String, Object?> json) =>
     CircuitGraphData.fromJson(json);
 
+CircuitSummary? _parseCircuitSummary(Object? item) => switch (item) {
+  final Map<String, Object?> m => CircuitSummary.fromJson(m),
+  final Map<Object?, Object?> m => CircuitSummary.fromJson(
+    m.cast<String, Object?>(),
+  ),
+  _ => null,
+};
+
 /// Real VM Service-backed implementation of [CircuitryServiceClient].
 final class VmCircuitryServiceClient(final VmService _vmService)
     implements CircuitryServiceClient {
@@ -47,13 +55,10 @@ final class VmCircuitryServiceClient(final VmService _vmService)
       'ext.circuitry.getCircuits',
     );
     if (response.json case {'circuits': final List<Object?> list}) {
-      return <CircuitSummary>[
-        for (final item in list)
-          if (item case final Map<String, Object?> map)
-            .fromJson(map)
-          else if (item case final Map<Object?, Object?> map)
-            .fromJson(map.cast<String, Object?>()),
-      ];
+      return list
+          .map(_parseCircuitSummary)
+          .whereType<CircuitSummary>()
+          .toList();
     }
     return const [];
   }

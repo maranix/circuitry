@@ -130,6 +130,13 @@ final class Circuit._(final CircuitGraph _graph) {
     }
   }
 
+  void _cacheInstance(WireKey key, Object? instance) {
+    _instances[key] = instance;
+    if (key.$2 == null) {
+      _untaggedInstances[key.$1] = instance;
+    }
+  }
+
   Object? _resolveSyncWire(WireKey key, Object? Function(Circuit) connect) {
     if (_creating.contains(key)) {
       throw CircularDependencyException(
@@ -141,10 +148,7 @@ final class Circuit._(final CircuitGraph _graph) {
     _creating.add(key);
     try {
       final instance = connect(this);
-      _instances[key] = instance;
-      if (key.$2 == null) {
-        _untaggedInstances[key.$1] = instance;
-      }
+      _cacheInstance(key, instance);
       if (isDebugMode) {
         CircuitRegistry.instance.onWireResolved(this, key, isAsync: false);
       }
@@ -175,10 +179,7 @@ final class Circuit._(final CircuitGraph _graph) {
                 // Suppress disposal errors during teardown of late-resolving wire.
               }
             } else {
-              _instances[wire.key] = instance;
-              if (wire.key.$2 == null) {
-                _untaggedInstances[wire.key.$1] = instance;
-              }
+              _cacheInstance(wire.key, instance);
               if (isDebugMode) {
                 CircuitRegistry.instance.onWireResolved(
                   this,

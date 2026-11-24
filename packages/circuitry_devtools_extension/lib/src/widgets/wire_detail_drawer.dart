@@ -172,22 +172,7 @@ class const WireDetailDrawer({
                   ),
                 )
               else
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final dep in wire.dependencies)
-                      ActionChip(
-                        avatar: const Icon(Icons.arrow_upward, size: 12),
-                        label: Text(dep),
-                        labelStyle: theme.textTheme.labelSmall?.copyWith(
-                          fontSize: 11,
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => controller.selectWireByKey(dep),
-                      ),
-                  ],
-                ),
+                _buildWireChips(wire.dependencies, Icons.arrow_upward, theme),
 
               const PaddedDivider(
                 padding: EdgeInsets.symmetric(vertical: denseSpacing),
@@ -216,13 +201,21 @@ class const WireDetailDrawer({
       );
     }
 
+    return _buildWireChips(dependents, Icons.arrow_downward, theme);
+  }
+
+  Widget _buildWireChips(
+    Iterable<String> wireKeys,
+    IconData icon,
+    ThemeData theme,
+  ) {
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       children: [
-        for (final dep in dependents)
+        for (final dep in wireKeys)
           ActionChip(
-            avatar: const Icon(Icons.arrow_downward, size: 12),
+            avatar: Icon(icon, size: 12),
             label: Text(dep),
             labelStyle: theme.textTheme.labelSmall?.copyWith(fontSize: 11),
             visualDensity: VisualDensity.compact,

@@ -170,27 +170,9 @@ class _DagCanvasState extends State<DagCanvas> {
     final isDependent = controller.highlightedDependents.contains(wire.key);
     final isCritical = controller.criticalPath.contains(wire.key);
 
-    // Filter match evaluation
-    var matchesSearch = true;
-    if (controller.searchQuery.isNotEmpty) {
-      final q = controller.searchQuery.toLowerCase();
-      matchesSearch = wire.key.toLowerCase().contains(q);
-    }
-
-    var matchesFilter = true;
-    if (controller.showUnresolvedOnly && !wire.isUnresolvedLazy) {
-      matchesFilter = false;
-    }
-    if (controller.showAsyncOnly && !wire.isAsync) {
-      matchesFilter = false;
-    }
-    if (controller.showActionsOnly && !wire.isAction) {
-      matchesFilter = false;
-    }
-
+    final isVisible = controller.isWireVisible(wire);
     final isDimmed =
-        !matchesSearch ||
-        !matchesFilter ||
+        !isVisible ||
         (controller.selectedWire != null &&
             !isSelected &&
             !isDependency &&

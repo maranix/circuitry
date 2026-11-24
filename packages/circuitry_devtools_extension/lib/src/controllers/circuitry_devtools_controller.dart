@@ -19,6 +19,7 @@ class CircuitryDevToolsController(final CircuitryServiceClient _client)
   WireNode? _selectedWire;
 
   String _searchQuery = '';
+  String _searchQueryLower = '';
   bool _showUnresolvedOnly = false;
   bool _showAsyncOnly = false;
   bool _showActionsOnly = false;
@@ -144,8 +145,27 @@ class CircuitryDevToolsController(final CircuitryServiceClient _client)
   /// Updates the search filter query string.
   void setSearchQuery(String query) {
     _searchQuery = query;
+    _searchQueryLower = query.toLowerCase();
     notifyListeners();
   }
+
+  /// Whether [wire] matches the current search query.
+  bool matchesSearch(WireNode wire) {
+    if (_searchQueryLower.isEmpty) return true;
+    return wire.key.toLowerCase().contains(_searchQueryLower);
+  }
+
+  /// Whether [wire] matches active toolbar filter flags.
+  bool matchesFilters(WireNode wire) {
+    if (_showUnresolvedOnly && !wire.isUnresolvedLazy) return false;
+    if (_showAsyncOnly && !wire.isAsync) return false;
+    if (_showActionsOnly && !wire.isAction) return false;
+    return true;
+  }
+
+  /// Whether [wire] satisfies both search query and filter criteria.
+  bool isWireVisible(WireNode wire) =>
+      matchesSearch(wire) && matchesFilters(wire);
 
   /// Toggles visibility filter for uninitialized lazy wires.
   void toggleUnresolvedOnly() {
@@ -207,22 +227,14 @@ class CircuitryDevToolsController(final CircuitryServiceClient _client)
     final targetNode = graph.findNode(wireKey);
     if (targetNode == null || targetNode.isInitialized) return;
 
-    final updatedWires = graph.wires.map((w) {
-      if (w.key == wireKey) {
-        return w.copyWith(isInitialized: true, isResolving: false);
-      }
-      return w;
-    }).toList();
+    WireNode updateWire(WireNode w) => w.key == wireKey
+        ? w.copyWith(isInitialized: true, isResolving: false)
+        : w;
 
-    final updatedWaves = <int, List<WireNode>>{};
-    for (final entry in graph.waves.entries) {
-      updatedWaves[entry.key] = entry.value.map((w) {
-        if (w.key == wireKey) {
-          return w.copyWith(isInitialized: true, isResolving: false);
-        }
-        return w;
-      }).toList();
-    }
+    final updatedWires = graph.wires.map(updateWire).toList();
+    final updatedWaves = graph.waves.map(
+      (k, v) => MapEntry(k, v.map(updateWire).toList()),
+    );
 
     _graphData = CircuitGraphData(
       id: graph.id,
@@ -248,6 +260,20 @@ class CircuitryDevToolsController(final CircuitryServiceClient _client)
       final summary = _circuits[circuitIndex];
       _circuits[circuitIndex] = summary.copyWith(
         initializedWireCount: summary.initializedWireCount + 1,
+      );
+    }
+  }
+
+  void _updateCircuitStatus(
+    String circuitId,
+    CircuitLifecycleStatus status, {
+    bool? isDisposed,
+  }) {
+    final index = _circuits.indexWhere((c) => c.id == circuitId);
+    if (index != -1) {
+      _circuits[index] = _circuits[index].copyWith(
+        status: status,
+        isDisposed: isDisposed,
       );
     }
   }
@@ -281,12 +307,7 @@ class CircuitryDevToolsController(final CircuitryServiceClient _client)
           notifyListeners();
 
         case 'circuit_ready':
-          final index = _circuits.indexWhere((c) => c.id == circuitId);
-          if (index != -1) {
-            _circuits[index] = _circuits[index].copyWith(
-              status: CircuitLifecycleStatus.ready,
-            );
-          }
+          _updateCircuitStatus(circuitId, CircuitLifecycleStatus.ready);
           if (_selectedCircuitId == circuitId) {
             selectCircuit(circuitId);
           } else {
@@ -294,13 +315,8 @@ class CircuitryDevToolsController(final CircuitryServiceClient _client)
           }
 
         case 'circuit_failed':
-          final index = _circuits.indexWhere((c) => c.id == circuitId);
-          if (index != -1) {
-            _circuits[index] = _circuits[index].copyWith(
-              status: CircuitLifecycleStatus.failed,
-            );
-            notifyListeners();
-          }
+          _updateCircuitStatus(circuitId, CircuitLifecycleStatus.failed);
+          notifyListeners();
 
         case 'wire_resolved':
           if (event['key'] case final String key) {
@@ -309,17 +325,15 @@ class CircuitryDevToolsController(final CircuitryServiceClient _client)
           }
 
         case 'circuit_disposed':
-          final index = _circuits.indexWhere((c) => c.id == circuitId);
-          if (index != -1) {
-            _circuits[index] = _circuits[index].copyWith(
-              isDisposed: true,
-              status: CircuitLifecycleStatus.disposed,
-            );
-            if (_selectedCircuitId == circuitId) {
-              selectCircuit(circuitId);
-            } else {
-              notifyListeners();
-            }
+          _updateCircuitStatus(
+            circuitId,
+            CircuitLifecycleStatus.disposed,
+            isDisposed: true,
+          );
+          if (_selectedCircuitId == circuitId) {
+            selectCircuit(circuitId);
+          } else {
+            notifyListeners();
           }
       }
     }

@@ -70,27 +70,12 @@ final class CircuitGraphData({
   Set<String> dependenciesOf(String key, {bool transitive = false}) {
     final node = _nodeMap[key];
     if (node == null) return const <String>{};
-
     if (!transitive) return .unmodifiable(node.dependencies);
 
-    final cached = _transitiveDependenciesCache[key];
-    if (cached != null) return cached;
-
-    final visited = <String>{};
-    final Queue<String> queue = .new()..addAll(node.dependencies);
-
-    while (queue.isNotEmpty) {
-      final current = queue.removeFirst();
-      if (visited.add(current)) {
-        final currentDep = _nodeMap[current];
-        if (currentDep != null) {
-          queue.addAll(currentDep.dependencies);
-        }
-      }
-    }
-    final result = Set<String>.unmodifiable(visited);
-    _transitiveDependenciesCache[key] = result;
-    return result;
+    return _transitiveDependenciesCache[key] ??= _traverseTransitive(
+      node.dependencies,
+      (k) => _nodeMap[k]?.dependencies,
+    );
   }
 
   /// Returns downstream dependents that rely on [key].
@@ -98,24 +83,29 @@ final class CircuitGraphData({
     final direct = _reverseDependencies[key] ?? const <String>{};
     if (!transitive) return direct;
 
-    final cached = _transitiveDependentsCache[key];
-    if (cached != null) return cached;
+    return _transitiveDependentsCache[key] ??= _traverseTransitive(
+      direct,
+      (k) => _reverseDependencies[k],
+    );
+  }
 
+  Set<String> _traverseTransitive(
+    Iterable<String> roots,
+    Iterable<String>? Function(String key) getNeighbors,
+  ) {
     final visited = <String>{};
-    final Queue<String> queue = .new()..addAll(direct);
+    final Queue<String> queue = .new()..addAll(roots);
 
     while (queue.isNotEmpty) {
       final current = queue.removeFirst();
       if (visited.add(current)) {
-        final children = _reverseDependencies[current];
-        if (children != null) {
-          queue.addAll(children);
+        final neighbors = getNeighbors(current);
+        if (neighbors != null) {
+          queue.addAll(neighbors);
         }
       }
     }
-    final result = Set<String>.unmodifiable(visited);
-    _transitiveDependentsCache[key] = result;
-    return result;
+    return Set<String>.unmodifiable(visited);
   }
 
   /// Computes the critical path of the DAG (chain with the highest cumulative depth/duration).
@@ -131,7 +121,7 @@ final class CircuitGraphData({
       final node = _nodeMap[key];
       if (node == null) continue;
       final currentDist = dist[key] ?? 0;
-      final weight = (node.durationMs ?? (node.isAsync ? 100 : 10));
+      final weight = node.effectiveDurationMs;
 
       final children = _reverseDependencies[key] ?? const <String>{};
       for (final child in children) {
@@ -317,6 +307,14 @@ final class CircuitGraphData({
     },
   };
 
+  static WireNode? _parseWireNode(Object? raw) => switch (raw) {
+    final Map<String, Object?> m => WireNode.fromJson(m),
+    final Map<Object?, Object?> m => WireNode.fromJson(
+      m.cast<String, Object?>(),
+    ),
+    _ => null,
+  };
+
   /// Parses a [CircuitGraphData] from a JSON map returned by `ext.circuitry.getCircuitGraph`.
   factory fromJson(Map<String, Object?> json) {
     if (json case {
@@ -331,25 +329,16 @@ final class CircuitGraphData({
         final String s => s,
         _ => null,
       };
-      final wires = <WireNode>[
-        for (final raw in rawWires)
-          if (raw case final Map<String, Object?> m)
-            .fromJson(m)
-          else if (raw case final Map<Object?, Object?> m)
-            .fromJson(m.cast<String, Object?>()),
-      ];
+      final wires = rawWires.map(_parseWireNode).whereType<WireNode>().toList();
       final waves = <int, List<WireNode>>{};
       if (json['waves'] case final Map<Object?, Object?> rawWaves) {
         for (final MapEntry(:key, :value) in rawWaves.entries) {
           if (int.tryParse('$key') case final int level) {
             if (value case final List<Object?> rawWaveList) {
-              waves[level] = <WireNode>[
-                for (final raw in rawWaveList)
-                  if (raw case final Map<String, Object?> m)
-                    .fromJson(m)
-                  else if (raw case final Map<Object?, Object?> m)
-                    .fromJson(m.cast<String, Object?>()),
-              ];
+              waves[level] = rawWaveList
+                  .map(_parseWireNode)
+                  .whereType<WireNode>()
+                  .toList();
             }
           }
         }

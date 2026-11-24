@@ -255,6 +255,17 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
   }
 }
 
+Map<Enum, Circuit> _mergeTaggedCircuits(
+  Map<Enum, Circuit> parent,
+  Enum? tag,
+  Circuit? circuit,
+) {
+  if (tag != null && circuit != null) {
+    return Map<Enum, Circuit>.unmodifiable({...parent, tag: circuit});
+  }
+  return parent;
+}
+
 /// Internal [CircuitProvider] implementation that synchronously injects an existing [Circuit].
 ///
 /// Backs the [CircuitProvider.value] factory constructor. It mounts a [_CircuitScope]
@@ -272,14 +283,11 @@ final class const _CircuitValueProvider({
   Widget build(BuildContext context) {
     final parentScope = context
         .dependOnInheritedWidgetOfExactType<_CircuitScope>();
-    final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};
-    final Map<Enum, Circuit> taggedCircuits = switch (tag) {
-      final t? => Map<Enum, Circuit>.unmodifiable({
-        ...effectiveTaggedCircuits,
-        t: value,
-      }),
-      _ => effectiveTaggedCircuits,
-    };
+    final taggedCircuits = _mergeTaggedCircuits(
+      parentScope?.taggedCircuits ?? const {},
+      tag,
+      value,
+    );
 
     return _CircuitScope(
       tag: tag,
@@ -394,28 +402,22 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
   Widget build(BuildContext context) {
     final parentScope = context
         .dependOnInheritedWidgetOfExactType<_CircuitScope>();
-    final effectiveTaggedCircuits = parentScope?.taggedCircuits ?? const {};
-
-    return switch (_state) {
-      CircuitReady(:final circuit) => _CircuitScope(
-        tag: widget.tag,
-        circuit: circuit,
-        taggedCircuits: switch (widget.tag) {
-          final t? => Map<Enum, Circuit>.unmodifiable({
-            ...effectiveTaggedCircuits,
-            t: circuit,
-          }),
-          _ => effectiveTaggedCircuits,
-        },
-        child: Builder(builder: (context) => widget.builder(context, _state)),
-      ),
-      _ => _CircuitScope(
-        tag: widget.tag,
-        circuit: null,
-        taggedCircuits: effectiveTaggedCircuits,
-        child: Builder(builder: (context) => widget.builder(context, _state)),
-      ),
+    final circuit = switch (_state) {
+      CircuitReady(:final circuit) => circuit,
+      _ => null,
     };
+    final taggedCircuits = _mergeTaggedCircuits(
+      parentScope?.taggedCircuits ?? const {},
+      widget.tag,
+      circuit,
+    );
+
+    return _CircuitScope(
+      tag: widget.tag,
+      circuit: circuit,
+      taggedCircuits: taggedCircuits,
+      child: Builder(builder: (context) => widget.builder(context, _state)),
+    );
   }
 }
 

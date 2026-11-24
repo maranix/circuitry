@@ -226,41 +226,29 @@ class _DevToolsToolbarState extends State<DevToolsToolbar> {
     if (graph == null) return;
 
     final json = graph.toJson();
+    final (content, message) = switch (action) {
+      'mermaid' => (
+        await compute(_exportMermaidIsolate, json),
+        'Mermaid diagram copied to clipboard.',
+      ),
+      'json' => (
+        await compute(_exportJsonIsolate, json),
+        'JSON schema copied to clipboard.',
+      ),
+      'svg' => (
+        await compute(_exportSvgIsolate, json),
+        'SVG markup copied to clipboard.',
+      ),
+      _ => (null, null),
+    };
 
-    switch (action) {
-      case 'mermaid':
-        final mermaid = await compute(_exportMermaidIsolate, json);
-        await Clipboard.setData(ClipboardData(text: mermaid));
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Mermaid diagram copied to clipboard.'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      case 'json':
-        final jsonString = await compute(_exportJsonIsolate, json);
-        await Clipboard.setData(ClipboardData(text: jsonString));
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('JSON schema copied to clipboard.'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      case 'svg':
-        final svg = await compute(_exportSvgIsolate, json);
-        await Clipboard.setData(ClipboardData(text: svg));
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('SVG markup copied to clipboard.'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
+    if (content == null || !context.mounted) return;
+
+    await Clipboard.setData(ClipboardData(text: content));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message!), duration: const Duration(seconds: 2)),
+      );
     }
   }
 }
