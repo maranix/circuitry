@@ -2,6 +2,21 @@
 
 All notable changes to the Circuitry monorepo are documented in this file.
 
+## 0.5.0 - 2026-11-24
+
+Performance optimization release introducing type-indexed fast-path retrieval and single-hash lookups to `circuitry`.
+
+### `circuitry` v0.5.0
+- **Type-Indexed Fast-Path**: Eliminates record tuple allocations `(T, null)` on every `circuit.get<T>()` read by querying `_untaggedInstances[T]` directly, boosting throughput by 350% (>35M–40M ops/sec) with sub-30ns latency.
+- **Single-Hash Assignment Lookups**: Halves hash table traversals across runtime dependency queries and graph topological level computation.
+- **Benchmark Suite**: Added hardened reproducible benchmark suite in `packages/circuitry/benchmark/` with dead-code elimination protection and calibrated net timing.
+
+### `circuitry_flutter` v0.5.0
+- Bumped `circuitry` dependency to `^0.5.0`.
+
+### `circuitry_devtools_extension` v0.5.0
+- Bumped `circuitry` dependency to `^0.5.0`.
+
 ## 0.2.0 - 2026-11-17
 
 Major feature release adding Dart and Flutter DevTools extension integration, core graph introspection, fail-fast async wave resolution, and taggable Flutter scopes.

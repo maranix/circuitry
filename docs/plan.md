@@ -2,14 +2,14 @@
 
 ## Next
 
-### Publish v0.2.0 to pub.dev
+### Publish v0.5.0 to pub.dev
 
-- **Release:** 0.2.0
-- **Goal:** Publish v0.2.0 stable releases of `circuitry`, `circuitry_flutter`, and `circuitry_devtools_extension` to pub.dev.
+- **Release:** 0.5.0
+- **Goal:** Publish v0.5.0 releases of `circuitry`, `circuitry_flutter`, and `circuitry_devtools_extension` to pub.dev.
 - **Requirements:**
   - Verify package validation passes with zero warnings (`dart pub publish --dry-run`).
-  - Tag release commits matching versions in pubspec.yaml (`v0.2.0`).
-- **Approach:** Run dry-run checks in all three packages, create git tag `v0.2.0`, and publish.
+  - Tag release commits matching versions in pubspec.yaml (`v0.5.0`).
+- **Approach:** Run dry-run checks in all three packages, create git tag `v0.5.0`, and publish.
 - **Acceptance:** All packages published and verified on pub.dev.
 
 ## Done this release
