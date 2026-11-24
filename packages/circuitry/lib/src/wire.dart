@@ -69,15 +69,18 @@ typedef WireDependencyResolver<Acc> = Acc Function(Circuit circuit);
 /// within a Directed Acyclic Graph (DAG), including its unique [key], its list of
 /// required [dependencies], and its [disposeInstance] lifecycle hook.
 ///
-/// Circuitry provides two concrete wire implementations:
+/// Circuitry provides three concrete wire implementations:
 /// * [Wire], representing synchronous lazy singletons instantiated on first access.
 /// * [AsyncWire], representing asynchronous singletons resolved in parallel topological
 ///   waves during `Circuit.build`.
+/// * [TriggerWire], representing actionable, callable domain service singletons implementing [CircuitAction].
 ///
 /// See also:
 ///
 /// * [Wire], for synchronous dependency recipes.
 /// * [AsyncWire], for asynchronous dependency recipes.
+/// * [TriggerWire], for actionable domain service recipes.
+/// * [CircuitAction], for the action blueprint interface.
 /// * [WireKey], for dependency tuple identifiers.
 sealed class CircuitWire({
   /// The unique record tuple identifying this wire in a [Circuit].
@@ -437,6 +440,159 @@ final class AsyncWireBuilder<Acc>._(
   /// callback to handle resource teardown when the [Circuit] is disposed.
   AsyncWire<T> to<T, K extends Enum>(
     Future<T> Function(Acc deps) create, {
+    K? tag,
+    WireDisposer<T>? onDispose,
+  }) => ._(
+    key: (T, tag),
+    dependencies: .unmodifiable(_dependencies),
+    create: (Circuit c) => create(_resolveDeps(c)),
+    onDispose: onDispose,
+  );
+}
+
+/// Blueprint marker interface for an action or callable domain service managed by Circuitry.
+///
+/// Classes implementing [CircuitAction] represent executable business capabilities or
+/// one-off actions that are wired via [TriggerWire].
+///
+/// Action classes typically expose a strongly typed `call(...)` method (making them
+/// callable objects in Dart) with any combination of positional, named, or optional
+/// arguments, and either synchronous or asynchronous return types.
+abstract interface class CircuitAction {}
+
+/// A declarative recipe for an action singleton of type [T] implementing [CircuitAction].
+///
+/// Trigger wires wire up actionable, callable capabilities in a [Circuit].
+/// Unlike standard [Wire]s which typically register continuous services or repositories,
+/// [TriggerWire] enforces at compile time that [T] must implement [CircuitAction].
+///
+/// Trigger wires are evaluated lazily upon first retrieval via `circuit.get<T>()`,
+/// and the instantiated action is retained in the container as a singleton. Subsequent
+/// retrievals return the cached instance in O(1), allowing actions to be called
+/// repeatedly without memory or garbage collection churn.
+///
+/// ## Declaring Trigger Wires
+///
+/// ### Zero-Dependency Actions
+///
+/// ```dart
+/// final idTrigger = TriggerWire(GenerateIdAction.new);
+/// ```
+///
+/// ### Tagged Actions
+///
+/// ```dart
+/// final loggerTrigger = TriggerWire.tag(
+///   () => LogAction(verbose: true),
+///   tag: Environment.dev,
+/// );
+/// ```
+///
+/// ### Chaining Dependencies
+///
+/// ```dart
+/// final emailTrigger = TriggerWire.takes<MailerService>()
+///     .takes<AppConfig>()
+///     .to((deps) => SendEmailAction(deps.$1, deps.$2));
+/// ```
+///
+/// See also:
+///
+/// * [CircuitAction], the blueprint marker interface implemented by action classes.
+/// * [TriggerWireBuilder], for accumulator chaining of action dependencies.
+/// * [Wire], for general synchronous lazy singletons.
+final class TriggerWire<T extends CircuitAction>._({
+  required super.key,
+  required super.dependencies,
+  required final WireBuilderFactory<T> _create,
+  final WireDisposer<T>? onDispose,
+}) extends CircuitWire {
+  /// Connects this trigger wire recipe to [circuit], resolving all declared dependencies synchronously and returning the action singleton of type [T].
+  T connect(Circuit circuit) => _create(circuit);
+
+  /// Creates an untagged trigger wire with no dependencies.
+  ///
+  /// The [create] closure is evaluated lazily when the action is first requested
+  /// via `circuit.get<T>()`.
+  ///
+  /// An optional [onDispose] callback may be supplied to clean up resources when the
+  /// [Circuit] is disposed.
+  new(WireFactory<T> create, {WireDisposer<T>? onDispose})
+    : this._(
+        key: (T, null),
+        dependencies: const [],
+        create: (_) => create(),
+        onDispose: onDispose,
+      );
+
+  /// Creates a tagged trigger wire of type [T] identified by [tag] with no dependencies.
+  ///
+  /// The [create] closure is evaluated lazily when the action is first requested
+  /// via `circuit.getTagged<T, K>(tag)`.
+  ///
+  /// An optional [onDispose] callback may be supplied to clean up resources when the
+  /// [Circuit] is disposed.
+  static TriggerWire<T> tag<T extends CircuitAction, K extends Enum>(
+    WireFactory<T> create, {
+    required K tag,
+    WireDisposer<T>? onDispose,
+  }) => ._(
+    key: (T, tag),
+    dependencies: const [],
+    create: (_) => create(),
+    onDispose: onDispose,
+  );
+
+  /// Starts building a trigger wire that depends on an untagged dependency of type [A].
+  ///
+  /// Returns a [TriggerWireBuilder] that can either chain additional dependencies or finalize
+  /// the trigger wire recipe using [TriggerWireBuilder.to].
+  static TriggerWireBuilder<A> takes<A>() => ._([(A, null)], (c) => c.get<A>());
+
+  /// Starts building a trigger wire that depends on a tagged dependency of type [A] with [tag].
+  ///
+  /// Returns a [TriggerWireBuilder] that can either chain additional dependencies or finalize
+  /// the trigger wire recipe using [TriggerWireBuilder.to].
+  static TriggerWireBuilder<A> takesTagged<A, K extends Enum>(K tag) =>
+      ._([(A, tag)], (c) => c.getTagged<A, K>(tag));
+
+  @override
+  FutureOr<void> disposeInstance(Object? instance) {
+    if (instance is T && onDispose != null) {
+      return onDispose!(instance);
+    }
+  }
+}
+
+/// Accumulator-based fluent builder for declaring dependencies of a [TriggerWire].
+///
+/// Chained invocations of [takes] and [takesTagged] accumulate dependencies into strongly typed
+/// left-nested record tuples. Call [to] to finalize the builder into a [TriggerWire<T>],
+/// where [T] is strictly constrained to implement [CircuitAction].
+final class TriggerWireBuilder<Acc>._(
+  final List<WireKey> _dependencies,
+  final WireDependencyResolver<Acc> _resolveDeps,
+) {
+  /// Appends an untagged dependency of type [Next] to the dependency accumulator.
+  TriggerWireBuilder<(Acc, Next)> takes<Next>() => ._([
+    ..._dependencies,
+    (Next, null),
+  ], (c) => (_resolveDeps(c), c.get<Next>()));
+
+  /// Appends a tagged dependency of type [Next] with [tag] to the dependency accumulator.
+  TriggerWireBuilder<(Acc, Next)> takesTagged<Next, K extends Enum>(K tag) =>
+      ._([
+        ..._dependencies,
+        (Next, tag),
+      ], (c) => (_resolveDeps(c), c.getTagged<Next, K>(tag)));
+
+  /// Completes the builder by defining the synchronous factory [create] receiving [Acc] dependencies.
+  ///
+  /// Enforces at compile time that [T] must implement [CircuitAction].
+  /// Supply an optional [tag] to register a tagged action, and an optional [onDispose]
+  /// callback to handle resource teardown when the [Circuit] is disposed.
+  TriggerWire<T> to<T extends CircuitAction, K extends Enum>(
+    T Function(Acc deps) create, {
     K? tag,
     WireDisposer<T>? onDispose,
   }) => ._(

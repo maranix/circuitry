@@ -9,8 +9,10 @@
 /// * [Circuit], the compiled dependency injection container and DAG compiler.
 /// * [Wire], declarative recipes for synchronous, lazily evaluated singletons.
 /// * [AsyncWire], declarative recipes for asynchronous singletons resolved in parallel waves during build.
+/// * [TriggerWire], declarative recipes for actionable, callable singletons implementing [CircuitAction].
+/// * [CircuitAction], blueprint marker interface for action classes.
 /// * [WireKey], record tuple identifiers `(Type, Enum?)` supporting Dart dot-shorthands for tagged singletons.
-/// * [Wire.takes] and [AsyncWire.takes], fluent accumulator chaining for declaring dependencies.
+/// * [Wire.takes], [AsyncWire.takes], and [TriggerWire.takes], fluent accumulator chaining for declaring dependencies.
 ///
 /// ## Quickstart
 ///
@@ -57,6 +59,7 @@ export 'src/wire.dart'
     hide
         AsyncWireBuilder,
         AsyncWireBuilderFactory,
+        TriggerWireBuilder,
         WireBuilder,
         WireBuilderFactory,
         WireDependencyResolver;

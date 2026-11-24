@@ -32,6 +32,24 @@ final class ComplexAppService(
   final NotificationService notifications,
 );
 
+final class GenerateIdAction implements CircuitAction {
+  String call() => 'uuid-123';
+}
+
+final class LogAction implements CircuitAction {
+  final bool verbose;
+  const LogAction({this.verbose = false});
+  void call(String message) {}
+}
+
+final class SendEmailAction implements CircuitAction {
+  final DatabaseService db;
+  final AuthService auth;
+  SendEmailAction(this.db, this.auth);
+
+  Future<bool> call(String recipient, {String? subject}) async => true;
+}
+
 void main() {
   group('WireKey and Wire Definition Specs', () {
     test('untagged sync Wire has (T, null) key and is a Wire', () {
@@ -301,6 +319,81 @@ void main() {
         expect(app.notifications.channel, equals('push'));
       },
     );
+  });
+
+  group('TriggerWire and CircuitAction Specs', () {
+    test('untagged TriggerWire has (T, null) key and is a TriggerWire', () {
+      final wire = TriggerWire(GenerateIdAction.new);
+      expect(wire.key, equals((GenerateIdAction, null)));
+      expect(wire.dependencies, isEmpty);
+      expect(wire, isA<TriggerWire<GenerateIdAction>>());
+    });
+
+    test('tagged TriggerWire has (T, tag) key and is a TriggerWire', () {
+      final wire = TriggerWire.tag(
+        () => const LogAction(verbose: true),
+        tag: Environment.prod,
+      );
+      expect(wire.key, equals((LogAction, Environment.prod)));
+      expect(wire.dependencies, isEmpty);
+      expect(wire, isA<TriggerWire<LogAction>>());
+    });
+
+    test('TriggerWire.takes defines single dependency', () {
+      final wire = TriggerWire.takes<DatabaseService>().to(
+        (db) => SendEmailAction(db, AuthService()),
+      );
+      expect(wire.key, equals((SendEmailAction, null)));
+      expect(wire.dependencies, equals([(DatabaseService, null)]));
+    });
+
+    test('TriggerWire.takesTagged defines tagged dependency', () {
+      final wire =
+          TriggerWire.takesTagged<DatabaseService, Environment>(
+            Environment.prod,
+          ).to(
+            (db) => SendEmailAction(db, AuthService()),
+            tag: Environment.staging,
+          );
+      expect(wire.key, equals((SendEmailAction, Environment.staging)));
+      expect(wire.dependencies, equals([(DatabaseService, Environment.prod)]));
+    });
+
+    test('TriggerWire multi-dependency accumulator chaining', () {
+      final wire = TriggerWire.takes<DatabaseService>().takes<AuthService>().to(
+        (deps) {
+          final (db, auth) = deps;
+          return SendEmailAction(db, auth);
+        },
+      );
+      expect(wire.key, equals((SendEmailAction, null)));
+      expect(
+        wire.dependencies,
+        equals([(DatabaseService, null), (AuthService, null)]),
+      );
+    });
+
+    test('TriggerWire.disposeInstance triggers onDispose', () async {
+      var disposed = false;
+      final wire = TriggerWire(
+        GenerateIdAction.new,
+        onDispose: (action) {
+          disposed = true;
+        },
+      );
+      await wire.disposeInstance(GenerateIdAction());
+      expect(disposed, isTrue);
+
+      // Null or non-matching instance ignored
+      var disposed2 = false;
+      final wire2 = TriggerWire(
+        GenerateIdAction.new,
+        onDispose: (_) => disposed2 = true,
+      );
+      await wire2.disposeInstance(null);
+      await wire2.disposeInstance('not-an-action');
+      expect(disposed2, isFalse);
+    });
   });
 
   group('WireKey Formatting Extension', () {

@@ -18,7 +18,7 @@ circuitry/
 │   │   │       ├── introspection.dart # CircuitIntrospection, WireDescriptor, Mermaid/JSON export
 │   │   │       ├── registry.dart  # CircuitRegistry, CircuitDescriptor, VM Service extensions
 │   │   │       ├── utils.dart     # Internal formatting and utility functions
-│   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, builders
+│   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, TriggerWire, CircuitAction, builders
 │   │   └── test/                  # Unit tests (DAG validation, waves, laziness, disposal, registry)
 │   ├── circuitry_devtools_extension/ # Standalone Flutter Web DevTools extension UI & companion package
 │   │   ├── extension/             # Dart & Flutter DevTools extension configuration
@@ -64,6 +64,7 @@ flowchart TD
   subgraph Declaration["1. Declarative Wires"]
     W1["Wire&lt;T&gt;<br/>(Lazy synchronous)"]
     W2["AsyncWire&lt;T&gt;<br/>(Topological async wave)"]
+    W3["TriggerWire&lt;T&gt;<br/>(Action singleton)"]
     K["(Type, Enum?) Record Keys"]
     TC[".takes&lt;A&gt;().to(...) Chaining"]
   end
@@ -169,10 +170,11 @@ flowchart TD
 - Enables Dart dot-shorthands (e.g. `tag: .prod`, `tag: .fast`) and allows multiple distinct registrations of the same generic Dart type without collisions.
 - **Type-Indexed Fast Path**: To eliminate record tuple allocation overhead on hot paths, `Circuit` maintains an internal `Map<Type, Object?> _untaggedInstances` fast-path index alongside `_instances`. Calls to `circuit.get<T>()` query `_untaggedInstances[T]` directly in a single hash lookup with zero record allocations, delivering >30M ops/sec with ~30 ns lookup latency. Tagged queries (`getTagged<T, K>(tag)`) use single-hash lookup assignment on `_instances[(T, tag)]`.
 
-### 5. Declarative Wire Recipes (`CircuitWire`, `Wire<T>`, `AsyncWire<T>`)
+### 5. Declarative Wire Recipes (`CircuitWire`, `Wire<T>`, `AsyncWire<T>`, `TriggerWire<T extends CircuitAction>`)
 - `Wire<T>`: Synchronous lazy singletons, constructed on first read or when required by an `AsyncWire` during build.
 - `AsyncWire<T>`: Asynchronous singletons resolved in parallel topological waves during `Circuit.build(wires)`.
-- Fluent accumulator chaining (`Wire.takes`, `AsyncWire.takes` backed by internal `WireBuilder` / `AsyncWireBuilder` hidden from public exports) allows type-safe dependency declarations:
+- `TriggerWire<T extends CircuitAction>`: Actionable, callable singletons enforcing that `T` implements the `CircuitAction` blueprint marker interface at compile time. Instantiated lazily on first read, memoized in container storage for O(1) subsequent access without recreation/GC churn, and callable using native Dart `call(...)` syntax.
+- Fluent accumulator chaining (`Wire.takes`, `AsyncWire.takes`, `TriggerWire.takes` backed by internal `WireBuilder` / `AsyncWireBuilder` / `TriggerWireBuilder` hidden from public exports) allows type-safe dependency declarations:
   - 1-dependency accumulator passes directly to 1-arg constructor/tear-off (`.to(UserService.new)`).
   - Multi-dependency accumulator unpacks nested record tuples (`(deps) => OrderService(deps.$1, deps.$2)`).
 

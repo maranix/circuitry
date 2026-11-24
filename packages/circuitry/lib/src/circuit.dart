@@ -130,31 +130,37 @@ final class Circuit._(final CircuitGraph _graph) {
 
     switch (wire) {
       case Wire<Object?>():
-        if (_creating.contains(key)) {
-          throw CircularDependencyException(
-            'Circular dependency detected while creating ${formatWireKey(key)}.',
-            cycle: [..._creating, key],
-          );
-        }
-
-        _creating.add(key);
-        try {
-          final instance = wire.connect(this);
-          _instances[key] = instance;
-          if (key.$2 == null) {
-            _untaggedInstances[key.$1] = instance;
-          }
-          if (isDebugMode) {
-            CircuitRegistry.instance.onWireResolved(this, key, isAsync: false);
-          }
-          return instance;
-        } finally {
-          _creating.remove(key);
-        }
+        return _resolveSyncWire(key, wire.connect);
+      case TriggerWire<CircuitAction>():
+        return _resolveSyncWire(key, wire.connect);
       case AsyncWire<Object?>():
         throw StateError(
           'Async wire ${formatWireKey(key)} was not resolved during circuit build.',
         );
+    }
+  }
+
+  Object? _resolveSyncWire(WireKey key, Object? Function(Circuit) connect) {
+    if (_creating.contains(key)) {
+      throw CircularDependencyException(
+        'Circular dependency detected while creating ${formatWireKey(key)}.',
+        cycle: [..._creating, key],
+      );
+    }
+
+    _creating.add(key);
+    try {
+      final instance = connect(this);
+      _instances[key] = instance;
+      if (key.$2 == null) {
+        _untaggedInstances[key.$1] = instance;
+      }
+      if (isDebugMode) {
+        CircuitRegistry.instance.onWireResolved(this, key, isAsync: false);
+      }
+      return instance;
+    } finally {
+      _creating.remove(key);
     }
   }
 

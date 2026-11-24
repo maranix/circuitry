@@ -1,7 +1,10 @@
 # Plan
 
+## Next
+
 ## Done this release
 
+- Introduce `CircuitAction` blueprint marker interface and dedicated `TriggerWire<T extends CircuitAction>` with `TriggerWireBuilder`, enforcing compile-time blueprint conformance for action singletons evaluated lazily on first access and retained for zero-churn invocations.
 - Add Flutter companion enhancements: introduce `CircuitProvider.listener` for safe side effects on state transitions, and add `CircuitBuilder<T>` (with `.tagged()` constructor and `circuitTag` support) for localized leaf dependency reads.
 - Overhaul DevTools extension performance: offload JSON deserialization and diagram/SVG exporters to background isolates (`compute()`), pre-compute and cache DAG layout geometry with zero-allocation Bézier splines, batch edge draw calls, scope fine-grained pane rebuilding with `RepaintBoundary`, and debounce search inputs.
 - Optimize hot-path dependency retrieval with type-indexed fast-path and single-hash lookups, yielding 267%–332% higher throughput (>32M–34M ops/sec) and sub-32ns latency with reproducible benchmark suite in `benchmark/`.
