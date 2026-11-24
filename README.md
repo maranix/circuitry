@@ -24,6 +24,7 @@
 | [`circuitry`](packages/circuitry) | [![pub](https://img.shields.io/pub/v/circuitry.svg)](https://pub.dev/packages/circuitry) | Pure Dart dependency injection engine (~28 KB). Zero Flutter dependencies; runs on CLI, server, web, and mobile. |
 | [`circuitry_flutter`](packages/circuitry_flutter) | [![pub](https://img.shields.io/pub/v/circuitry_flutter.svg)](https://pub.dev/packages/circuitry_flutter) | Flutter bridge with `CircuitProvider`, `CircuitBuilder`, `InheritedWidget` scoping, `CircuitState` matching, and unmount disposal. |
 | [`circuitry_devtools_extension`](packages/circuitry_devtools_extension) | [![pub](https://img.shields.io/pub/v/circuitry_devtools_extension.svg)](https://pub.dev/packages/circuitry_devtools_extension) | Optional opt-in DevTools companion package (`dev_dependencies`). Interactive DAG canvas, wave waterfall profiler, and live wire inspector. |
+| [`circuitry_analyzer_plugin`](packages/circuitry_analyzer_plugin) | [![pub](https://img.shields.io/pub/v/circuitry_analyzer_plugin.svg)](https://pub.dev/packages/circuitry_analyzer_plugin) | First-party Dart Analysis Server plugin. Zero-config, default-enabled static DAG validation, duplicate key checks, and action blueprint lints. |
 
 ---
 
@@ -47,6 +48,7 @@
 7. **On-Demand Introspection & Exporters**: `circuit.inspect()` provides on-demand DAG inspection (`dependentsOf`, `dependenciesOf`, `topologicalOrder`), valid Mermaid flowchart generation (`toMermaid()`), and structured JSON serialization (`toJson()`), fully tree-shaken in release builds when unused.
 8. **DevTools Integration & Ambient Registry**: Ambient `CircuitRegistry` tracks containers in debug mode, exposing VM Service endpoints (`ext.circuitry.getCircuits`, `ext.circuitry.getCircuitGraph`, `ext.circuitry.forceResolveWire`) and streaming lifecycle events via `developer.postEvent`. In profile and release modes, `CircuitRegistry`, its properties, and `debugTag` are complete no-ops and tree-shaken with zero runtime or memory overhead.
 9. **Interactive DevTools Extension UI & Opt-In Companion**: The 15 MB compiled DevTools extension is published as a dedicated, opt-in `dev_dependency` package (`circuitry_devtools_extension`). This keeps `circuitry` ultra-lightweight (~28 KB). Developers opt into DevTools inspection by adding `circuitry_devtools_extension` to `dev_dependencies` and calling `registerCircuitryDevToolsExtension()` in `main()`, unlocking the interactive DAG canvas, horizontal topological waves, wave waterfall profiler, and on-demand singleton initialization.
+10. **Shift-Left Static Analysis**: `circuitry_analyzer_plugin` runs inside Dart's native Analysis Server isolate, validating DAG dependencies, detecting duplicate keys, enforcing `TriggerWire` for actions, and catching async factory errors at edit time in your IDE and CI without third-party daemons or wrappers.
 
 ---
 
@@ -236,6 +238,24 @@ void main() {
 
 ---
 
+## Analyzer Plugin Setup
+
+To get real-time in-editor DAG validation and best practice warnings across your project:
+
+1. Add `circuitry_analyzer_plugin` under the top-level `plugins` section of your `analysis_options.yaml`:
+```yaml
+plugins:
+  circuitry_analyzer_plugin: ^0.1.0
+```
+
+2. All warning rules are **enabled by default** with zero configuration required:
+   - **`circuitry_duplicate_wire`**: Flags duplicate wire keys `(Type, Enum?)` within circuit definitions.
+   - **`circuitry_missing_wire`**: Validates that all `.takes<T>()` / `.takesTagged<T, K>()` dependencies are provided in static wire lists.
+   - **`circuitry_prefer_trigger_wire`**: Enforces `TriggerWire` for domain services implementing `CircuitAction`.
+   - **`circuitry_avoid_async_in_wire`**: Warns when synchronous `Wire` closures return a `Future<T>`.
+
+---
+
 ## Workspace Structure
 
 ```
@@ -254,6 +274,12 @@ circuitry/
 │   │   │   ├── circuitry.dart     # Public barrel export
 │   │   │   └── src/               # Core engine implementation (circuit, graph, wire, registry, utils, extensions)
 │   │   └── test/                  # Unit tests for DAG, waves, laziness, disposal, and registry
+│   ├── circuitry_analyzer_plugin/ # First-party Dart Analysis Server plugin
+│   │   ├── lib/
+│   │   │   ├── circuitry_analyzer_plugin.dart # Public export of rules and utilities
+│   │   │   ├── main.dart          # Plugin entry point (top-level plugin variable)
+│   │   │   └── src/               # CircuitryPlugin, rules, and AST analysis utilities
+│   │   └── test/                  # AnalysisRuleTest test suite (analyzer_testing)
 │   ├── circuitry_devtools_extension/ # Standalone Flutter Web DevTools extension UI & companion package
 │   │   ├── extension/             # Dart & Flutter DevTools extension configuration
 │   │   │   └── devtools/
@@ -303,6 +329,9 @@ flutter analyze --fatal-infos --fatal-warnings
 ```bash
 # Run pure Dart tests in circuitry
 cd packages/circuitry && dart test
+
+# Run analyzer plugin tests in circuitry_analyzer_plugin
+cd packages/circuitry_analyzer_plugin && dart test
 
 # Run Flutter tests in circuitry_flutter
 cd packages/circuitry_flutter && flutter test
