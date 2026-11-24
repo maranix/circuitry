@@ -3,7 +3,11 @@ import 'dart:async';
 import 'package:circuitry_devtools_extension/src/models/circuit_graph_data.dart';
 import 'package:circuitry_devtools_extension/src/models/circuit_summary.dart';
 import 'package:circuitry_devtools_extension/src/services/circuitry_service_client.dart';
+import 'package:flutter/foundation.dart';
 import 'package:vm_service/vm_service.dart';
+
+CircuitGraphData _parseGraphData(Map<String, Object?> json) =>
+    CircuitGraphData.fromJson(json);
 
 /// Real VM Service-backed implementation of [CircuitryServiceClient].
 final class VmCircuitryServiceClient(final VmService _vmService)
@@ -61,7 +65,7 @@ final class VmCircuitryServiceClient(final VmService _vmService)
       args: {'id': circuitId},
     );
     if (response.json case final Map<String, Object?> json) {
-      return .fromJson(json);
+      return compute(_parseGraphData, json);
     }
     throw StateError('Empty response for circuit "$circuitId".');
   }

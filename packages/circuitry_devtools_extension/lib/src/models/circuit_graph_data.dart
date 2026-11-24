@@ -43,6 +43,9 @@ final class CircuitGraphData({
   final List<String> topologicalOrder;
   final Map<String, WireNode> _nodeMap;
   final Map<String, Set<String>> _reverseDependencies;
+  final Map<String, Set<String>> _transitiveDependenciesCache = {};
+  final Map<String, Set<String>> _transitiveDependentsCache = {};
+  Set<String>? _cachedCriticalPath;
 
   /// Fast lookup of a wire node by its formatted key.
   WireNode? findNode(String key) => _nodeMap[key];
@@ -70,6 +73,9 @@ final class CircuitGraphData({
 
     if (!transitive) return .unmodifiable(node.dependencies);
 
+    final cached = _transitiveDependenciesCache[key];
+    if (cached != null) return cached;
+
     final visited = <String>{};
     final Queue<String> queue = .new()..addAll(node.dependencies);
 
@@ -82,13 +88,18 @@ final class CircuitGraphData({
         }
       }
     }
-    return .unmodifiable(visited);
+    final result = Set<String>.unmodifiable(visited);
+    _transitiveDependenciesCache[key] = result;
+    return result;
   }
 
   /// Returns downstream dependents that rely on [key].
   Set<String> dependentsOf(String key, {bool transitive = false}) {
     final direct = _reverseDependencies[key] ?? const <String>{};
     if (!transitive) return direct;
+
+    final cached = _transitiveDependentsCache[key];
+    if (cached != null) return cached;
 
     final visited = <String>{};
     final Queue<String> queue = .new()..addAll(direct);
@@ -102,11 +113,14 @@ final class CircuitGraphData({
         }
       }
     }
-    return .unmodifiable(visited);
+    final result = Set<String>.unmodifiable(visited);
+    _transitiveDependentsCache[key] = result;
+    return result;
   }
 
   /// Computes the critical path of the DAG (chain with the highest cumulative depth/duration).
   Set<String> computeCriticalPath() {
+    if (_cachedCriticalPath != null) return _cachedCriticalPath!;
     if (wires.isEmpty) return const <String>{};
 
     // Calculate longest path length to each node using topological order
@@ -146,7 +160,7 @@ final class CircuitGraphData({
       path.add(curr);
       curr = pred[curr];
     }
-    return .unmodifiable(path);
+    return _cachedCriticalPath = .unmodifiable(path);
   }
 
   /// Generates a valid Mermaid flowchart diagram representing this circuit.
@@ -287,6 +301,21 @@ final class CircuitGraphData({
     buffer.writeln('</svg>');
     return buffer.toString();
   }
+
+  /// Serializes this [CircuitGraphData] to a JSON-compatible map.
+  Map<String, Object?> toJson() => {
+    'id': id,
+    if (debugTag != null) 'debugTag': debugTag,
+    'isDisposed': isDisposed,
+    'wireCount': wireCount,
+    'maxWaveLevel': maxWaveLevel,
+    'topologicalOrder': topologicalOrder,
+    'wires': [for (final wire in wires) wire.toJson()],
+    'waves': {
+      for (final entry in waves.entries)
+        '${entry.key}': [for (final wire in entry.value) wire.toJson()],
+    },
+  };
 
   /// Parses a [CircuitGraphData] from a JSON map returned by `ext.circuitry.getCircuitGraph`.
   factory fromJson(Map<String, Object?> json) {

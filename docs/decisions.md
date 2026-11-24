@@ -98,6 +98,18 @@
 - **Reason:** Eliminates record tuple allocations `(T, null)` on every `circuit.get<T>()` read and avoids double-hash traversals (`containsKey` + `[]`). Benchmarks proved a 267%–332% throughput improvement (from 7.9M ops/sec to 32.1M–34.1M ops/sec) and reduced lookup latency from 126 ns down to 29–31 ns with zero API breaking changes.
 - **Alternative:** Rewriting DAG compilation wave bucketing into a manual bucket loop was rejected after empirical benchmarking revealed it added list allocation overhead and was up to 25% slower on small graphs (10–35 nodes) compared to Dart's optimized iterable filtering.
 
+## 2026-11-24: DevTools Extension Performance Overhaul (Isolates, Cached Geometry, Zero-Allocation Splines, Scoped Rebuilding)
+
+- **Status:** agreed
+- **Choice:** Overhaul `circuitry_devtools_extension` performance by:
+  1. Offloading graph JSON deserialization and multi-format exporters (Mermaid, JSON schema, SVG markup) to background isolates via Flutter foundation `compute()`.
+  2. Pre-computing and caching DAG layout geometry in `_DagCanvasLayout`, eliminating runtime `Path` and `Paint` allocations during pan/zoom gestures at 60/120 FPS.
+  3. Batching edge render calls (single `canvas.drawPath` for unselected graphs, batched dimmed paths for selections).
+  4. Scoping rebuilds with isolated `ListenableBuilder`s and wrapping all split panes (`CircuitNavigator`, `DevToolsAreaPane`, `WireDetailDrawer`, `DevToolsToolbar`) and `InteractiveViewer` in `RepaintBoundary` layers.
+  5. Debouncing search field inputs with a 150ms timer to prevent synchronous layout and filtering thrashing on every keystroke.
+- **Reason:** Direct user testing identified noticeable clunkiness, GC churn, and UI lag caused by monolithic scaffold-level rebuilds, unthrottled search inputs, per-frame spline allocations during gestures, and main-thread serialization of large graphs.
+- **Alternative:** Maintaining monolithic screen rebuilds or calculating Bézier paths on every frame of canvas panning.
+
 ### Architecture Sketch
 
 Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler. `packages/circuitry` defines declarative dependency recipes (`Wire<T>`, `AsyncWire<T>`), record tuple keys `(Type, Enum?)`, and accumulator builders (`takes<A>().to(...)`), validated and compiled by `Circuit.build(wires)` into a Directed Acyclic Graph (DAG) with parallel topological wave resolution and reverse-wave disposal. `packages/circuitry_flutter` bridges this compiled container to the Flutter widget hierarchy via `CircuitProvider`, managing asynchronous build lifecycles, didUpdateWidget epoch race prevention, and unmount cleanup. For full architectural details, see [architecture.md](architecture.md).

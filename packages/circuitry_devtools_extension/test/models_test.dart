@@ -191,5 +191,20 @@ void main() {
       expect(svg, contains('B'));
       expect(svg, endsWith('</svg>\n'));
     });
+
+    test('serializes to JSON and roundtrips via fromJson', () {
+      final json = graph.toJson();
+      expect(json['id'], 'circuit_0');
+      expect(json['wireCount'], 4);
+      expect(json['maxWaveLevel'], 2);
+
+      final reconstructed = CircuitGraphData.fromJson(json);
+      expect(reconstructed.id, graph.id);
+      expect(reconstructed.debugTag, graph.debugTag);
+      expect(reconstructed.wireCount, graph.wireCount);
+      expect(reconstructed.wires.length, graph.wires.length);
+      expect(reconstructed.waves.length, graph.waves.length);
+      expect(reconstructed.topologicalOrder, graph.topologicalOrder);
+    });
   });
 }

@@ -211,7 +211,12 @@ flowchart TD
 - **Node Anatomy & Status Styling:** Differentiates resolved singletons (green checkmark), sleeping lazy wires (dashed border), in-flight async wires (amber spinner), and compilation failures (crimson error).
 - **Wire Detail Drawer & Live Actions:** Displays full wire metadata, wave level, interactive dependency links, and a "Force Initialize" action triggering `ext.circuitry.forceResolveWire` to instantiate sleeping lazy singletons in real time.
 - **Startup Wave Waterfall Profiler:** Renders a Gantt timeline of parallel wave execution during `Circuit.build(wires)`, pinpointing startup latency bottlenecks and highlighting the critical path.
-- **Toolbar & Exporters:** Provides search filtering by type or tag, status filters (`Unresolved Only`, `Async Only`, `Critical Path`), view mode switching, and multi-format diagram export (Mermaid flowchart, JSON schema, and SVG markup).
+- **Toolbar & Exporters:** Provides debounced (150ms) search filtering by type or tag, status filters (`Unresolved Only`, `Async Only`, `Critical Path`), view mode switching, and multi-format diagram export (Mermaid flowchart, JSON schema, and SVG markup).
+- **High-Performance Rendering Architecture:**
+  - **Background Isolate Offloading:** Offloads incoming DAG JSON graph deserialization and diagram/SVG exporters to background workers/isolates via Flutter foundation `compute()`, ensuring the main UI thread never blocks during payload processing.
+  - **Pre-Computed Geometry & Zero-Allocation Splines:** Caches layout calculations in `_DagCanvasLayout`. Bézier spline paths are pre-constructed once per graph update; interactive pan and zoom gestures inside `InteractiveViewer` allocate zero `Path` or `Paint` objects per frame, sustaining 60/120 FPS.
+  - **Batched Canvas Draw Calls:** Unselected graph edges render in a single `canvas.drawPath` call using a combined path; wire selections batch dimmed edges into a single path, minimizing GPU state switches.
+  - **Fine-Grained Scoped Rebuilding & Paint Isolation:** Scopes controller updates to individual panes and wraps all split panes (`CircuitNavigator`, `DevToolsAreaPane`, `WireDetailDrawer`, and `DevToolsToolbar`) and `InteractiveViewer` in `RepaintBoundary` layers, eliminating full-scaffold redraws during canvas interaction or live typing.
 - Compiled via `dart run devtools_extensions build_and_copy` into `packages/circuitry_devtools_extension/extension/devtools/build/`.
 
 ---
