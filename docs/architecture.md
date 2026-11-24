@@ -117,6 +117,8 @@ flowchart TD
 - Re-exports `package:circuitry/circuitry.dart` so Flutter consumers need only depend on `circuitry_flutter`.
 - Encapsulates `InheritedWidget` scoping within `_CircuitScope`, preventing `BuildContext` extension pollution.
 - Implements `didUpdateWidget` epoch generation tracking to safely cancel and tear down superseded in-flight compilations when wire inputs change.
+- Exposes an optional `listener: (context, state)` callback on `CircuitProvider` to execute one-off side effects (snackbars, navigation, telemetry) on state transitions without violating Flutter layout invariants.
+- Provides `CircuitBuilder<T>` (and `CircuitBuilder<T>.tagged`) to localize dependency extraction to leaf widgets without full-screen rebuilds or `CircuitProvider.of` boilerplate.
 - Propagates tagged ancestor circuits via ambient immutable map merging in `_CircuitScope`, enabling descendants across nested scopes to access tagged ancestor circuits in **O(1)** without tree walking.
 
 ### 3. Nested Scopes & O(1) Ambient Registry Map Merging

@@ -19,6 +19,8 @@ Flutter bridge for [`circuitry`](https://pub.dev/packages/circuitry) — providi
 - **Asynchronous Build Lifecycle (`CircuitProvider`)**: Compiles `CircuitWire` recipes asynchronously, displays loading/splash state while resolving, and wraps child in an internal `InheritedWidget` scope once ready.
 - **Monotonic Epoch Race Prevention**: Handles dynamic widget wire updates (`didUpdateWidget`) without race conditions, safely discarding superseded in-flight builds.
 - **Automatic Unmount Cleanup**: Automatically calls `circuit.dispose()` when the provider is unmounted from the widget tree.
+- **Side-Effect Listener (`CircuitProvider.listener`)**: Execute one-off side effects (snackbars, navigation, error telemetry) on state transitions without polluting widget `builder` methods.
+- **Localized Leaf Reads (`CircuitBuilder<T>`)**: Extract dependencies in leaf widgets via `CircuitBuilder<T>` and `CircuitBuilder<T>.tagged`, avoiding broad screen rebuilds.
 - **Synchronous Value Injection (`CircuitProvider.value`)**: Injects an already resolved `Circuit` synchronously for test harnesses or sub-trees without managing lifecycle disposal.
 - **Taggable Scopes & O(1) Nested Lookup**: Associate providers with tags (`tag: Scope.global`) to retrieve ancestor containers across nested providers in **O(1)** via `CircuitProvider.of(context, tag: Scope.global)` without widget tree walking.
 - **DevTools Integration & Debug Tags**: Associate providers with `debugTag: 'root'` to label containers and inspect their DAG, topological waves, and live wire states in the DevTools extension.

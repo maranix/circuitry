@@ -13,6 +13,16 @@ typedef CircuitStateWidgetBuilder = Widget Function(
   CircuitState state,
 );
 
+/// Signature for a listener callback that reacts to transitions in [CircuitState].
+///
+/// Used by [CircuitProvider.new] to execute one-off side effects (such as showing
+/// snackbars, logging telemetry, or triggering navigation) when the dependency
+/// graph enters [CircuitReady], [CircuitFailure], or restarts compilation.
+typedef CircuitStateListener = void Function(
+  BuildContext context,
+  CircuitState state,
+);
+
 /// A widget that provides a [Circuit] dependency injection container to its descendants.
 ///
 /// [CircuitProvider] acts as the composition root bridge between Circuitry's
@@ -146,6 +156,9 @@ typedef CircuitStateWidgetBuilder = Widget Function(
 sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
   /// Asynchronously compiles [wires] into a [Circuit] and yields reactive [CircuitState] to [builder].
   ///
+  /// Optionally accepts a [listener] callback invoked whenever [CircuitState] transitions
+  /// (e.g. entering [CircuitReady], [CircuitFailure], or restarting compilation).
+  ///
   /// Optionally associates this provider's [Circuit] with [tag] for scoped O(1) retrieval
   /// across nested [CircuitProvider] hierarchies via [CircuitProvider.of] or [CircuitProvider.maybeOf].
   /// In debug mode (`kDebugMode`), [tag] also labels the container in DevTools and the ambient
@@ -170,6 +183,7 @@ sealed class const CircuitProvider._({super.key}) extends StatelessWidget {
     Key? key,
     Enum? tag,
     required List<CircuitWire> wires,
+    CircuitStateListener? listener,
     required CircuitStateWidgetBuilder builder,
   }) = _CircuitWireProvider;
 
@@ -285,13 +299,19 @@ final class const _CircuitWireProvider({
   super.key,
   final Enum? tag,
   required final List<CircuitWire> wires,
+  final CircuitStateListener? listener,
   required final CircuitStateWidgetBuilder builder,
 }) extends CircuitProvider {
   this : super._();
 
   @override
   Widget build(BuildContext context) {
-    return _CircuitWireStateful(tag: tag, wires: wires, builder: builder);
+    return _CircuitWireStateful(
+      tag: tag,
+      wires: wires,
+      listener: listener,
+      builder: builder,
+    );
   }
 }
 
@@ -299,6 +319,7 @@ final class const _CircuitWireProvider({
 final class const _CircuitWireStateful({
   final Enum? tag,
   required final List<CircuitWire> wires,
+  final CircuitStateListener? listener,
   required final CircuitStateWidgetBuilder builder,
 }) extends StatefulWidget {
   @override
@@ -330,6 +351,7 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
       setState(() {
         _state = const .building();
       });
+      widget.listener?.call(context, _state);
       _startCompilation();
     }
   }
@@ -349,12 +371,14 @@ class _CircuitWireStatefulState extends State<_CircuitWireStateful> {
         setState(() {
           _state = .ready(circuit);
         });
+        widget.listener?.call(context, _state);
       },
       onError: (Object error, StackTrace stackTrace) {
         if (!mounted || currentEpoch != _compilationEpoch) return;
         setState(() {
           _state = .failure(error, stackTrace);
         });
+        widget.listener?.call(context, _state);
       },
     );
   }

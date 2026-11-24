@@ -110,6 +110,13 @@
 - **Reason:** Direct user testing identified noticeable clunkiness, GC churn, and UI lag caused by monolithic scaffold-level rebuilds, unthrottled search inputs, per-frame spline allocations during gestures, and main-thread serialization of large graphs.
 - **Alternative:** Maintaining monolithic screen rebuilds or calculating Bézier paths on every frame of canvas panning.
 
+## 2026-11-24: Flutter CircuitProvider listener Callback and CircuitBuilder Widget
+
+- **Status:** agreed
+- **Choice:** Add an optional `CircuitStateListener listener` callback to `CircuitProvider` and introduce `CircuitBuilder<T>` in `packages/circuitry_flutter` (with `.tagged()` constructor and `circuitTag` support).
+- **Reason:** Separates one-off side effects (snackbars, navigation, telemetry) from widget tree building to prevent Flutter layout lifecycle violations, while allowing leaf widgets to localize dependency extraction without wide screen-level rebuilds or `CircuitProvider.of` boilerplate. Container-level factories in core pure Dart `circuitry` were rejected under the "Both or None" principle to avoid asymmetric sync-only factory compromises without `getAsync`.
+- **Alternative:** Executing side effects inside `builder` (causes setState/Navigator build errors) or reading dependencies solely at screen root via `CircuitProvider.of(context)`.
+
 ### Architecture Sketch
 
 Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler. `packages/circuitry` defines declarative dependency recipes (`Wire<T>`, `AsyncWire<T>`), record tuple keys `(Type, Enum?)`, and accumulator builders (`takes<A>().to(...)`), validated and compiled by `Circuit.build(wires)` into a Directed Acyclic Graph (DAG) with parallel topological wave resolution and reverse-wave disposal. `packages/circuitry_flutter` bridges this compiled container to the Flutter widget hierarchy via `CircuitProvider`, managing asynchronous build lifecycles, didUpdateWidget epoch race prevention, and unmount cleanup. For full architectural details, see [architecture.md](architecture.md).
