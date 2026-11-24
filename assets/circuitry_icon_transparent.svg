@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Card Gradient -->
+    <radialGradient id="bgH" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </radialGradient>
+
+    <!-- Outer Circuit Trace: Electric Sky Blue -> Hyper Violet -->
+    <linearGradient id="traceOuterH" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="30%" stop-color="#38bdf8" />
+      <stop offset="70%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+
+    <!-- Inner Circuit Trace: Mint Emerald -> Neon Cyan -->
+    <linearGradient id="traceInnerH" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="40%" stop-color="#2dd4bf" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+
+    <!-- Trigger Accent -->
+    <linearGradient id="triggerPulseH" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+
+    <!-- Soft Ambient Bloom -->
+    <filter id="bloomH" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="24" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Sharp Drop Shadow -->
+    <filter id="shadowH" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#000000" flood-opacity="0.65" />
+    </filter>
+  </defs>
+
+  <!-- Squircle Base Canvas -->
+  
+  
+
+  <!-- Background Tech Grid Accent (Subtle PCB lines) -->
+  <g stroke="#334155" stroke-width="1.2" opacity="0.25">
+    <line x1="256" y1="40" x2="256" y2="472" stroke-dasharray="4 8" />
+    <line x1="40" y1="256" x2="472" y2="256" stroke-dasharray="4 8" />
+    <circle cx="256" cy="256" r="190" fill="none" stroke-dasharray="3 6" />
+    <circle cx="256" cy="256" r="110" fill="none" stroke-dasharray="3 6" />
+  </g>
+
+  <!-- Ambient Light Behind Emblem -->
+  <circle cx="220" cy="256" r="130" fill="#0284c7" opacity="0.22" filter="url(#bloomH)" />
+  <circle cx="300" cy="180" r="80" fill="#a855f7" opacity="0.16" filter="url(#bloomH)" />
+
+  <!-- MAIN EMBLEM -->
+  <g filter="url(#shadowH)">
+    
+    <!-- OUTER C RAIL -->
+    <!-- Starts at (345, 140) -> (220, 140) -> smooth 45-deg shoulder to (125, 235) -> (125, 277) -> (220, 372) -> (345, 372) -->
+    <path d="M 345 140 
+             L 225 140 
+             C 165 140 120 185 120 245 
+             L 120 267 
+             C 120 327 165 372 225 372 
+             L 345 372" 
+          fill="none" 
+          stroke="url(#traceOuterH)" 
+          stroke-width="26" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+
+    <!-- INNER C RAIL -->
+    <!-- Starts at (315, 202) -> (235, 202) -> (175, 256) -> (235, 310) -> (315, 310) -->
+    <path d="M 315 204 
+             L 235 204 
+             C 195 204 175 224 175 256 
+             C 175 288 195 308 235 308 
+             L 315 308" 
+          fill="none" 
+          stroke="url(#traceInnerH)" 
+          stroke-width="16" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+
+    <!-- Trigger Connection: Subtle 45-deg wire bridging outer spine to inner spine -->
+    <path d="M 120 256 
+             L 175 256" 
+          fill="none" 
+          stroke="url(#triggerPulseH)" 
+          stroke-width="10" 
+          stroke-linecap="round" />
+
+    <!-- SOLDER / DAG NODES -->
+    <!-- Outer Top Terminal -->
+    <circle cx="345" cy="140" r="19" fill="#020617" stroke="#c084fc" stroke-width="6" />
+    <circle cx="345" cy="140" r="7" fill="#ffffff" />
+
+    <!-- Outer Bottom Terminal -->
+    <circle cx="345" cy="372" r="19" fill="#020617" stroke="#0284c7" stroke-width="6" />
+    <circle cx="345" cy="372" r="7" fill="#ffffff" />
+
+    <!-- Inner Top Terminal -->
+    <circle cx="315" cy="204" r="13" fill="#020617" stroke="#38bdf8" stroke-width="4.5" />
+    <circle cx="315" cy="204" r="4.5" fill="#ffffff" />
+
+    <!-- Inner Bottom Terminal -->
+    <circle cx="315" cy="308" r="13" fill="#020617" stroke="#10b981" stroke-width="4.5" />
+    <circle cx="315" cy="308" r="4.5" fill="#ffffff" />
+
+    <!-- Spine Outer Joint Node -->
+    <circle cx="120" cy="256" r="14" fill="#020617" stroke="#818cf8" stroke-width="4.5" />
+    <circle cx="120" cy="256" r="5" fill="#38bdf8" />
+
+    <!-- Spine Inner Core Node (The Trigger Hub) -->
+    <circle cx="175" cy="256" r="12" fill="#020617" stroke="#2dd4bf" stroke-width="4" />
+    <circle cx="175" cy="256" r="4" fill="#ffffff" />
+
+  </g>
+</svg>
