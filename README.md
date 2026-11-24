@@ -20,46 +20,6 @@ Circuitry provides compile-time-checked runtime dependency wiring with parallel 
 
 ![Circuitry Architecture](https://raw.githubusercontent.com/maranix/circuitry/main/assets/circuitry_architecture.png)
 
-```mermaid
-flowchart TD
-  subgraph Declaration["1. Declarative Wires"]
-    W1["Wire&lt;T&gt;<br/>(Lazy synchronous)"]
-    W2["AsyncWire&lt;T&gt;<br/>(Topological async wave)"]
-    W3["TriggerWire&lt;T&gt;<br/>(Action singleton)"]
-    K["(Type, Enum?) Record Keys"]
-    TC[".takes&lt;A&gt;().to(...) Chaining"]
-  end
-
-  subgraph Compilation["2. DAG Compiler &amp; Validation"]
-    CB["Circuit.build(wires)"]
-    CD["Cycle Detection (DFS)"]
-    MD["Missing Dependency Check"]
-    DD["Duplicate Key Check"]
-  end
-
-  subgraph Waves["3. Parallel Topological Waves"]
-    Wave0["Wave 0 (Roots)<br/>Async: Config | Sync: Logger"]
-    Wave1["Wave 1 (Services)<br/>Async: Database | Async: ApiClient"]
-    Wave2["Wave 2 (Consumers)<br/>Sync: UserService | Sync: Orders"]
-    Wave0 --> Wave1 --> Wave2
-  end
-
-  subgraph Container["4. Compiled Circuit Container"]
-    CR["O(1) circuit.get&lt;T&gt;()"]
-    TR["circuit.getTagged&lt;T, K&gt;(tag)"]
-    LE["Lazy On-Demand Instantiation"]
-    DISP["Reverse Wave Disposal (Wave 2 -&gt; 1 -&gt; 0)"]
-  end
-
-  subgraph Flutter["5. Flutter Bridge (circuitry_flutter)"]
-    CP["CircuitProvider(wires: [...])"]
-    CBld["CircuitBuilder&lt;T&gt; (Leaf reads)"]
-    CS["CircuitState Pattern Matching<br/>Building | Ready | Failure"]
-    IS["InheritedWidget Context Scope"]
-    UM["Automatic Unmount Cleanup"]
-  end
-```
-
 ---
 
 ## Architectural Principles
