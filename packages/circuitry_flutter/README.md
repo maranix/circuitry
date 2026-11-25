@@ -174,6 +174,19 @@ void main() {
 
 ---
 
+## Analyzer Plugin
+
+For real-time edit-time DAG validation and best practice warnings across your Flutter project (including `CircuitProvider(wires: [...])` and `Circuit.build(...)`), add [`circuitry_analyzer_plugin`](https://pub.dev/packages/circuitry_analyzer_plugin) to your `analysis_options.yaml`:
+
+```yaml
+plugins:
+  circuitry_analyzer_plugin: ^0.1.0
+```
+
+All four warning rules (`circuitry_duplicate_wire`, `circuitry_missing_wire`, `circuitry_prefer_trigger_wire`, and `circuitry_avoid_async_in_wire`) are enabled by default with zero extra configuration.
+
+---
+
 ## License
 
 MIT © [Raman Verma](https://github.com/maranix)

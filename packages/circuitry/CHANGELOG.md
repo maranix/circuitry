@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+### Documentation
+- Added [`circuitry_analyzer_plugin`](https://pub.dev/packages/circuitry_analyzer_plugin) setup instructions to `README.md` for edit-time static DAG validation and best-practice lints.
+
 ## 0.5.0
 
 ### Performance

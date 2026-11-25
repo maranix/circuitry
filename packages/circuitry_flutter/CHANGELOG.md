@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+### Documentation & Dependencies
+- Added [`circuitry_analyzer_plugin`](https://pub.dev/packages/circuitry_analyzer_plugin) setup instructions to `README.md` for edit-time static DAG validation across `CircuitProvider` and `Circuit.build`.
+- Updated `circuitry` dependency constraint to `^0.5.1`.
+
 ## 0.5.0
 
 ### Changes
