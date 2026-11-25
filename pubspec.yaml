@@ -13,3 +13,4 @@ workspace:
   - packages/circuitry_flutter
   - packages/circuitry_flutter/example
   - packages/circuitry_devtools_extension
+  - packages/circuitry_analyzer_plugin

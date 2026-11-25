@@ -53,3 +53,8 @@ jobs:
         run: |
           cd packages/circuitry_devtools_extension
           flutter test
+
+      - name: Run Analyzer Plugin Tests (circuitry_analyzer_plugin)
+        run: |
+          cd packages/circuitry_analyzer_plugin
+          dart test

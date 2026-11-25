@@ -4,6 +4,15 @@
 
 ## Done this release
 
+- Introduce `packages/circuitry_analyzer_plugin` based on `analysis_server_plugin`:
+  - Add `circuitry_duplicate_wire` warning rule to detect duplicate wire keys statically.
+  - Add `circuitry_missing_wire` warning rule to catch missing dependencies in static wire lists.
+  - Add `circuitry_prefer_trigger_wire` warning rule to flag `CircuitAction` implementations wired without `TriggerWire`.
+  - Add `circuitry_avoid_async_in_wire` warning rule to flag async lambdas in synchronous `Wire`.
+  - Register rules via `registerWarningRule` for zero-configuration, default-enabled static diagnostics.
+  - Comprehensive unit test suite with `analyzer_testing` and `test_reflective_loader`.
+  - Update architecture documentation, decision records, README, CI workflow, and workspace configuration.
+
 - Update `circuitry_devtools_extension` for actions and `TriggerWire`: add `isAction` to `WireDescriptor` and `WireNode`, add `'Actions Only'` toolbar filter toggle, distinctive teal play icon and action badge styling in DAG canvas, action trigger timeline metric, and contextual action trigger controls in the wire detail drawer.
 - Introduce `CircuitAction` blueprint marker interface and dedicated `TriggerWire<T extends CircuitAction>` with `TriggerWireBuilder`, enforcing compile-time blueprint conformance for action singletons evaluated lazily on first access and retained for zero-churn invocations.
 - Add Flutter companion enhancements: introduce `CircuitProvider.listener` for safe side effects on state transitions, and add `CircuitBuilder<T>` (with `.tagged()` constructor and `circuitTag` support) for localized leaf dependency reads.

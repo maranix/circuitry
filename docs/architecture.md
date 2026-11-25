@@ -2,7 +2,7 @@
 
 ## Current Shape & Monorepo Layout
 
-Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler split into three packages under a unified Dart workspace:
+Circuitry is architected as an offline, zero-codegen runtime dependency graph compiler split into four packages under a unified Dart workspace:
 
 ```
 circuitry/
@@ -23,6 +23,19 @@ circuitry/
 │   │   │       ├── utils.dart     # Internal formatting and utility functions
 │   │   │       └── wire.dart      # WireKey, CircuitWire, Wire, AsyncWire, TriggerWire, CircuitAction, builders
 │   │   └── test/                  # Unit tests (DAG validation, waves, laziness, disposal, registry)
+│   ├── circuitry_analyzer_plugin/ # First-party Dart Analysis Server plugin
+│   │   ├── lib/
+│   │   │   ├── circuitry_analyzer_plugin.dart # Public export of rules and utilities
+│   │   │   ├── main.dart          # Plugin entry point (top-level plugin variable)
+│   │   │   └── src/
+│   │   │       ├── plugin.dart    # CircuitryPlugin extends Plugin
+│   │   │       ├── rules/         # AnalysisRule warning implementations
+│   │   │       │   ├── circuitry_avoid_async_in_wire_rule.dart
+│   │   │       │   ├── circuitry_duplicate_wire_rule.dart
+│   │   │       │   ├── circuitry_missing_wire_rule.dart
+│   │   │       │   └── circuitry_prefer_trigger_wire_rule.dart
+│   │   │       └── utils/         # AST wire analysis utilities
+│   │   └── test/                  # AnalysisRuleTest test suite (analyzer_testing)
 │   ├── circuitry_devtools_extension/ # Standalone Flutter Web DevTools extension UI & companion package
 │   │   ├── extension/             # Dart & Flutter DevTools extension configuration
 │   │   │   └── devtools/
@@ -43,9 +56,9 @@ circuitry/
 │       ├── lib/
 │       │   ├── circuitry_flutter.dart # Library entry point and pure Dart re-export
 │       │   └── src/               # Flutter bridge implementation
-│       │       ├── circuit_builder.dart  # CircuitBuilder widget for localized leaf reads
-│       │       ├── circuit_provider.dart # CircuitProvider widget declarations and internal _CircuitScope
-│       │       └── circuit_state.dart    # CircuitState sealed hierarchy
+│       ├── circuit_builder.dart  # CircuitBuilder widget for localized leaf reads
+│       ├── circuit_provider.dart # CircuitProvider widget declarations and internal _CircuitScope
+│       └── circuit_state.dart    # CircuitState sealed hierarchy
 │       └── test/                  # Widget & lifecycle tests
 ├── docs/
 │   ├── decisions.md               # Architectural decision records
@@ -226,6 +239,22 @@ flowchart TD
   - **Batched Canvas Draw Calls:** Unselected graph edges render in a single `canvas.drawPath` call using a combined path; wire selections batch dimmed edges into a single path, minimizing GPU state switches.
   - **Fine-Grained Scoped Rebuilding & Paint Isolation:** Scopes controller updates to individual panes and wraps all split panes (`CircuitNavigator`, `DevToolsAreaPane`, `WireDetailDrawer`, and `DevToolsToolbar`) and `InteractiveViewer` in `RepaintBoundary` layers, eliminating full-scaffold redraws during canvas interaction or live typing.
 - Compiled via `dart run devtools_extensions build_and_copy` into `packages/circuitry_devtools_extension/extension/devtools/build/`.
+
+### 11. First-Party Dart Analysis Server Plugin (`circuitry_analyzer_plugin`)
+- Implemented as an official Dart Analysis Server plugin in `packages/circuitry_analyzer_plugin` using `package:analysis_server_plugin` and `package:analyzer`.
+- Executes inside the Dart SDK Analysis Server's isolated plugin isolate, seamlessly surfacing diagnostics in IDEs (VS Code, Android Studio, IntelliJ) and during command-line analysis (`dart analyze`, `flutter analyze`) without third-party daemon processes or runner wrappers.
+- Enabled in user projects via the top-level `plugins` section in `analysis_options.yaml`:
+  ```yaml
+  plugins:
+    circuitry_analyzer_plugin: ^0.1.0
+  ```
+- **Default Warning Rules:** All rules are registered via `registry.registerWarningRule(...)`, giving them warning-level severity and enabling them by default without requiring `diagnostics:` YAML entries.
+- **Rule Set:**
+  1. `circuitry_duplicate_wire`: Statically detects duplicate wire keys `(Type, Enum?)` within `Circuit.build([...])` and `CircuitProvider(wires: [...])` list literals.
+  2. `circuitry_missing_wire`: Statically validates that every dependency declared via `.takes<T>()` / `.takesTagged<T, K>()` is fulfilled by another wire in the same static wire list. Safely skips lists with spread elements (`...wires`) or dynamic variables to prevent false positives.
+  3. `circuitry_prefer_trigger_wire`: Enforces compile-time blueprint conformance by warning when a class implementing `CircuitAction` is registered via `Wire` or `AsyncWire` instead of `TriggerWire`.
+  4. `circuitry_avoid_async_in_wire`: Warns when a synchronous `Wire(...)` factory returns a `Future<T>`, directing developers to use `AsyncWire<T>`.
+- **Hermetic Testing:** Verified with `package:analyzer_testing` (`AnalysisRuleTest`) and `package:test_reflective_loader`, providing fast unit test coverage without external processes.
 
 ---
 

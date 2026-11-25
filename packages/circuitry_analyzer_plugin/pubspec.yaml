@@ -1,0 +1,27 @@
+name: circuitry_analyzer_plugin
+description: First-party Dart Analysis Server plugin providing static DAG validation and best practice warnings for Circuitry.
+version: 0.1.0
+homepage: https://github.com/maranix/circuitry
+repository: https://github.com/maranix/circuitry/tree/main/packages/circuitry_analyzer_plugin
+issue_tracker: https://github.com/maranix/circuitry/issues?q=is%3Aissue+is%3Aopen+label%3Acircuitry_analyzer_plugin
+
+resolution: workspace
+
+topics:
+  - analyzer-plugin
+  - linter
+  - static-analysis
+  - dependency-injection
+  - di
+
+environment:
+  sdk: ^3.14.0
+
+dependencies:
+  analysis_server_plugin: ^0.3.26
+  analyzer: ^14.7.0
+
+dev_dependencies:
+  analyzer_testing: ^0.4.5
+  test: ^1.25.0
+  test_reflective_loader: ^0.3.0
