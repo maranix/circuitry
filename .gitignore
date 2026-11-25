@@ -31,3 +31,8 @@ migrate_working_dir/
 packages/*/build/
 packages/*/.dart_tool/
 pubspec.lock
+
+# Documentation website (VitePress)
+website/node_modules/
+website/.vitepress/dist/
+website/.vitepress/cache/

@@ -67,6 +67,7 @@ circuitry/
 ├── .github/workflows/ci.yml       # Automated format, analyze, and test verification
 ├── analysis_options.yaml          # Strict static analysis configuration
 ├── pubspec.yaml                   # Root pub workspace
+├── website/                       # VitePress documentation website
 └── README.md
 ```
 

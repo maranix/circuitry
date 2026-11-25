@@ -300,6 +300,7 @@ circuitry/
 │       └── test/                  # Widget, lifecycle, and integration tests
 ├── analysis_options.yaml          # Strict static analysis rules
 ├── pubspec.yaml                   # Root pub workspace
+├── website/                       # VitePress documentation website
 └── README.md
 ```
 
