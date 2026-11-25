@@ -5,22 +5,15 @@ import 'package:analyzer/dart/element/type.dart';
 /// Represents the supported kinds of Circuitry wires.
 ///
 /// Serves as the single source of truth for wire type recognition and validation.
-enum WireKind {
-  sync('Wire', isSync: true, isAsync: false, isTrigger: false),
-  async('AsyncWire', isSync: false, isAsync: true, isTrigger: false),
+enum const WireKind(
+  final String typeName, {
+  required final bool isSync,
+  required final bool isAsync,
+  required final bool isTrigger,
+}) {
+  synchronous('Wire', isSync: true, isAsync: false, isTrigger: false),
+  asynchronous('AsyncWire', isSync: false, isAsync: true, isTrigger: false),
   trigger('TriggerWire', isSync: false, isAsync: false, isTrigger: true);
-
-  final String typeName;
-  final bool isSync;
-  final bool isAsync;
-  final bool isTrigger;
-
-  const WireKind(
-    this.typeName, {
-    required this.isSync,
-    required this.isAsync,
-    required this.isTrigger,
-  });
 
   /// Registry mapping wire type names to their corresponding [WireKind].
   static final Map<String, WireKind> byName = {
@@ -44,12 +37,12 @@ enum WireKind {
     final direct = byName[source];
     if (direct != null) return direct;
     for (final kind in values) {
-      if (kind != sync && source.contains(kind.typeName)) {
+      if (kind != synchronous && source.contains(kind.typeName)) {
         return kind;
       }
     }
-    if (source.contains(sync.typeName)) {
-      return sync;
+    if (source.contains(synchronous.typeName)) {
+      return synchronous;
     }
     return null;
   }
